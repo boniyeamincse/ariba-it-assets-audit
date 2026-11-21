@@ -23,6 +23,7 @@ class CategoryButtonParser(HTMLParser):
 class DeviceCatalogTests(TestCase):
     @classmethod
     def setUpTestData(cls):
+        DeviceCategory.objects.all().delete()
         cls.admin = User.objects.create_superuser('catalog-admin')
         cls.network = DeviceCategory.objects.create(code='INFRASTRUCTURE', name="Engineer's Network")
         cls.users = DeviceCategory.objects.create(code='USERS', name='User Equipment')

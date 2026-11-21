@@ -403,6 +403,7 @@ def software_list_view(request):
 
     # Filters
     loc_filter = request.GET.get('location', '').strip()
+    category_filter = request.GET.get('category', '').strip()
     compliance_filter = request.GET.get('compliance', '').strip()
     risk_filter = request.GET.get('risk', '').strip()
     remediation_filter = request.GET.get('remediation', '').strip()
@@ -410,6 +411,9 @@ def software_list_view(request):
 
     if loc_filter:
         software_qs = software_qs.filter(location_id=loc_filter)
+
+    if category_filter:
+        software_qs = software_qs.filter(device_type_id=category_filter)
 
     if compliance_filter:
         software_qs = software_qs.filter(compliance_status=compliance_filter)
@@ -460,8 +464,9 @@ def software_list_view(request):
 
     piracy_percentage = round((cracked_count / total_software * 100), 1) if total_software > 0 else 0
 
-    # Locations for filter
+    # Locations & Software Categories for filter
     locations = visible_locs.order_by('location_id', 'name')
+    software_categories = DeviceType.objects.filter(category__code='LOGICAL').order_by('order', 'name')
 
     # Pagination
     paginator = Paginator(software_qs.order_by('-risk_level', '-id'), 25)
@@ -479,7 +484,9 @@ def software_list_view(request):
         'expired_count': expired_count,
         'piracy_percentage': piracy_percentage,
         'locations': locations,
+        'software_categories': software_categories,
         'loc_filter': loc_filter,
+        'category_filter': category_filter,
         'compliance_filter': compliance_filter,
         'risk_filter': risk_filter,
         'remediation_filter': remediation_filter,

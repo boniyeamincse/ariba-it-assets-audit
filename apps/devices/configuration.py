@@ -26,7 +26,7 @@ _TAG_CATEGORY_KEYWORDS = (
     ('ERP', r'erp|sap'),
     ('SSL', r'ssl|tls|certificate'),
     ('NAS', r'nas|network attached storage'),
-    ('VM', r'virtual machine|virtual server|cloud vm|vm'),
+    ('VM', r'virtual machine|virtual server|cloud vm|\bvm\b|virtualization|container|docker|kubernetes'),
     ('CCTV', r'cctv|camera|nvr|dvr'),
     ('AP', r'access point|unifi|wifi|wi-fi|ap'),
     ('PRT', r'printer|scanner'),
@@ -41,7 +41,7 @@ _TAG_CATEGORY_KEYWORDS = (
     ('UPS', r'ups|ips'),
     ('MON', r'monitor|display|screen'),
     ('IPP', r'ip phone|phone|telephone|voip'),
-    ('LIC', r'software|license|licence|chat|slack|teams|messaging|communication'),
+    ('LIC', r'software|license|licence|operating system|\bos\b|office|productivity|browser|graphics|design|cad|audio|video|editing|accounting|finance|payroll|programming|development|version control|git|cybersecurity|security|endpoint|siem|log management|vulnerability|remote access|vpn client|backup|recovery|monitoring|observability|email|communication|collaboration|project management|pdf|document|compression|archiving|media player|utilities|utility|firmware utilities|mobile device management|mdm|industrial|education|training|business-specific'),
     ('RCK', r'rack|cabinet'),
 )
 
