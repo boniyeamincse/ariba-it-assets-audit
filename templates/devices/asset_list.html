@@ -1,201 +1,285 @@
 {% extends 'base.html' %}
+{% load static %}
 
-{% block title %}All IT Assets | {{ portal.application_name }}{% endblock %}
+{% block title %}IT Asset Inventory Directory | {{ portal.application_name }}{% endblock %}
 {% block header_title %}IT Asset Inventory Directory{% endblock %}
-{% block header_subtitle %}Track, assign, and manage physical IT assets location-wise across Akij Group{% endblock %}
+{% block header_subtitle %}Track, assign, and manage physical &amp; logical IT assets across Akij Group locations{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <!-- Top Header Banner & Quick Actions -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <span class="px-2.5 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-100 text-blue-800 border border-blue-200">
+                    <i class="fa-solid fa-boxes-stacked mr-1"></i> Asset Management
+                </span>
+                <span class="text-xs text-slate-400">•</span>
+                <span class="text-xs font-semibold text-slate-500">Hardware &amp; License Registry</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1 flex items-center gap-2.5">
+                <span>Enterprise Asset Catalog</span>
+                <span class="text-xs font-mono font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded-full border border-slate-200">
+                    {{ total_assets }} Assets
+                </span>
+            </h2>
+            <p class="text-xs sm:text-sm text-slate-500 mt-0.5">
+                Physical endpoints, servers, switches, peripherals, and software licenses with live location governance.
+            </p>
+        </div>
+        
+        <div class="flex items-center space-x-2 flex-wrap">
+            {% if can_administrate %}
+            <a href="{% url 'asset_import_csv' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs border border-slate-200" title="Bulk Import Assets via CSV">
+                <i class="fa-solid fa-file-csv text-indigo-600"></i>
+                <span>Import CSV</span>
+            </a>
+            <a href="{% url 'category_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs border border-slate-200">
+                <i class="fa-solid fa-layer-group text-blue-600"></i>
+                <span>Categories</span>
+            </a>
+            <a href="{% url 'asset_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>Register Asset</span>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Interactive KPI Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-3.5 sm:gap-4">
+        <!-- 1. Total Assets -->
+        <a href="{% url 'asset_list' %}{% querystring status=None page=None %}" 
+           class="bg-white p-4 rounded-xl border {% if not status_filter %}border-blue-500 ring-2 ring-blue-100{% else %}border-slate-200 hover:border-slate-300{% endif %} shadow-sm flex items-center justify-between transition group">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase">Total Tracked Assets</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600">Total Assets</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_assets }}</h3>
+                <span class="text-[10px] text-slate-400 font-medium">All categories</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
                 <i class="fa-solid fa-boxes-stacked"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <!-- 2. Working / In-Use -->
+        <a href="{% url 'asset_list' %}{% querystring status='IN_USE' page=None %}" 
+           class="bg-white p-4 rounded-xl border {% if status_filter == 'IN_USE' %}border-emerald-500 ring-2 ring-emerald-100 bg-emerald-50/20{% else %}border-slate-200 hover:border-slate-300{% endif %} shadow-sm flex items-center justify-between transition group">
             <div>
-                <p class="text-xs font-semibold text-emerald-600 uppercase">Working / In-Use</p>
+                <p class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Working / In-Use</p>
                 <h3 class="text-2xl font-black text-emerald-900 mt-1">{{ in_use_count }}</h3>
+                <span class="text-[10px] text-emerald-600 font-medium">Operational</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
                 <i class="fa-solid fa-circle-check"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <!-- 3. Backup / Spares -->
+        <a href="{% url 'asset_list' %}{% querystring status='BACKUP' page=None %}" 
+           class="bg-white p-4 rounded-xl border {% if status_filter == 'BACKUP' %}border-amber-500 ring-2 ring-amber-100 bg-amber-50/20{% else %}border-slate-200 hover:border-slate-300{% endif %} shadow-sm flex items-center justify-between transition group">
             <div>
-                <p class="text-xs font-semibold text-amber-600 uppercase">Backup / Spares</p>
+                <p class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Backup / Spares</p>
                 <h3 class="text-2xl font-black text-amber-900 mt-1">{{ backup_count }}</h3>
+                <span class="text-[10px] text-amber-600 font-medium">Available stock</span>
             </div>
             <div class="w-10 h-10 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center text-lg">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
-        </div>
+        </a>
 
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <!-- 4. Faulty / Scrap -->
+        <a href="{% url 'asset_list' %}{% querystring status='FAULTY' page=None %}" 
+           class="bg-white p-4 rounded-xl border {% if status_filter == 'FAULTY' %}border-rose-500 ring-2 ring-rose-100 bg-rose-50/20{% else %}border-slate-200 hover:border-slate-300{% endif %} shadow-sm flex items-center justify-between transition group">
             <div>
-                <p class="text-xs font-semibold text-red-600 uppercase">Faulty / Scrap</p>
-                <h3 class="text-2xl font-black text-red-900 mt-1">{{ faulty_count }}</h3>
+                <p class="text-[11px] font-bold text-rose-700 uppercase tracking-wider">Faulty / Damaged</p>
+                <h3 class="text-2xl font-black text-rose-900 mt-1">{{ faulty_count }}</h3>
+                <span class="text-[10px] text-rose-600 font-medium">Needs repair</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-red-50 text-red-600 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-rose-50 text-rose-600 flex items-center justify-center text-lg">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-        </div>
+        </a>
+
+        <!-- 5. Retired Assets -->
+        <a href="{% url 'asset_list' %}{% querystring status='RETIRED' page=None %}" 
+           class="bg-white p-4 rounded-xl border {% if status_filter == 'RETIRED' %}border-slate-600 ring-2 ring-slate-200 bg-slate-50{% else %}border-slate-200 hover:border-slate-300{% endif %} shadow-sm flex items-center justify-between transition group">
+            <div>
+                <p class="text-[11px] font-bold text-slate-600 uppercase tracking-wider">Retired / Scrapped</p>
+                <h3 class="text-2xl font-black text-slate-800 mt-1">{{ retired_count }}</h3>
+                <span class="text-[10px] text-slate-400 font-medium">Archived tags</span>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-box-archive"></i>
+            </div>
+        </a>
     </div>
 
-    <!-- Filter & Search Toolbar (Location-Wise Dynamic Filter) -->
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        {% if selected_device_type %}
-        <div class="mb-3 flex flex-wrap items-center gap-2 text-sm">
-            <span class="rounded-lg bg-blue-50 px-2 py-1 text-blue-900">Device type <strong>{{ selected_device_type.name }}</strong> · {{ selected_device_type.category.name }}</span>
-            <a href="{% url 'asset_list' %}{% querystring device_type=None page=None %}" class="font-medium text-blue-700 underline">Remove device type filter</a>
-        </div>
-        {% endif %}
-        <form method="GET" action="{% url 'asset_list' %}" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
-            {% if selected_device_type %}<input type="hidden" name="device_type" value="{{ selected_device_type.pk }}">{% endif %}
-            {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
+    <!-- Quick Filter Tabs (Nature & Scope) -->
+    <div class="flex items-center gap-2 overflow-x-auto pb-1 text-xs">
+        <a href="{% url 'asset_list' %}{% querystring nature=None page=None %}" 
+           class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 whitespace-nowrap
+            {% if not nature_filter %}bg-slate-900 text-white shadow-xs{% else %}bg-white text-slate-600 border border-slate-200 hover:bg-slate-50{% endif %}">
+            <i class="fa-solid fa-list-ul text-[10px]"></i>
+            <span>All Assets</span>
+        </a>
 
-            <!-- Search Query -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Search Assets</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Tag, Serial, License, Model, Vendor, User..."
-                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                </div>
-            </div>
+        <a href="{% url 'asset_list' %}{% querystring nature='PHYSICAL' page=None %}" 
+           class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 whitespace-nowrap
+            {% if nature_filter == 'PHYSICAL' %}bg-blue-600 text-white shadow-xs{% else %}bg-white text-blue-700 border border-blue-200 hover:bg-blue-50{% endif %}">
+            <i class="fa-solid fa-desktop text-[11px]"></i>
+            <span>Physical Hardware</span>
+        </a>
 
-            <!-- Location-Wise Dropdown -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Location</label>
-                <select name="location" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Locations</option>
-                    {% for loc in locations %}
-                    <option value="{{ loc.id }}" {% if loc_filter == loc.id|stringformat:"s" %}selected{% endif %}>
-                        [{{ loc.location_id }}] {{ loc.name }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+        <a href="{% url 'asset_list' %}{% querystring nature='LOGICAL' page=None %}" 
+           class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 whitespace-nowrap
+            {% if nature_filter == 'LOGICAL' %}bg-purple-600 text-white shadow-xs{% else %}bg-white text-purple-700 border border-purple-200 hover:bg-purple-50{% endif %}">
+            <i class="fa-solid fa-cloud text-[11px]"></i>
+            <span>Logical / Licenses</span>
+        </a>
 
-            <!-- Category Dropdown -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Category</label>
-                <select name="category" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Categories</option>
-                    {% for cat in categories %}
-                    <option value="{{ cat.id }}" {% if cat_filter == cat.id|stringformat:"s" %}selected{% endif %}>{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Asset Nature Dropdown -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Asset Nature</label>
-                <select name="nature" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Natures</option>
-                    <option value="PHYSICAL" {% if nature_filter == 'PHYSICAL' %}selected{% endif %}>Physical / Hardware</option>
-                    <option value="LOGICAL" {% if nature_filter == 'LOGICAL' %}selected{% endif %}>Logical / Virtual / License</option>
-                </select>
-            </div>
-
-            <!-- Compliance Filter Dropdown -->
-            <div>
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Compliance / Risk</label>
-                <select name="compliance" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Compliance</option>
-                    {% for code, label in compliance_choices %}
-                    <option value="{{ code }}" {% if compliance_filter == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Buttons -->
-            <div class="flex items-center space-x-2">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1">
-                    <i class="fa-solid fa-filter"></i>
-                    <span>Filter</span>
-                </button>
-                {% if loc_filter or cat_filter or nature_filter or compliance_filter or risk_filter or selected_device_type or status_filter or search_query %}
-                <a href="{% url 'asset_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2.5 rounded-lg text-xs transition" title="Clear Filters">
-                    <i class="fa-solid fa-xmark"></i>
-                </a>
-                {% endif %}
-                {% if can_administrate %}<a href="{% url 'asset_import_csv' %}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition flex items-center space-x-1 whitespace-nowrap" title="Bulk Import via CSV">
-                    <i class="fa-solid fa-file-csv"></i>
-                    <span>Import CSV</span>
-                </a>{% endif %}
-                <a href="{% url 'asset_create' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition flex items-center space-x-1 whitespace-nowrap">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Add</span>
-                </a>
-            </div>
-
-        </form>
+        <a href="{% url 'asset_list' %}{% querystring compliance='CRACKED_PIRATED' page=None %}" 
+           class="px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 whitespace-nowrap
+            {% if compliance_filter == 'CRACKED_PIRATED' %}bg-rose-600 text-white shadow-xs{% else %}bg-white text-rose-700 border border-rose-200 hover:bg-rose-50{% endif %}">
+            <i class="fa-solid fa-triangle-exclamation text-[11px]"></i>
+            <span>Cracked / Unlicensed</span>
+        </a>
     </div>
 
-    <!-- Assets Table -->
-    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
-                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Asset Inventory List</h4>
-                <span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
-                    {{ total_assets }} Total
+    <!-- Filter & Search Toolbar Container -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        
+        <div class="p-4 sm:p-5 border-b border-slate-200 bg-slate-50/60">
+            {% if selected_device_type %}
+            <div class="mb-3 flex items-center gap-2 text-xs">
+                <span class="rounded-lg bg-blue-100 text-blue-800 px-2.5 py-1 font-bold flex items-center gap-1">
+                    <i class="fa-solid fa-filter text-[10px]"></i>
+                    <span>Device type: <strong>{{ selected_device_type.name }}</strong> ({{ selected_device_type.category.name }})</span>
                 </span>
+                <a href="{% url 'asset_list' %}{% querystring device_type=None page=None %}" class="text-blue-600 font-bold hover:underline">
+                    Remove device type filter
+                </a>
             </div>
-            <div class="flex items-center space-x-3 text-xs">
-                {% if can_administrate %}<a href="{% url 'asset_import_csv' %}" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center space-x-1">
-                    <i class="fa-solid fa-file-csv"></i>
-                    <span>Import CSV</span>
-                </a>{% endif %}
-                <span class="text-slate-300">•</span>
-                {% if can_administrate %}<a href="{% url 'category_list' %}" class="text-blue-600 hover:text-blue-800 font-semibold flex items-center space-x-1">
-                    <i class="fa-solid fa-layer-group"></i>
-                    <span>Manage Categories</span>
-                </a>{% endif %}
-            </div>
+            {% endif %}
+
+            <form method="GET" action="{% url 'asset_list' %}" class="space-y-3">
+                {% if selected_device_type %}<input type="hidden" name="device_type" value="{{ selected_device_type.pk }}">{% endif %}
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3">
+                    
+                    <!-- Search Query -->
+                    <div class="lg:col-span-2 relative">
+                        <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                            <i class="fa-solid fa-magnifying-glass"></i>
+                        </span>
+                        <input type="text" name="q" value="{{ search_query }}"
+                               placeholder="Search Tag, Serial, Model, Vendor, User, Dept..."
+                               class="w-full pl-9 pr-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs font-medium">
+                    </div>
+
+                    <!-- Location Dropdown -->
+                    <div>
+                        <select name="location" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs">
+                            <option value="">All Locations</option>
+                            {% for loc in locations %}
+                            <option value="{{ loc.id }}" {% if loc_filter == loc.id|stringformat:"s" %}selected{% endif %}>
+                                [{{ loc.location_id }}] {{ loc.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Category Dropdown -->
+                    <div>
+                        <select name="category" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs">
+                            <option value="">All Categories</option>
+                            {% for cat in categories %}
+                            <option value="{{ cat.id }}" {% if cat_filter == cat.id|stringformat:"s" %}selected{% endif %}>
+                                {{ cat.name }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Status Dropdown -->
+                    <div>
+                        <select name="status" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs">
+                            <option value="">All Statuses</option>
+                            {% for code, label in status_choices %}
+                            <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                            <option value="RETIRED" {% if status_filter == 'RETIRED' %}selected{% endif %}>Retired / Scrapped</option>
+                        </select>
+                    </div>
+
+                    <!-- Compliance / Risk Dropdown & Filter Button -->
+                    <div class="flex gap-2">
+                        <select name="compliance" class="w-full px-3 py-2 text-xs bg-white border border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition shadow-2xs">
+                            <option value="">All Compliance</option>
+                            {% for code, label in compliance_choices %}
+                            <option value="{{ code }}" {% if compliance_filter == code %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-xl transition text-xs shadow-2xs flex items-center justify-center">
+                            <i class="fa-solid fa-filter mr-1 sm:mr-0 lg:mr-1"></i>
+                            <span class="sm:hidden lg:inline">Filter</span>
+                        </button>
+                    </div>
+
+                </div>
+
+                {% if loc_filter or cat_filter or nature_filter or compliance_filter or risk_filter or selected_device_type or status_filter or search_query %}
+                <div class="flex items-center justify-between text-xs pt-1 border-t border-slate-200/60">
+                    <span class="text-slate-500 font-medium">Active filters applied</span>
+                    <a href="{% url 'asset_list' %}" class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                        <i class="fa-solid fa-xmark text-[10px]"></i>
+                        <span>Reset All Filters</span>
+                    </a>
+                </div>
+                {% endif %}
+            </form>
         </div>
 
+        <!-- Assets Data Table -->
+        {% if page_obj.object_list %}
         <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse text-xs">
-                <thead>
-                    <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider">
-                        <th class="px-4 py-3 w-10 text-center">#</th>
-                        <th class="px-4 py-3 w-32">Asset Tag</th>
-                        <th class="px-4 py-3 min-w-[180px]">Device & Model</th>
-                        <th class="px-4 py-3 w-36">Location</th>
-                        <th class="px-4 py-3 min-w-[150px]">Assigned User / Dept</th>
-                        <th class="px-4 py-3 min-w-[130px]">Serial Number</th>
-                        <th class="px-4 py-3 w-28 text-center">Status</th>
-                        <th class="px-4 py-3 w-24 text-right">Actions</th>
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50/80 text-slate-600 font-semibold border-b border-slate-200 text-[11px] uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3.5 w-10 text-center">#</th>
+                        <th class="px-4 py-3.5">Asset Tag</th>
+                        <th class="px-4 py-3.5">Device Type &amp; Specifications</th>
+                        <th class="px-4 py-3.5">Assigned Facility</th>
+                        <th class="px-4 py-3.5">User &amp; Department</th>
+                        <th class="px-4 py-3.5">Serial / License</th>
+                        <th class="px-4 py-3.5 text-center">Status</th>
+                        <th class="px-5 py-3.5 text-right">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for ast in page_obj %}
-                    <tr class="hover:bg-blue-50/30 transition">
-                        <td class="px-4 py-3 text-center text-slate-400 font-medium">{{ forloop.counter }}</td>
+                    <tr class="hover:bg-slate-50/70 transition">
+                        
+                        <!-- Index -->
+                        <td class="px-4 py-3 text-center text-slate-400 font-medium">
+                            {{ forloop.counter0|add:page_obj.start_index }}
+                        </td>
 
                         <!-- Asset Tag -->
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <a href="{% url 'asset_detail' ast.pk %}" class="font-mono font-bold text-xs bg-slate-100 text-blue-900 border border-slate-300 px-2.5 py-1 rounded shadow-xs inline-flex items-center hover:underline">
-                                <i class="fa-solid fa-barcode text-[11px] text-blue-600 mr-1.5" aria-hidden="true"></i>{{ ast.asset_tag }}
+                            <a href="{% url 'asset_detail' ast.pk %}" class="font-mono font-bold text-xs bg-slate-100 text-blue-900 border border-slate-300 px-2.5 py-1 rounded-lg shadow-2xs inline-flex items-center hover:text-blue-600 transition">
+                                <i class="fa-solid fa-barcode text-[11px] text-blue-600 mr-1.5" aria-hidden="true"></i>
+                                <span>{{ ast.asset_tag }}</span>
                             </a>
                         </td>
 
                         <!-- Device Type & Model -->
                         <td class="px-4 py-3">
-                            <div class="flex items-center space-x-1.5 mb-1">
-                                <span class="font-bold text-slate-900 text-sm">{{ ast.device_type.name }}</span>
+                            <div class="flex items-center space-x-1.5 mb-1 flex-wrap gap-y-1">
+                                <a href="{% url 'asset_detail' ast.pk %}" class="font-bold text-slate-900 text-sm hover:text-blue-600 transition">
+                                    {{ ast.device_type.name }}
+                                </a>
+
                                 {% if ast.asset_nature == 'LOGICAL' %}
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Logical / Virtual Asset">
                                     <i class="fa-solid fa-cloud mr-1 text-[9px]"></i>Logical
@@ -205,8 +289,9 @@
                                     <i class="fa-solid fa-desktop mr-1 text-[9px]"></i>Physical
                                 </span>
                                 {% endif %}
+
                                 {% if ast.compliance_status == 'CRACKED_PIRATED' %}
-                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300" title="⚠️ Cracked / Pirated Software - Security Risk">
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300" title="Cracked / Pirated Software - Security Risk">
                                     <i class="fa-solid fa-triangle-exclamation mr-1 text-[9px] text-red-600"></i>CRACKED
                                 </span>
                                 {% elif ast.compliance_status == 'UNLICENSED_EXPIRED' %}
@@ -219,41 +304,57 @@
                                 </span>
                                 {% endif %}
                             </div>
+
                             <div class="text-[11px] text-slate-500">
                                 {% if ast.asset_nature == 'LOGICAL' %}
                                     {% if ast.vendor %}<span class="font-medium text-slate-700">{{ ast.vendor }}</span>{% endif %}
-                                    {% if ast.version %}<span>{{ ast.version }}</span>{% endif %}
-                                    {% if ast.host_server %}<span class="text-slate-400">• Host: {{ ast.host_server }}</span>{% endif %}
+                                    {% if ast.version %}<span>· {{ ast.version }}</span>{% endif %}
+                                    {% if ast.host_server %}<span class="text-slate-400">· Host: {{ ast.host_server }}</span>{% endif %}
                                 {% else %}
                                     {% if ast.brand %}<span class="font-medium text-slate-700">{{ ast.brand }}</span>{% endif %}
-                                    {% if ast.model_name %}<span>{{ ast.model_name }}</span>{% endif %}
+                                    {% if ast.model_name %}<span>· {{ ast.model_name }}</span>{% endif %}
                                 {% endif %}
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-400">{{ ast.device_type.category.name }}</span>
                             </div>
                         </td>
 
-                        <!-- Location (Badge) -->
+                        <!-- Location -->
                         <td class="px-4 py-3">
                             <span class="font-mono font-bold text-[10px] bg-blue-50 text-blue-800 border border-blue-200 px-1.5 py-0.5 rounded block w-fit mb-0.5">
                                 {{ ast.location.location_id }}
                             </span>
-                            <span class="font-semibold text-slate-800 block text-xs">{{ ast.location.name }}</span>
+                            <a href="{% url 'location_detail' ast.location.id %}" class="font-semibold text-slate-800 block text-xs hover:text-blue-600 transition">
+                                {{ ast.location.name }}
+                            </a>
                             <span class="text-[10px] text-slate-400">{{ ast.location.get_location_type_display }}</span>
                         </td>
 
-                        <!-- User & Department -->
+                        <!-- Assigned User & Department -->
                         <td class="px-4 py-3">
-                            <span class="font-medium text-slate-900 block">{{ ast.assigned_user|default:'Unassigned' }}</span>
-                            <span class="text-[10px] text-slate-400">{{ ast.department|default:'IT Pool' }}</span>
+                            <span class="font-bold text-slate-800 block">{{ ast.assigned_user|default:'Unassigned' }}</span>
+                            <span class="text-[10px] text-slate-400 flex items-center gap-1 mt-0.5">
+                                <i class="fa-solid fa-sitemap text-[9px]"></i>
+                                <span>{{ ast.department|default:'Central Pool' }}</span>
+                            </span>
                         </td>
 
                         <!-- Serial Number / License Key -->
                         <td class="px-4 py-3">
                             {% if ast.asset_nature == 'LOGICAL' and ast.license_key %}
-                            <code class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 text-[11px] font-mono border border-indigo-100" title="License Key / Key ID">{{ ast.license_key|truncatechars:18 }}</code>
+                            <code class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 text-[11px] font-mono border border-indigo-100" title="License Key: {{ ast.license_key }}">
+                                {{ ast.license_key|truncatechars:18 }}
+                            </code>
                             {% elif ast.serial_number %}
-                            <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-mono">{{ ast.serial_number }}</code>
+                            <div class="flex items-center gap-1">
+                                <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-mono">
+                                    {{ ast.serial_number }}
+                                </code>
+                                <button onclick="navigator.clipboard.writeText('{{ ast.serial_number }}'); alert('Serial copied to clipboard!');" 
+                                        class="text-slate-400 hover:text-blue-600 transition p-0.5" title="Copy serial">
+                                    <i class="fa-regular fa-copy text-[10px]"></i>
+                                </button>
+                            </div>
                             {% else %}
                             <span class="text-slate-300">—</span>
                             {% endif %}
@@ -261,41 +362,63 @@
 
                         <!-- Status Badge -->
                         <td class="px-4 py-3 text-center whitespace-nowrap">
-                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {% if ast.status == 'IN_USE' %}
-                                    bg-emerald-100 text-emerald-800
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                {% if ast.retired_at %}
+                                    bg-slate-200 text-slate-700 border border-slate-300
+                                {% elif ast.status == 'IN_USE' %}
+                                    bg-emerald-100 text-emerald-800 border border-emerald-200
                                 {% elif ast.status == 'BACKUP' %}
-                                    bg-amber-100 text-amber-800
+                                    bg-amber-100 text-amber-800 border border-amber-200
                                 {% elif ast.status == 'FAULTY' %}
-                                    bg-red-100 text-red-800
+                                    bg-rose-100 text-rose-800 border border-rose-200
                                 {% else %}
-                                    bg-slate-200 text-slate-700
+                                    bg-slate-100 text-slate-700 border border-slate-200
                                 {% endif %}">
-                                {% if ast.retired_at %}Retired{% else %}{{ ast.configured_status_label }}{% endif %}
+                                {% if ast.retired_at %}
+                                    <i class="fa-solid fa-box-archive mr-1 text-[9px]"></i>Retired
+                                {% else %}
+                                    <span class="w-1.5 h-1.5 rounded-full mr-1 
+                                        {% if ast.status == 'IN_USE' %}bg-emerald-500{% elif ast.status == 'BACKUP' %}bg-amber-500{% else %}bg-rose-500{% endif %}"></span>
+                                    {{ ast.configured_status_label }}
+                                {% endif %}
                             </span>
                         </td>
 
-                        <!-- Actions -->
-                        <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
-                            {% if not ast.retired_at %}
-                            <a href="{% url 'asset_edit' ast.id %}" class="inline-flex items-center text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-2 py-1 rounded font-semibold transition" title="Edit Asset">
-                                <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
-                            </a>
-                            {% endif %}
-                        </td>
-                    </tr>
-                    {% empty %}
-                    <tr>
-                        <td colspan="8" class="text-center py-12 text-slate-400">
-                            <i class="fa-solid fa-boxes-stacked text-3xl mb-2 block"></i>
-                            No assets found matching the selected filters.
-                            <div class="mt-3">
-                                <a href="{% url 'asset_create' %}" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold px-4 py-2 rounded-lg text-xs shadow transition">
-                                    <i class="fa-solid fa-plus-circle"></i>
-                                    <span>Add First Asset</span>
+                        <!-- Action Buttons -->
+                        <td class="px-5 py-3 text-right whitespace-nowrap">
+                            <div class="flex items-center justify-end space-x-1">
+                                <a href="{% url 'asset_detail' ast.id %}" 
+                                   class="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                   title="View Technical Details">
+                                    <i class="fa-solid fa-eye text-xs"></i>
                                 </a>
+
+                                {% if not ast.retired_at %}
+                                <a href="{% url 'asset_edit' ast.id %}" 
+                                   class="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition"
+                                   title="Edit Asset">
+                                    <i class="fa-solid fa-pen-to-square text-xs"></i>
+                                </a>
+                                {% endif %}
+
+                                {% if ast.asset_nature == 'PHYSICAL' %}
+                                <a href="{% url 'asset_label_qr' ast.id %}" target="_blank"
+                                   class="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition"
+                                   title="Generate SVG QR Label">
+                                    <i class="fa-solid fa-qrcode text-xs"></i>
+                                </a>
+                                {% endif %}
+
+                                {% if not ast.retired_at %}
+                                <a href="{% url 'asset_retire' ast.id %}" 
+                                   class="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition"
+                                   title="Retire / Scrap Asset">
+                                    <i class="fa-solid fa-box-archive text-xs"></i>
+                                </a>
+                                {% endif %}
                             </div>
                         </td>
+
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -304,27 +427,60 @@
 
         <!-- Pagination -->
         {% if page_obj.has_other_pages %}
-        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
-            <div>Showing assets <span class="font-bold">{{ page_obj.start_index }}</span> to <span class="font-bold">{{ page_obj.end_index }}</span> of <span class="font-bold">{{ total_assets }}</span></div>
-            <div class="flex items-center space-x-1">
+        <div class="p-4 border-t border-slate-200 bg-slate-50/50 flex items-center justify-between text-xs text-slate-600">
+            <div>
+                Showing <strong>{{ page_obj.start_index }}</strong> to <strong>{{ page_obj.end_index }}</strong> of <strong>{{ total_assets }}</strong> assets
+            </div>
+            <div class="flex items-center space-x-2">
                 {% if page_obj.has_previous %}
                 <a href="{% querystring page=page_obj.previous_page_number %}"
-                   class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition">
-                    &laquo; Previous
+                   class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition">
+                    &larr; Previous
                 </a>
                 {% endif %}
-                <span class="px-3 py-1.5 rounded bg-blue-600 text-white font-bold">
+                <span class="px-2 font-mono font-bold text-slate-800">
                     Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
                 </span>
                 {% if page_obj.has_next %}
                 <a href="{% querystring page=page_obj.next_page_number %}"
-                   class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition">
-                    Next &raquo;
+                   class="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold transition">
+                    Next &rarr;
                 </a>
                 {% endif %}
             </div>
         </div>
         {% endif %}
+
+        {% else %}
+        <!-- Empty State -->
+        <div class="p-12 text-center">
+            <div class="w-16 h-16 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center text-2xl mx-auto mb-4">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+            {% if search_query or loc_filter or cat_filter or nature_filter or compliance_filter or status_filter %}
+            <h4 class="text-base font-bold text-slate-800">No assets match your search filters</h4>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                No inventory records were found matching the selected criteria. Try resetting your filters.
+            </p>
+            <div class="mt-4">
+                <a href="{% url 'asset_list' %}" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition inline-block">
+                    Reset All Filters
+                </a>
+            </div>
+            {% else %}
+            <h4 class="text-base font-bold text-slate-800">No assets registered yet</h4>
+            <p class="text-xs text-slate-500 mt-1 max-w-sm mx-auto">
+                Begin registering your physical IT equipment, laptops, servers, and software licenses.
+            </p>
+            <div class="mt-4">
+                <a href="{% url 'asset_create' %}" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs transition inline-block">
+                    <i class="fa-solid fa-plus mr-1"></i> Register Asset
+                </a>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
     </div>
 
 </div>

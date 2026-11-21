@@ -80,11 +80,23 @@ def asset_list_view(request):
             Q(department__icontains=search_query)
         )
 
-    # Metrics
-    total_assets = assets_qs.count()
-    in_use_count = assets_qs.filter(status='IN_USE').count()
-    backup_count = assets_qs.filter(status='BACKUP').count()
-    faulty_count = assets_qs.filter(status__in=['FAULTY', 'SCRAP']).count()
+    # Metrics (Computed on base query before status filter is applied)
+    base_qs = assets_qs
+    total_assets = base_qs.count()
+    in_use_count = base_qs.filter(status='IN_USE', retired_at__isnull=True).count()
+    backup_count = base_qs.filter(status='BACKUP', retired_at__isnull=True).count()
+    faulty_count = base_qs.filter(status__in=['FAULTY', 'SCRAP'], retired_at__isnull=True).count()
+    retired_count = base_qs.filter(retired_at__isnull=False).count()
+
+    # Apply status filter
+    if status_filter:
+        if status_filter == 'RETIRED':
+            assets_qs = assets_qs.filter(retired_at__isnull=False)
+        else:
+            assets_qs = assets_qs.filter(status=status_filter, retired_at__isnull=True)
+
+    # Consistent reverse chronological ordering
+    assets_qs = assets_qs.order_by('-created_at', 'pk')
 
     # Dropdown lists
     locations = visible_locations(request.user).order_by('location_id', 'name')
@@ -105,6 +117,7 @@ def asset_list_view(request):
         'in_use_count': in_use_count,
         'backup_count': backup_count,
         'faulty_count': faulty_count,
+        'retired_count': retired_count,
         'locations': locations,
         'categories': categories,
         'loc_filter': loc_filter,
