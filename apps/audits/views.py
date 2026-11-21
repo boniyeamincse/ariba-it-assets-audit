@@ -11,16 +11,63 @@ from apps.audits.models import AuditSession, AuditItem
 from apps.common.utils import log_activity
 from apps.accounts.access import DASHBOARD_ROUTES, LOCAL_TYPES, role_for, roles_required, visible_locations
 
+from django.core.paginator import Paginator
+
 @roles_required(*DASHBOARD_ROUTES)
 def audit_list_view(request):
     """
-    List of all audit sessions across Head Office, Factories, and Depots.
+    List of all audit sessions across Head Office, Factories, and Depots
+    with filtering, interactive KPIs, and pagination.
     """
-    locations = visible_locations(request.user)
-    audits = AuditSession.objects.filter(location__in=locations).select_related('location').order_by('-audit_date', '-created_at')
+    locations = visible_locations(request.user).order_by('location_type', 'name')
+    audits_qs = AuditSession.objects.filter(location__in=locations).select_related('location', 'location__company')
+
+    search = request.GET.get('q', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    loc_filter = request.GET.get('location', '').strip()
+    type_filter = request.GET.get('type', '').strip()
+
+    # Pre-filter metrics for KPI cards
+    total_audits = audits_qs.count()
+    approved_count = audits_qs.filter(status='APPROVED').count()
+    pending_count = audits_qs.exclude(status='APPROVED').count()
+    audited_locations = audits_qs.values('location_id').distinct().count()
+
+    if search:
+        audits_qs = audits_qs.filter(
+            Q(location__name__icontains=search) |
+            Q(location__location_id__icontains=search) |
+            Q(location__code__icontains=search) |
+            Q(auditor_name__icontains=search) |
+            Q(verified_by_name__icontains=search) |
+            Q(remarks__icontains=search)
+        )
+    if status_filter:
+        audits_qs = audits_qs.filter(status=status_filter)
+    if loc_filter:
+        audits_qs = audits_qs.filter(location_id=loc_filter)
+    if type_filter:
+        audits_qs = audits_qs.filter(location__location_type=type_filter)
+
+    audits_qs = audits_qs.order_by('-audit_date', '-created_at')
+
+    paginator = Paginator(audits_qs, 20)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
     context = {
-        'audits': audits,
+        'page_obj': page_obj,
+        'audits': page_obj,
         'locations': locations,
+        'total_audits': total_audits,
+        'approved_count': approved_count,
+        'pending_count': pending_count,
+        'audited_locations': audited_locations,
+        'status_choices': AuditSession.STATUS_CHOICES,
+        'search_query': search,
+        'status_filter': status_filter,
+        'loc_filter': loc_filter,
+        'type_filter': type_filter,
     }
     return render(request, 'audits/audit_list.html', context)
 

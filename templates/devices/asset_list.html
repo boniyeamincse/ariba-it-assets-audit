@@ -30,6 +30,10 @@
         </div>
         
         <div class="flex items-center space-x-2 flex-wrap">
+            <a href="{% url 'report_asset_excel' %}" class="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 font-bold py-2.5 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs border border-emerald-200" title="Export Assets to Excel">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span>Export Excel</span>
+            </a>
             {% if can_administrate %}
             <a href="{% url 'asset_import_csv' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs border border-slate-200" title="Bulk Import Assets via CSV">
                 <i class="fa-solid fa-file-csv text-indigo-600"></i>
