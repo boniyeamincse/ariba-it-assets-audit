@@ -15,12 +15,28 @@ python3 manage.py runserver 9000
 এরপর যেকোনো ব্রাউজারে যান:
 👉 **[http://localhost:9000/](http://localhost:9000/)**
 
-* **Login URL:** `http://localhost:9000/login/`
-* **সিস্টেমের ৩টি রোল ও লগইন তথ্য:**
-  1. **Admin (IT Head):** Username: `admin` | Password: `admin123`
-  2. **Auditor (ফিল্ড অডিটর):** Username: `auditor` | Password: `audit123`
-  3. **Management / Sir:** Username: `sir` | Password: `sir123`
-* **Django Admin প্যানেল:** `http://localhost:9000/admin/`
+* **Login URL:** [http://localhost:9000/login/](http://localhost:9000/login/)
+* **Django Admin Panel:** [http://localhost:9000/admin/](http://localhost:9000/admin/)
+
+---
+
+### 🔐 Role-Based Demo / Test Accounts (টেস্ট ইউজার ও পাসওয়ার্ড টেবিল)
+
+সিস্টেমে **Corporate Email** অথবা **Username**—উভয় মাধ্যমেই লগইন সাপোর্ট করে:
+
+| Role (ভূমিকা) | Corporate Email | Username | Password | Location Scope | Dashboard & Permissions |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Super Admin**<br>*(CIO / Head of IT)* | `admin@akij.net` | `admin` | `admin123` | **All Locations**<br>(Group-Wide) | Full System Administration, Security Policies, User RBAC & Audits |
+| **HO Admin**<br>*(Lead Central Auditor)* | `auditor@akij.net` | `auditor` | `audit123` | **All Locations**<br>(HO + Factories + Depots) | Asset Master Registry, 39 Software Categories, SLM Compliance Hub |
+| **HO Admin**<br>*(Management / Sir)* | `director@akij.net` | `sir` | `sir123` | **All Locations**<br>(Executive View) | Executive High-Level Analytics, Location Matrix, Excel & PDF Print |
+| **Factory Admin**<br>*(Factory IT In-Charge)* | `factory@akij.net` | `factory_admin` | `factory123` | **APL Factory Chattak**<br>(Assigned Factory) | Local Physical Device Audit, Stock Reconciliation & Tagging |
+| **Depot Admin**<br>*(Regional IT Executive)* | `depot@akij.net` | `depot_admin` | `depot123` | **Bogura & Chattogram**<br>(Assigned Depots) | Regional Depot Inventory Verification, Spares & Dispatch Tracking |
+
+> 💡 **টেস্ট ইউজার রিসেট / সিড কমান্ড:**
+> যে কোনো সময় টেস্ট ইউজারগুলো পুনরায় তৈরি করতে টার্মিনালে রান করুন:
+> ```bash
+> python3 manage.py seed_test_users
+> ```
 
 ---
 
