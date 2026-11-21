@@ -1,0 +1,528 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if domain %}Edit Domain: {{ domain.domain_name }}{% else %}Register Corporate Domain{% endif %} | {{ portal.application_name }}{% endblock %}
+
+{% block header_title %}{% if domain %}Edit Domain Record{% else %}Register Corporate Domain{% endif %}{% endblock %}
+{% block header_subtitle %}Domain DNS, Nameservers, SSL Certificates &amp; Renewal Governance{% endblock %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto space-y-6">
+
+    <!-- Top Banner Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md flex-shrink-0">
+                    <i class="fa-solid fa-globe"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-lg">
+                            {% if domain %}Edit Domain: {{ domain.domain_name }}{% else %}Register New Corporate Domain{% endif %}
+                        </h3>
+                        {% if domain %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                            {% if domain.status == 'ACTIVE' %}bg-emerald-900/60 text-emerald-300 border border-emerald-700
+                            {% elif domain.status == 'EXPIRING_SOON' %}bg-amber-900/60 text-amber-300 border border-amber-700
+                            {% elif domain.status == 'EXPIRED' %}bg-rose-900/60 text-rose-300 border border-rose-700
+                            {% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
+                            {{ domain.get_status_display }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Track domain ownership, DNS routing, SSL certificates, registrar accounts, and renewal alerts
+                    </p>
+                </div>
+            </div>
+            <a href="{% url 'domain_list' %}" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl transition flex items-center space-x-1.5 border border-slate-700">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                <span>Back to Domains</span>
+            </a>
+        </div>
+
+        {% if form.errors %}
+        <div class="p-4 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs">
+            <div class="flex items-center gap-2 font-bold mb-1">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                <span>Please correct the errors indicated below:</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-1">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="p-6 md:p-8 space-y-8" id="domain-form">
+            {% csrf_token %}
+
+            <!-- SECTION 1: Identity & Ownership -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">1</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Domain Identity &amp; Corporate Ownership</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- Domain Name -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Domain Name (FQDN) <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-link"></i>
+                            </span>
+                            <input type="text" name="domain_name" id="id_domain_name" required
+                                   value="{{ form.domain_name.value|default:'' }}"
+                                   placeholder="e.g. akijplastics.com"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono font-medium {% if form.domain_name.errors %}border-rose-400 bg-rose-50/30{% endif %}">
+                        </div>
+                        <p class="text-[11px] text-slate-400 mt-1">Strip http:// or trailing slashes automatically.</p>
+                    </div>
+
+                    <!-- Company / SBU -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Owning Company / SBU <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-building"></i>
+                            </span>
+                            <select name="company" id="id_company" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                <option value="">Select Owning Company...</option>
+                                {% for company in companies %}
+                                <option value="{{ company.id }}" {% if form.company.value|stringformat:"s" == company.id|stringformat:"s" %}selected{% endif %}>
+                                    {{ company.name }} ({{ company.short_code|default:company.name }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Category -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Classification / Purpose <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-tags"></i>
+                            </span>
+                            <select name="category" id="id_category" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                {% for val, label in category_choices %}
+                                <option value="{{ val }}" {% if form.category.value == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Registrar & Billing -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">2</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Domain Registrar &amp; Procurement Billing</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-5">
+                    <!-- Registrar -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Domain Registrar <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-server"></i>
+                            </span>
+                            <select name="registrar" id="id_registrar" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                {% for val, label in registrar_choices %}
+                                <option value="{{ val }}" {% if form.registrar.value == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Registrar Account Email -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Registrar Account Email
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-envelope"></i>
+                            </span>
+                            <input type="email" name="registrar_account_email" id="id_registrar_account_email"
+                                   value="{{ form.registrar_account_email.value|default:'' }}"
+                                   placeholder="noc@akij.net"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                        </div>
+                    </div>
+
+                    <!-- Invoice / PO -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Invoice / PO Reference
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-receipt"></i>
+                            </span>
+                            <input type="text" name="invoice_number" id="id_invoice_number"
+                                   value="{{ form.invoice_number.value|default:'' }}"
+                                   placeholder="INV-2024-8842"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                        </div>
+                    </div>
+
+                    <!-- Annual Cost & Currency -->
+                    <div class="md:col-span-1">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Annual Cost &amp; Currency
+                        </label>
+                        <div class="flex gap-2">
+                            <div class="relative flex-1">
+                                <input type="number" step="0.01" name="annual_cost" id="id_annual_cost"
+                                       value="{{ form.annual_cost.value|default:'0.00' }}"
+                                       class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono">
+                            </div>
+                            <div class="w-24">
+                                <input type="text" name="currency" id="id_currency"
+                                       value="{{ form.currency.value|default:'USD' }}"
+                                       class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition uppercase font-mono font-bold text-center">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Lifecycle, Expiry & Auto-Renew -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">3</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Registration Lifecycle &amp; Expiry Governance</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-start">
+                    <!-- Registration Date -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Initial Registration Date
+                        </label>
+                        <div class="relative">
+                            <input type="date" name="registration_date" id="id_registration_date"
+                                   value="{{ form.registration_date.value|date:'Y-m-d'|default:'' }}"
+                                   class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                        </div>
+                    </div>
+
+                    <!-- Expiry Date -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Domain Expiry Date <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <input type="date" name="expiry_date" id="id_expiry_date" required
+                                   value="{{ form.expiry_date.value|date:'Y-m-d'|default:'' }}"
+                                   onchange="updateExpiryBadge()"
+                                   class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-medium {% if form.expiry_date.errors %}border-rose-400 bg-rose-50/30{% endif %}">
+                        </div>
+                        <div id="expiry-calc-badge" class="mt-1.5 hidden text-[11px] font-semibold"></div>
+                    </div>
+
+                    <!-- Auto Renewal Toggle -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Auto-Renewal Governance
+                        </label>
+                        <label class="flex items-center gap-3 p-2.5 rounded-xl border border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 transition cursor-pointer select-none">
+                            <input type="checkbox" name="auto_renewal" id="id_auto_renewal"
+                                   {% if form.auto_renewal.value %}checked{% endif %}
+                                   class="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300">
+                            <div>
+                                <span class="text-xs font-bold text-slate-800">Enable Auto-Renewal</span>
+                                <p class="text-[10px] text-slate-400">Card or account on file for automatic annual bill</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 4: DNS & Server Infrastructure -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">4</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">DNS &amp; Web Hosting Infrastructure</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- DNS Provider -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            DNS Management Provider <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-network-wired"></i>
+                            </span>
+                            <select name="dns_provider" id="id_dns_provider" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                {% for val, label in dns_choices %}
+                                <option value="{{ val }}" {% if form.dns_provider.value == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Primary Nameserver -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Primary Nameserver (NS1)
+                        </label>
+                        <input type="text" name="primary_nameserver" id="id_primary_nameserver"
+                               value="{{ form.primary_nameserver.value|default:'' }}"
+                               placeholder="e.g. bella.ns.cloudflare.com"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono">
+                    </div>
+
+                    <!-- Secondary Nameserver -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Secondary Nameserver (NS2)
+                        </label>
+                        <input type="text" name="secondary_nameserver" id="id_secondary_nameserver"
+                               value="{{ form.secondary_nameserver.value|default:'' }}"
+                               placeholder="e.g. wade.ns.cloudflare.com"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono">
+                    </div>
+
+                    <!-- Target / A Record IP -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Primary A Record / Web Server IP
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-microchip"></i>
+                            </span>
+                            <input type="text" name="primary_a_record_ip" id="id_primary_a_record_ip"
+                                   value="{{ form.primary_a_record_ip.value|default:'' }}"
+                                   placeholder="103.14.22.45"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Hosting Provider -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Hosting Provider / Cloud Server
+                        </label>
+                        <input type="text" name="hosting_provider" id="id_hosting_provider"
+                               value="{{ form.hosting_provider.value|default:'' }}"
+                               placeholder="e.g. AWS EC2, DigitalOcean, On-Premises DMZ"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    </div>
+
+                    <!-- Corporate Mail Provider -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Corporate Mail Routing (MX) <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-at"></i>
+                            </span>
+                            <select name="mail_provider" id="id_mail_provider" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                {% for val, label in mail_choices %}
+                                <option value="{{ val }}" {% if form.mail_provider.value == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 5: SSL / TLS Certificate Lifecycle -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">5</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">SSL / TLS Certificate Lifecycle</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
+                    <!-- SSL Status -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SSL Certificate Status <span class="text-rose-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-shield-halved"></i>
+                            </span>
+                            <select name="ssl_status" id="id_ssl_status" required
+                                    class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                                {% for val, label in ssl_choices %}
+                                <option value="{{ val }}" {% if form.ssl_status.value == val %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- SSL Provider -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SSL Issuer / Authority
+                        </label>
+                        <input type="text" name="ssl_provider" id="id_ssl_provider"
+                               value="{{ form.ssl_provider.value|default:'' }}"
+                               placeholder="e.g. Let's Encrypt / Cloudflare Edge / Sectigo"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    </div>
+
+                    <!-- SSL Expiry Date -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            SSL Certificate Expiry Date
+                        </label>
+                        <div class="relative">
+                            <input type="date" name="ssl_expiry_date" id="id_ssl_expiry_date"
+                                   value="{{ form.ssl_expiry_date.value|date:'Y-m-d'|default:'' }}"
+                                   class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 6: Status, Custody & Notes -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">6</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Operational Status &amp; IT Custody</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Operational Status -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Operational Status <span class="text-rose-500">*</span>
+                        </label>
+                        <select name="status" id="id_status" required
+                                class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                            {% for val, label in status_choices %}
+                            <option value="{{ val }}" {% if form.status.value == val %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Technical IT In-Charge -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Technical IT Admin / POC
+                        </label>
+                        <input type="text" name="technical_contact" id="id_technical_contact"
+                               value="{{ form.technical_contact.value|default:'' }}"
+                               placeholder="e.g. Md. Aminur Rahman (aminur@akij.net)"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    </div>
+
+                    <!-- Remarks / Documentation -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Technical Notes / Renewal History / DNS Instructions
+                        </label>
+                        <textarea name="remarks" id="id_remarks" rows="3"
+                                  placeholder="DNS propagation details, internal proxy endpoints, special TXT verification records..."
+                                  class="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">{{ form.remarks.value|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Action Buttons -->
+            <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+                <a href="{% url 'domain_list' %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancel
+                </a>
+                <div class="flex items-center space-x-3">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition flex items-center space-x-2 text-xs">
+                        <i class="fa-solid fa-save"></i>
+                        <span>{% if domain %}Update Domain Record{% else %}Save &amp; Register Domain{% endif %}</span>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Live dynamic domain name cleaner
+    const domainInput = document.getElementById('id_domain_name');
+    if (domainInput) {
+        domainInput.addEventListener('blur', function() {
+            let val = this.value.trim().toLowerCase();
+            val = val.replace(/^https?:\/\//i, '');
+            val = val.replace(/\/.*$/, '');
+            this.value = val;
+        });
+    }
+
+    // Live Expiry Date countdown badge
+    function updateExpiryBadge() {
+        const expInput = document.getElementById('id_expiry_date');
+        const badge = document.getElementById('expiry-calc-badge');
+        if (!expInput || !badge) return;
+
+        if (!expInput.value) {
+            badge.classList.add('hidden');
+            return;
+        }
+
+        const expDate = new Date(expInput.value);
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const diffTime = expDate - today;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+        badge.classList.remove('hidden', 'text-emerald-600', 'text-amber-600', 'text-rose-600');
+
+        if (diffDays < 0) {
+            badge.classList.add('text-rose-600');
+            badge.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1"></i> EXPIRED ${Math.abs(diffDays)} days ago!`;
+        } else if (diffDays <= 30) {
+            badge.classList.add('text-amber-600');
+            badge.innerHTML = `<i class="fa-solid fa-clock mr-1"></i> Expiring soon in ${diffDays} days!`;
+        } else {
+            badge.classList.add('text-emerald-600');
+            badge.innerHTML = `<i class="fa-solid fa-shield mr-1"></i> Valid for ${diffDays} days`;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', updateExpiryBadge);
+</script>
+{% endblock %}

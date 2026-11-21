@@ -42,6 +42,7 @@ INSTALLED_APPS = [
     'apps.devices',
     'apps.audits',
     'apps.reports',
+    'apps.domains.apps.DomainsConfig',
 ]
 
 MIDDLEWARE = [

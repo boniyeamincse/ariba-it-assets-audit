@@ -52,11 +52,13 @@ audit/
 │   ├── common/            # Base TimeStampedModel, Activity Logging
 │   ├── locations/         # Head Office, Factories (Chattak), Depots
 │   ├── devices/           # Master Catalog (Infrastructure & User Devices)
+│   ├── domains/           # Domain, DNS, Nameserver & SSL Certificate Management
 │   ├── audits/            # Physical Stock Count Engine & Manual Data Entry
 │   └── reports/           # Executive Dashboard, Charts, PDF & Excel Export
 ├── templates/             # Modern HTML5 + Tailwind CSS UI
 │   ├── base.html          # Enterprise layout with sidebar & topbar
 │   ├── dashboard.html     # Real-time Executive Dashboard for Sir
+│   ├── domains/           # Domain Directory, Register Form, Technical Details
 │   ├── reports/
 │   │   └── matrix.html    # All-Locations Comparison Matrix
 │   └── audits/
@@ -65,6 +67,7 @@ audit/
 │       ├── audit_form.html    # Online audit entry and live count calculation
 │       └── audit_print.html   # Official A4 Print/PDF with 3 signatures
 └── docs/
+    ├── DOMAIN_AND_SSL_MANAGEMENT.md # ডোমেন ও SSL সার্টিফিকেট স্পেক
     └── SOFTWARE_SPECIFICATION.md # পূর্ণাঙ্গ সিস্টেম স্পেসিফিকেশন
 ```
 
@@ -86,6 +89,12 @@ audit/
 5. **সিস্টেম অ্যাক্টিভিটি ও অডিট লগ পেজ (`/logs/`):**
    - কে কখন লগইন করেছে, কোন ইউজার কোন ফ্যাক্টরির কাউন্ট আপডেট বা সেভ করেছে, তার সম্পূর্ণ টাইমস্ট্যাম্পযুক্ত অডিট ট্রেইল (IP অ্যাড্রেস ও ইউজারনেম সহ)।
    - মডিউল, অ্যাকশন টাইপ এবং কিওয়ার্ড দিয়ে সরাসরি ফিল্টার করার ব্যবস্থা।
+6. **Domain, DNS & SSL Certificate Management (`/domains/`):**
+   - Akij Group-এর সব সেন্ট্রাল ডোমেন ও সাবসিডিয়ারি ডোমেনের সেন্ট্রালাইজড রেকর্ড ও ট্র্যাকিং।
+   - GoDaddy, BTCL, Cloudflare, Namecheap ইত্যাদি রেজিস্ট্রারের তথ্য, অ্যাকাউন্ট ইমেইল, ইনভয়েস নম্বর এবং রিনিউয়াল ফি মনিটরিং।
+   - Expiry Countdown (&le; 30 দিন বাকী থাকলে অটো-ওয়ার্নিং অ্যালার্ট) এবং Auto-Renewal স্ট্যাটাস।
+   - DNS ম্যানেজমেন্ট (Primary/Secondary Nameservers, A Record Hosting IP, Corporate Mail MX Provider)।
+   - SSL / TLS সার্টিফিকেট এক্সপায়রি ও সিকিউরিটি স্ট্যাটাস ট্র্যাকিং।
 
 ---
 
