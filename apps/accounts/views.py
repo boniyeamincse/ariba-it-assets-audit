@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.models import User
+from django.db.models import Q
 from django.contrib import messages
 from django.views.decorators.csrf import csrf_protect
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -12,7 +14,7 @@ from apps.common.utils import log_activity
 @csrf_protect
 def login_view(request):
     """
-    Enterprise Authentication Login View with Activity Logging.
+    Enterprise Authentication Login View with Email & Username Support and Activity Logging.
     """
     if request.user.is_authenticated:
         return redirect('dashboard')
@@ -24,21 +26,29 @@ def login_view(request):
         next_url = 'home' if request_preferences(request)['default_landing_page'] != 'dashboard' else 'dashboard'
 
     if request.method == 'POST':
-        username = request.POST.get('username', '').strip()
+        login_identifier = request.POST.get('username', '').strip()
         password = request.POST.get('password', '')
 
-        if not username or not password:
-            messages.error(request, "Please enter both username and password.")
-            return render(request, 'accounts/login.html', {'next': next_url, 'username': username})
+        if not login_identifier or not password:
+            messages.error(request, "Please enter both email and password.")
+            return render(request, 'accounts/login.html', {'next': next_url, 'username': login_identifier})
 
         config = request_preferences(request)
-        key = attempt_key(username)
+
+        # Allow sign in with Corporate Email or Username
+        matched_user = User.objects.filter(
+            Q(email__iexact=login_identifier) | Q(username__iexact=login_identifier)
+        ).first()
+
+        throttle_key_name = matched_user.username if matched_user else login_identifier
+        key = attempt_key(throttle_key_name)
         limit = config['max_login_attempts']
         if login_blocked(key, limit):
             messages.error(request, 'Sign-in is temporarily locked. Please try again later.')
-            return render(request, 'accounts/login.html', {'next': next_url, 'username': username}, status=429)
+            return render(request, 'accounts/login.html', {'next': next_url, 'username': login_identifier}, status=429)
 
-        user = authenticate(request, username=username, password=password)
+        auth_username = matched_user.username if matched_user else login_identifier
+        user = authenticate(request, username=auth_username, password=password)
         if user is not None and user.is_active:
             if config.get('maintenance_mode') and not user.is_superuser:
                 return render(request, 'administration/maintenance.html', status=503)
@@ -47,15 +57,15 @@ def login_view(request):
             login(request, user)
             request.session.set_expiry(config['session_minutes'] * 60)
             if config['log_login_events']:
-                log_activity(request, 'LOGIN_SUCCESS', 'Authentication', f"User '{user.username}' signed in.")
+                log_activity(request, 'LOGIN_SUCCESS', 'Authentication', f"User '{user.username}' ({user.email or 'no email'}) signed in.")
             messages.success(request, f"Welcome back, {user.first_name or user.username}!")
             return redirect(next_url)
 
         if limit:
             record_failed_login(key, config['lockout_minutes'])
         if config['log_login_events']:
-            log_activity(request, 'LOGIN_FAILED', 'Authentication', f"Failed login attempt for username: '{username}'.")
-        messages.error(request, 'Invalid username or password.')
+            log_activity(request, 'LOGIN_FAILED', 'Authentication', f"Failed login attempt for email/username: '{login_identifier}'.")
+        messages.error(request, 'Invalid email or password.')
 
     return render(request, 'accounts/login.html', {'next': next_url})
 

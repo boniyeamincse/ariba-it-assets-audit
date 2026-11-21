@@ -250,3 +250,45 @@ class AdministrationTests(TestCase):
         audit.save()
         response = self.client.post(reverse('sync_json'), {'json_file': SimpleUploadedFile('own.json', payload)})
         self.assertEqual(response.status_code, 403)
+
+    def test_email_based_login(self):
+        self.super_admin.email = 'superadmin@akij.net'
+        self.super_admin.save(update_fields=['email'])
+        self.client.logout()
+
+        # 1. Sign in using exact email
+        response = self.client.post(reverse('login'), {
+            'username': 'superadmin@akij.net',
+            'password': 'Example-setup-password-91'
+        })
+        self.assertRedirects(response, reverse('dashboard'), fetch_redirect_response=False)
+
+        self.client.logout()
+
+        # 2. Sign in using case-insensitive email
+        response = self.client.post(reverse('login'), {
+            'username': 'SUPERADMIN@AKIJ.NET',
+            'password': 'Example-setup-password-91'
+        })
+        self.assertRedirects(response, reverse('dashboard'), fetch_redirect_response=False)
+
+        self.client.logout()
+
+        # 3. Sign in using username (backwards compatibility)
+        response = self.client.post(reverse('login'), {
+            'username': self.super_admin.username,
+            'password': 'Example-setup-password-91'
+        })
+        self.assertRedirects(response, reverse('dashboard'), fetch_redirect_response=False)
+
+        self.client.logout()
+
+        # 4. Failed sign-in with wrong email
+        response = self.client.post(reverse('login'), {
+            'username': 'nonexistent@akij.net',
+            'password': 'WrongPassword123'
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Invalid email or password.')
+
+
