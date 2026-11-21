@@ -16,6 +16,12 @@ _GROUPS = (
         ('Import Assets', 'asset_import_csv', 'fa-file-csv', ('asset_sample_csv',), 'central'),
     )),
     ('Audits & Reports', (
+        ('Report Center', 'report_hub', 'fa-chart-pie', (
+            'report_asset_inventory', 'report_software_compliance',
+            'report_domains_ssl', 'report_audit_reconciliation',
+            'report_asset_excel', 'report_software_excel',
+            'report_domains_excel', 'report_audit_excel',
+        ), None),
         ('Audit Records', 'audit_list', 'fa-clipboard-list', (
             'audit_create', 'audit_edit', 'audit_detail', 'audit_print',
         ), None),
@@ -47,6 +53,10 @@ _SUBPAGE_LABELS = {
     'audit_create': 'New audit',
     'audit_edit': 'Edit audit',
     'audit_detail': 'Audit details',
+    'report_asset_inventory': 'Asset Inventory Report',
+    'report_software_compliance': 'Software Compliance Report',
+    'report_domains_ssl': 'Domains & SSL Report',
+    'report_audit_reconciliation': 'Audit Reconciliation Report',
     'administration_user_create': 'New user',
     'administration_user_edit': 'Edit user',
     'administration_role_create': 'Add role',

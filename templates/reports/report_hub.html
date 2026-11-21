@@ -1,0 +1,354 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load portal_format %}
+
+{% block title %}Reports &amp; Analytics Hub | {{ portal.application_name }}{% endblock %}
+
+{% block header_title %}Reports &amp; Analytics Hub{% endblock %}
+{% block header_subtitle %}Official IT Asset Governance, License Compliance &amp; Multi-Site Audit Reporting{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Executive Header Banner -->
+    <div class="bg-gradient-to-r from-slate-900 via-slate-800 to-blue-950 rounded-2xl p-6 sm:p-7 text-white shadow-sm border border-slate-800 relative overflow-hidden">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
+            <div>
+                <div class="flex items-center space-x-2 mb-2">
+                    <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-400/30">
+                        <i class="fa-solid fa-chart-pie mr-1"></i> Executive Reporting
+                    </span>
+                    <span class="text-slate-400 text-xs">•</span>
+                    <span class="text-xs text-slate-300 font-medium">Akij Group IT Directorate</span>
+                </div>
+                <h1 class="text-2xl sm:text-3xl font-black tracking-tight">Centralized Report Center</h1>
+                <p class="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
+                    Generate, inspect, and export comprehensive audit dossiers, physical stock count reconciliations, software piracy assessments, and cross-site matrix summaries.
+                </p>
+            </div>
+
+            <!-- Quick Global Export Dropdown -->
+            <div class="flex items-center space-x-3 flex-wrap">
+                <a href="{% url 'export_excel_matrix' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center space-x-2 text-xs">
+                    <i class="fa-solid fa-file-excel"></i>
+                    <span>Export Master Matrix</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Executive KPI Ribbon (4 Metrics) -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
+        <!-- 1. Total Assets -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Inventory Assets</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_assets|portal_number:portal.number_format }}</h3>
+                <div class="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
+                    <span class="text-emerald-700 font-bold">{{ in_use_assets }} In-Use</span>
+                    <span>•</span>
+                    <span class="text-amber-700 font-bold">{{ spare_assets }} Spares</span>
+                </div>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+        </div>
+
+        <!-- 2. Software Compliance -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Software Licenses</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_software|portal_number:portal.number_format }}</h3>
+                <div class="flex items-center gap-1.5 mt-1 text-[10px]">
+                    {% if pirated_count > 0 %}
+                    <span class="text-rose-700 font-bold"><i class="fa-solid fa-triangle-exclamation mr-0.5"></i>{{ pirated_count }} Pirated</span>
+                    {% else %}
+                    <span class="text-emerald-700 font-bold">0 Pirated Risk</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-key"></i>
+            </div>
+        </div>
+
+        <!-- 3. Corporate Domains -->
+        {% if is_central %}
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Domains &amp; SSL</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_domains|portal_number:portal.number_format }}</h3>
+                <div class="flex items-center gap-1.5 mt-1 text-[10px]">
+                    {% if domains_expiring_30 > 0 or domains_expired > 0 %}
+                    <span class="text-amber-700 font-bold">{{ domains_expiring_30 }} Expiring</span>
+                    {% else %}
+                    <span class="text-emerald-700 font-bold">All Healthy</span>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-globe"></i>
+            </div>
+        </div>
+        {% else %}
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Scoped Locations</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_locations }}</h3>
+                <p class="text-[10px] text-slate-400 mt-1">Assigned Operational Sites</p>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-building"></i>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- 4. Physical Audit Sessions -->
+        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Physical Audits</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_audits|portal_number:portal.number_format }}</h3>
+                <div class="flex items-center gap-1.5 mt-1 text-[10px]">
+                    <span class="text-emerald-700 font-bold">{{ approved_audits }} Approved</span>
+                    <span>•</span>
+                    <span class="text-amber-700 font-bold">{{ pending_audits }} Pending</span>
+                </div>
+            </div>
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5 Core Report Cards Grid -->
+    <div>
+        <div class="flex items-center justify-between mb-4">
+            <div>
+                <h3 class="text-base font-bold text-slate-900">Executive Report Portfolio</h3>
+                <p class="text-xs text-slate-500">Select an analytical report stream to inspect online or export to formatted Excel.</p>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+
+            <!-- Report 1: Asset Inventory & Lifecycle -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-blue-400 transition group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-boxes-stacked"></i>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">
+                            Hardware Lifecycle
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base group-hover:text-blue-600 transition">
+                        Asset Inventory &amp; Lifecycle Report
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        Comprehensive inventory dossier covering physical &amp; logical classifications, active in-use vs spare units, faulty equipment, and warranty expiration aging.
+                    </p>
+                    <div class="flex items-center gap-2 mt-4 text-[11px] font-mono text-slate-600 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">{{ physical_assets }} Physical</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">{{ in_use_assets }} Active</span>
+                        <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200">{{ faulty_assets }} Faulty</span>
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
+                    <a href="{% url 'report_asset_inventory' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5">
+                        <span>View Interactive Report</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                    <a href="{% url 'report_asset_excel' %}" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 transition text-xs" title="Download Excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report 2: Software Compliance & Cyber Risk -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-purple-400 transition group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-shield-virus"></i>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 uppercase">
+                            Cyber Governance
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base group-hover:text-purple-700 transition">
+                        Software Compliance &amp; Risk Audit
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        Group-wide software license audit assessing genuine licensed seats, expired subscriptions, OEM bundles, and cracked/pirated security vulnerabilities.
+                    </p>
+                    <div class="flex items-center gap-2 mt-4 text-[11px] font-mono text-slate-600 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">{{ total_software }} Total Software</span>
+                        {% if pirated_count > 0 %}
+                        <span class="px-2 py-0.5 rounded bg-rose-50 text-rose-800 border border-rose-200 font-bold">{{ pirated_count }} Pirated Alert</span>
+                        {% else %}
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">100% Verified</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
+                    <a href="{% url 'report_software_compliance' %}" class="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1.5">
+                        <span>View Interactive Report</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                    <a href="{% url 'report_software_excel' %}" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 transition text-xs" title="Download Excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report 3: Corporate Domains & SSL (Central only) -->
+            {% if is_central %}
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-teal-400 transition group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-teal-100 text-teal-800 uppercase">
+                            Web &amp; DNS Infra
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base group-hover:text-teal-700 transition">
+                        Domains, DNS &amp; SSL Governance
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        Akij Group web portfolio oversight detailing GoDaddy/BTCL registrars, annual renewal budgets, DNS routing, server IPs, and SSL certificate expiration countdowns.
+                    </p>
+                    <div class="flex items-center gap-2 mt-4 text-[11px] font-mono text-slate-600 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">{{ total_domains }} Domains</span>
+                        {% if domains_expiring_30 > 0 %}
+                        <span class="px-2 py-0.5 rounded bg-amber-50 text-amber-800 border border-amber-200 font-bold">{{ domains_expiring_30 }} Expiring</span>
+                        {% endif %}
+                        {% if domains_ssl_issues > 0 %}
+                        <span class="px-2 py-0.5 rounded bg-purple-50 text-purple-800 border border-purple-200">{{ domains_ssl_issues }} SSL Issues</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
+                    <a href="{% url 'report_domains_ssl' %}" class="text-xs font-bold text-teal-700 hover:text-teal-900 flex items-center gap-1.5">
+                        <span>View Interactive Report</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                    <a href="{% url 'report_domains_excel' %}" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 transition text-xs" title="Download Excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Report 4: Physical Stock Count Reconciliation -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-emerald-400 transition group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                            Reconciliation
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base group-hover:text-emerald-700 transition">
+                        Physical Stock Audit Reconciliation
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        Location-by-location comparison between on-site physical stock counts verified during audit sessions versus tagged asset registry records, highlighting inventory variance.
+                    </p>
+                    <div class="flex items-center gap-2 mt-4 text-[11px] font-mono text-slate-600 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">{{ total_audits }} Audits Recorded</span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-50 text-emerald-800 border border-emerald-200">{{ approved_audits }} Approved</span>
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
+                    <a href="{% url 'report_audit_reconciliation' %}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1.5">
+                        <span>View Interactive Report</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                    <a href="{% url 'report_audit_excel' %}" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 transition text-xs" title="Download Excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Report 5: Multi-Location Device Matrix -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 flex flex-col justify-between hover:border-blue-400 transition group">
+                <div>
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                            <i class="fa-solid fa-table-cells"></i>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 uppercase">
+                            Cross-Tab Matrix
+                        </span>
+                    </div>
+                    <h4 class="font-bold text-slate-900 text-base group-hover:text-blue-600 transition">
+                        Multi-Location Master Matrix
+                    </h4>
+                    <p class="text-xs text-slate-500 mt-1.5 leading-relaxed">
+                        Comprehensive cross-tabulation of all 39 hardware device types across Head Office, Factories, and Depots with automatic row and column aggregation.
+                    </p>
+                    <div class="flex items-center gap-2 mt-4 text-[11px] font-mono text-slate-600 flex-wrap">
+                        <span class="px-2 py-0.5 rounded bg-slate-100 border border-slate-200">39 Categories</span>
+                        <span class="px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">Full Matrix Grid</span>
+                    </div>
+                </div>
+
+                <div class="pt-5 mt-5 border-t border-slate-100 flex items-center justify-between">
+                    <a href="{% url 'matrix' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1.5">
+                        <span>View Live Matrix</span>
+                        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                    </a>
+                    <a href="{% url 'export_excel_matrix' %}" class="p-2 rounded-lg bg-slate-100 hover:bg-emerald-100 hover:text-emerald-800 text-slate-600 transition text-xs" title="Download Excel">
+                        <i class="fa-solid fa-file-excel"></i>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Recent Audit Activity Log Section -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Recent Audit &amp; Report Activity</h4>
+            </div>
+            <a href="{% url 'activity_logs' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800">
+                View Full Audit Trail &rarr;
+            </a>
+        </div>
+        <div class="divide-y divide-slate-100 text-xs">
+            {% for act in recent_activity %}
+            <div class="p-4 flex items-center justify-between hover:bg-slate-50/50 transition">
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-bold">
+                        {{ act.action|slice:":3" }}
+                    </div>
+                    <div>
+                        <span class="font-bold text-slate-800">{{ act.description }}</span>
+                        <p class="text-[11px] text-slate-400 mt-0.5">By <strong>{{ act.user_name }}</strong> • Module: {{ act.module }}</p>
+                    </div>
+                </div>
+                <span class="text-[11px] text-slate-400 font-mono whitespace-nowrap">{{ act.created_at|date:"d M Y H:i" }}</span>
+            </div>
+            {% empty %}
+            <div class="p-6 text-center text-slate-400 text-xs">
+                No recent activity logged.
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+{% endblock %}

@@ -78,6 +78,9 @@ urlpatterns = [
     path('matrix/', matrix_view, name='matrix'),
     path('matrix/export-excel/', export_excel_matrix, name='export_excel_matrix'),
     
+    # Reports & Analytics Hub
+    path('reports/', include('apps.reports.urls')),
+    
     # Audits
     path('audits/', audit_list_view, name='audit_list'),
     path('audits/new/', audit_create_or_edit_view, name='audit_create'),

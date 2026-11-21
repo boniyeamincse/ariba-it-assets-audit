@@ -1,0 +1,245 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Corporate Domains &amp; SSL Governance Report | {{ portal.application_name }}{% endblock %}
+
+{% block header_title %}Corporate Domains &amp; SSL Governance Report{% endblock %}
+{% block header_subtitle %}Akij Group Domain Registry, DNS Routing, SSL Certificates &amp; Renewal Budgets{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top Action Bar & Breadcrumbs -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center space-x-2 text-xs text-slate-500">
+            <a href="{% url 'report_hub' %}" class="hover:text-blue-600 font-semibold flex items-center gap-1">
+                <i class="fa-solid fa-chart-pie"></i>
+                <span>Report Center</span>
+            </a>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+            <span class="font-bold text-slate-800">Domain &amp; SSL Governance Report</span>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-wrap">
+            <button onclick="window.print()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-print"></i>
+                <span>Print / PDF</span>
+            </button>
+            <a href="{% url 'report_domains_excel' %}?company={{ company_filter }}&category={{ category_filter }}&registrar={{ registrar_filter }}&ssl={{ ssl_filter }}&expiry_range={{ expiry_range }}&q={{ search_query }}" class="bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-3.5 rounded-xl shadow-xs transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Export Excel</span>
+            </a>
+            <a href="{% url 'report_hub' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Hub</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-6 gap-3.5 sm:gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Total Domains</p>
+            <h3 class="text-xl font-black text-slate-900 mt-0.5">{{ total_count }}</h3>
+            <span class="text-[10px] text-slate-500">Corporate FQDNs</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border {% if expired_count > 0 %}border-rose-300 bg-rose-50/20{% else %}border-slate-200{% endif %} shadow-sm">
+            <p class="text-[10px] font-bold text-rose-700 uppercase">Expired Domains</p>
+            <h3 class="text-xl font-black text-rose-900 mt-0.5">{{ expired_count }}</h3>
+            <span class="text-[10px] {% if expired_count > 0 %}text-rose-700 font-bold{% else %}text-emerald-700 font-medium{% endif %}">
+                {% if expired_count > 0 %}Action Required{% else %}No Outages{% endif %}
+            </span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm">
+            <p class="text-[10px] font-bold text-amber-700 uppercase">Expiring &le; 30d</p>
+            <h3 class="text-xl font-black text-amber-900 mt-0.5">{{ expiring_30 }}</h3>
+            <span class="text-[10px] text-amber-700 font-medium">Renewal Watch</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-purple-100 bg-purple-50/20 shadow-sm">
+            <p class="text-[10px] font-bold text-purple-700 uppercase">SSL Issues</p>
+            <h3 class="text-xl font-black text-purple-900 mt-0.5">{{ ssl_issues }}</h3>
+            <span class="text-[10px] text-purple-700 font-medium">Security Alert</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-teal-100 bg-teal-50/20 shadow-sm">
+            <p class="text-[10px] font-bold text-teal-700 uppercase">Renewal Budget (USD)</p>
+            <h3 class="text-xl font-black text-teal-900 mt-0.5">${{ total_cost_usd|floatformat:2 }}</h3>
+            <span class="text-[10px] text-slate-500">Annual GoDaddy/AWS</span>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+            <p class="text-[10px] font-bold text-slate-500 uppercase">Renewal Budget (BDT)</p>
+            <h3 class="text-xl font-black text-slate-900 mt-0.5">৳{{ total_cost_bdt|floatformat:2 }}</h3>
+            <span class="text-[10px] text-slate-500">BTCL .bd domains</span>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <form method="GET" action="{% url 'report_domains_ssl' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+            <!-- Search -->
+            <div class="lg:col-span-3">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Search Domains</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Domain name, Server IP, Admin..."
+                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                </div>
+            </div>
+
+            <!-- Company -->
+            <div class="lg:col-span-3">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Company</label>
+                <select name="company" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <option value="">All Companies</option>
+                    {% for comp in companies %}
+                    <option value="{{ comp.id }}" {% if company_filter == comp.id|stringformat:"s" %}selected{% endif %}>
+                        {{ comp.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Registrar -->
+            <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Registrar</label>
+                <select name="registrar" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <option value="">All Registrars</option>
+                    {% for code, label in registrar_choices %}
+                    <option value="{{ code }}" {% if registrar_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Expiry Timeline -->
+            <div class="lg:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Expiry Range</label>
+                <select name="expiry_range" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <option value="">All Lifecycles</option>
+                    <option value="expiring_30" {% if expiry_range == 'expiring_30' %}selected{% endif %}>Expiring &le; 30d</option>
+                    <option value="expiring_60" {% if expiry_range == 'expiring_60' %}selected{% endif %}>Expiring &le; 60d</option>
+                    <option value="expired" {% if expiry_range == 'expired' %}selected{% endif %}>Expired Only</option>
+                </select>
+            </div>
+
+            <!-- SSL -->
+            <div class="lg:col-span-1">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">SSL</label>
+                <select name="ssl" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-teal-500 focus:outline-none">
+                    <option value="">All</option>
+                    <option value="issues" {% if ssl_filter == 'issues' %}selected{% endif %}>Issues</option>
+                    <option value="ACTIVE" {% if ssl_filter == 'ACTIVE' %}selected{% endif %}>Active</option>
+                </select>
+            </div>
+
+            <!-- Actions -->
+            <div class="lg:col-span-1 flex items-center gap-1.5">
+                <button type="submit" class="flex-1 bg-teal-700 hover:bg-teal-800 text-white font-bold py-2 px-2 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1" title="Apply Filter">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Filter</span>
+                </button>
+                {% if company_filter or category_filter or registrar_filter or ssl_filter or expiry_range or search_query %}
+                <a href="{% url 'report_domains_ssl' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2 rounded-lg text-xs transition" title="Clear Filters">
+                    <i class="fa-solid fa-xmark"></i>
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Data Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-globe text-teal-700"></i>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Corporate Domain &amp; SSL Registry</h4>
+                <span class="bg-teal-100 text-teal-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                    {{ total_count }} Domains
+                </span>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider">
+                        <th class="px-4 py-3 w-10 text-center">#</th>
+                        <th class="px-4 py-3 min-w-[200px]">Domain FQDN</th>
+                        <th class="px-4 py-3 min-w-[150px]">Owning Company</th>
+                        <th class="px-4 py-3 min-w-[120px]">Registrar &amp; Cost</th>
+                        <th class="px-4 py-3 min-w-[140px]">Domain Expiry</th>
+                        <th class="px-4 py-3 min-w-[130px]">SSL Certificate</th>
+                        <th class="px-4 py-3 min-w-[130px]">DNS &amp; Web Server IP</th>
+                        <th class="px-4 py-3 min-w-[130px]">IT Custody Admin</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for dom in domains %}
+                    <tr class="hover:bg-teal-50/20 transition {% if dom.is_expired %}bg-red-50/40{% elif dom.is_expiring_soon %}bg-amber-50/30{% endif %}">
+                        <td class="px-4 py-3 text-center text-slate-400 font-medium">{{ forloop.counter }}</td>
+                        <td class="px-4 py-3">
+                            <a href="{% url 'domain_detail' dom.pk %}" class="font-bold text-slate-900 text-sm hover:text-teal-700 hover:underline">
+                                {{ dom.domain_name }}
+                            </a>
+                            <span class="block text-[10px] text-slate-500">{{ dom.get_category_display }}</span>
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-800">
+                            {{ dom.company.name }}
+                            <span class="block text-[10px] text-slate-400 font-mono">[{{ dom.company.short_code }}]</span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-semibold text-slate-800">{{ dom.get_registrar_display }}</span>
+                            <span class="block text-[11px] font-mono text-slate-500">
+                                {% if dom.annual_cost > 0 %}{{ dom.currency }} {{ dom.annual_cost }}/yr{% else %}N/A{% endif %}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-mono font-bold text-slate-900">{{ dom.expiry_date|date:"d M Y" }}</span>
+                            <div class="mt-0.5">
+                                {% if dom.is_expired %}
+                                <span class="text-[10px] font-black text-rose-600">EXPIRED ({{ dom.abs_days_until_expiry }}d ago)</span>
+                                {% elif dom.is_expiring_soon %}
+                                <span class="text-[10px] font-bold text-amber-700">{{ dom.days_until_expiry }} days left</span>
+                                {% else %}
+                                <span class="text-[10px] text-emerald-700 font-medium">{{ dom.days_until_expiry }} days left</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {% if dom.ssl_status == 'ACTIVE' %}bg-emerald-100 text-emerald-800
+                                {% elif dom.ssl_status == 'EXPIRING_SOON' %}bg-amber-100 text-amber-800
+                                {% elif dom.ssl_status == 'EXPIRED' %}bg-rose-100 text-rose-800
+                                {% else %}bg-slate-100 text-slate-600{% endif %}">
+                                {{ dom.get_ssl_status_display }}
+                            </span>
+                            {% if dom.ssl_expiry_date %}
+                            <span class="block text-[10px] text-slate-400 font-mono mt-0.5">Exp: {{ dom.ssl_expiry_date|date:"d M Y" }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="font-medium text-slate-700 block">{{ dom.get_dns_provider_display }}</span>
+                            {% if dom.primary_a_record_ip %}
+                            <code class="text-[10px] font-mono text-blue-700 bg-blue-50 px-1 py-0.2 rounded border border-blue-200">
+                                {{ dom.primary_a_record_ip }}
+                            </code>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 font-medium text-slate-800">
+                            {{ dom.technical_contact|default:"Central IT NOC" }}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="p-12 text-center text-slate-400">
+                            No domain records match the selected filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
