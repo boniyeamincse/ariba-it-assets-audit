@@ -21,6 +21,10 @@
             <div><dt class="font-medium text-slate-600">Current location</dt><dd>{{ asset.location.name }}</dd></div>
             <div><dt class="font-medium text-slate-600">Owning company</dt><dd>{% if asset.owning_company %}{{ asset.owning_company.name }}{% else %}{{ asset.location.company.name }}{% endif %}</dd></div>
             {% if asset.brand or asset.model_name %}<div><dt class="font-medium text-slate-600">Brand / model</dt><dd>{{ asset.brand|default:'' }} {{ asset.model_name|default:'' }}</dd></div>{% endif %}
+            <div><dt class="font-medium text-slate-600">Compliance &amp; License</dt><dd class="font-semibold {% if asset.compliance_status == 'CRACKED_PIRATED' %}text-red-700{% elif asset.compliance_status == 'GENUINE' %}text-emerald-700{% else %}text-slate-800{% endif %}">{{ asset.get_compliance_status_display }}</dd></div>
+            <div><dt class="font-medium text-slate-600">Security Risk Level</dt><dd><span class="font-bold {% if asset.risk_level in 'HIGH CRITICAL' %}text-red-700{% else %}text-slate-700{% endif %}">{{ asset.get_risk_level_display }}</span></dd></div>
+            <div><dt class="font-medium text-slate-600">Remediation Plan</dt><dd>{{ asset.get_remediation_plan_display }}</dd></div>
+            <div><dt class="font-medium text-slate-600">License Seats</dt><dd>{{ asset.seats_allocated }} Allocated / {{ asset.seats_purchased }} Purchased</dd></div>
         </dl>
         <div class="flex flex-wrap gap-3 text-sm">
             <a class="font-medium text-blue-700 underline" href="{% url 'asset_list' %}">Asset inventory</a>
