@@ -1,0 +1,78 @@
+services:
+  web:
+    image: ag-audit:production
+    build:
+      context: ..
+      dockerfile: infa/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      APP_ENV: production
+      DJANGO_DEBUG: "0"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?Set DJANGO_SECRET_KEY in .env.production}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:?Set DJANGO_ALLOWED_HOSTS in .env.production}
+      DJANGO_CSRF_TRUSTED_ORIGINS: ${DJANGO_CSRF_TRUSTED_ORIGINS:?Set DJANGO_CSRF_TRUSTED_ORIGINS in .env.production}
+      DJANGO_SECURE_SSL_REDIRECT: ${DJANGO_SECURE_SSL_REDIRECT:-1}
+      DJANGO_SECURE_HSTS_SECONDS: ${DJANGO_SECURE_HSTS_SECONDS:-31536000}
+      DJANGO_HSTS_INCLUDE_SUBDOMAINS: ${DJANGO_HSTS_INCLUDE_SUBDOMAINS:-1}
+      DJANGO_HSTS_PRELOAD: ${DJANGO_HSTS_PRELOAD:-0}
+      AUDIT_DB_ENGINE: postgresql
+      AUDIT_DB_HOST: db
+      AUDIT_DB_PORT: "5432"
+      AUDIT_DB_NAME: ${AUDIT_DB_NAME:?Set AUDIT_DB_NAME in .env.production}
+      AUDIT_DB_USER: ${AUDIT_DB_USER:?Set AUDIT_DB_USER in .env.production}
+      AUDIT_DB_PASSWORD: ${AUDIT_DB_PASSWORD:?Set AUDIT_DB_PASSWORD in .env.production}
+      AUDIT_DB_CONN_MAX_AGE: ${AUDIT_DB_CONN_MAX_AGE:-60}
+      AUDIT_EMAIL_HOST: ${AUDIT_EMAIL_HOST:-localhost}
+      AUDIT_EMAIL_PORT: ${AUDIT_EMAIL_PORT:-25}
+      AUDIT_EMAIL_HOST_USER: ${AUDIT_EMAIL_HOST_USER:-}
+      AUDIT_EMAIL_HOST_PASSWORD: ${AUDIT_EMAIL_HOST_PASSWORD:-}
+      AUDIT_EMAIL_USE_TLS: ${AUDIT_EMAIL_USE_TLS:-0}
+      AUDIT_FROM_EMAIL: ${AUDIT_FROM_EMAIL:-audit@localhost}
+      GUNICORN_WORKERS: ${GUNICORN_WORKERS:-3}
+      GUNICORN_TIMEOUT: ${GUNICORN_TIMEOUT:-60}
+    ports:
+      - "127.0.0.1:8000:8000"
+    volumes:
+      - audit-media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8000/login/', headers={'X-Forwarded-Proto': 'https'}), timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 40s
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${AUDIT_DB_NAME:?Set AUDIT_DB_NAME in .env.production}
+      POSTGRES_USER: ${AUDIT_DB_USER:?Set AUDIT_DB_USER in .env.production}
+      POSTGRES_PASSWORD: ${AUDIT_DB_PASSWORD:?Set AUDIT_DB_PASSWORD in .env.production}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - audit-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+    shm_size: 256mb
+    security_opt:
+      - no-new-privileges:true
+    stop_grace_period: 60s
+
+volumes:
+  audit-postgres-data:
+  audit-media:
