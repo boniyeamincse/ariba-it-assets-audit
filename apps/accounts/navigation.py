@@ -11,7 +11,7 @@ _GROUPS = (
         ('Locations', 'location_list', 'fa-building', ('location_create', 'location_edit', 'location_detail', 'location_delete'), None),
         ('Asset Inventory', 'asset_list', 'fa-boxes-stacked', ('asset_create', 'asset_edit', 'asset_detail', 'asset_delete', 'asset_retire'), None),
         ('Software & Licenses', 'software_list', 'fa-key', (), None),
-        ('Domains & SSL', 'domain_list', 'fa-globe', ('domain_create', 'domain_edit', 'domain_detail', 'domain_delete'), None),
+        ('Domains & SSL', 'domain_list', 'fa-globe', ('domain_create', 'domain_edit', 'domain_detail', 'domain_delete'), 'central'),
         ('Device Catalog', 'category_list', 'fa-layer-group', (), 'central'),
         ('Import Assets', 'asset_import_csv', 'fa-file-csv', ('asset_sample_csv',), 'central'),
     )),

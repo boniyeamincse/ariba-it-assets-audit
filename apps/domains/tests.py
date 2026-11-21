@@ -181,7 +181,15 @@ class DomainRecordTests(TestCase):
         self.assertFalse(DomainRecord.objects.filter(pk=self.expired_domain.pk).exists())
 
     def test_domain_create_permission_restriction(self):
-        """Depot admin cannot access create or edit view (restricted to central roles)."""
+        """Depot users cannot access company-wide registrar and DNS records."""
         self.client.force_login(self.depot_user)
-        response = self.client.get(reverse('domain_create'))
-        self.assertEqual(response.status_code, 403)
+        restricted_urls = (
+            reverse('domain_list'),
+            reverse('domain_create'),
+            reverse('domain_detail', kwargs={'pk': self.active_domain.pk}),
+            reverse('domain_edit', kwargs={'pk': self.active_domain.pk}),
+            reverse('domain_delete', kwargs={'pk': self.active_domain.pk}),
+        )
+        for url in restricted_urls:
+            with self.subTest(url=url):
+                self.assertEqual(self.client.get(url).status_code, 403)
