@@ -58,7 +58,7 @@
             <a href="{% url 'asset_list' %}{% querystring device_type=None page=None %}" class="font-medium text-blue-700 underline">Remove device type filter</a>
         </div>
         {% endif %}
-        <form method="GET" action="{% url 'asset_list' %}" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end">
+        <form method="GET" action="{% url 'asset_list' %}" class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
             {% if selected_device_type %}<input type="hidden" name="device_type" value="{{ selected_device_type.pk }}">{% endif %}
             {% if status_filter %}<input type="hidden" name="status" value="{{ status_filter }}">{% endif %}
 
@@ -69,7 +69,7 @@
                     <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
                         <i class="fa-solid fa-magnifying-glass text-xs"></i>
                     </span>
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Tag, Serial, Model, User, Department..."
+                    <input type="text" name="q" value="{{ search_query }}" placeholder="Tag, Serial, License, Model, Vendor, User..."
                            class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
                 </div>
             </div>
@@ -98,13 +98,23 @@
                 </select>
             </div>
 
+            <!-- Asset Nature Dropdown -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Asset Nature</label>
+                <select name="nature" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">All Natures</option>
+                    <option value="PHYSICAL" {% if nature_filter == 'PHYSICAL' %}selected{% endif %}>Physical / Hardware</option>
+                    <option value="LOGICAL" {% if nature_filter == 'LOGICAL' %}selected{% endif %}>Logical / Virtual / License</option>
+                </select>
+            </div>
+
             <!-- Buttons -->
             <div class="flex items-center space-x-2">
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1">
                     <i class="fa-solid fa-filter"></i>
                     <span>Filter</span>
                 </button>
-                {% if loc_filter or cat_filter or selected_device_type or status_filter or search_query %}
+                {% if loc_filter or cat_filter or nature_filter or selected_device_type or status_filter or search_query %}
                 <a href="{% url 'asset_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2.5 rounded-lg text-xs transition" title="Clear Filters">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
@@ -173,10 +183,27 @@
 
                         <!-- Device Type & Model -->
                         <td class="px-4 py-3">
-                            <span class="font-bold text-slate-900 text-sm block">{{ ast.device_type.name }}</span>
+                            <div class="flex items-center space-x-1.5 mb-1">
+                                <span class="font-bold text-slate-900 text-sm">{{ ast.device_type.name }}</span>
+                                {% if ast.asset_nature == 'LOGICAL' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-50 text-indigo-700 border border-indigo-200" title="Logical / Virtual Asset">
+                                    <i class="fa-solid fa-cloud mr-1 text-[9px]"></i>Logical
+                                </span>
+                                {% else %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Physical Hardware">
+                                    <i class="fa-solid fa-desktop mr-1 text-[9px]"></i>Physical
+                                </span>
+                                {% endif %}
+                            </div>
                             <div class="text-[11px] text-slate-500">
-                                {% if ast.brand %}<span class="font-medium text-slate-700">{{ ast.brand }}</span>{% endif %}
-                                {% if ast.model_name %}<span>{{ ast.model_name }}</span>{% endif %}
+                                {% if ast.asset_nature == 'LOGICAL' %}
+                                    {% if ast.vendor %}<span class="font-medium text-slate-700">{{ ast.vendor }}</span>{% endif %}
+                                    {% if ast.version %}<span>{{ ast.version }}</span>{% endif %}
+                                    {% if ast.host_server %}<span class="text-slate-400">• Host: {{ ast.host_server }}</span>{% endif %}
+                                {% else %}
+                                    {% if ast.brand %}<span class="font-medium text-slate-700">{{ ast.brand }}</span>{% endif %}
+                                    {% if ast.model_name %}<span>{{ ast.model_name }}</span>{% endif %}
+                                {% endif %}
                                 <span class="text-slate-300">•</span>
                                 <span class="text-slate-400">{{ ast.device_type.category.name }}</span>
                             </div>
@@ -197,9 +224,11 @@
                             <span class="text-[10px] text-slate-400">{{ ast.department|default:'IT Pool' }}</span>
                         </td>
 
-                        <!-- Serial Number -->
+                        <!-- Serial Number / License Key -->
                         <td class="px-4 py-3">
-                            {% if ast.serial_number %}
+                            {% if ast.asset_nature == 'LOGICAL' and ast.license_key %}
+                            <code class="px-1.5 py-0.5 rounded bg-indigo-50 text-indigo-800 text-[11px] font-mono border border-indigo-100" title="License Key / Key ID">{{ ast.license_key|truncatechars:18 }}</code>
+                            {% elif ast.serial_number %}
                             <code class="px-1.5 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-mono">{{ ast.serial_number }}</code>
                             {% else %}
                             <span class="text-slate-300">—</span>

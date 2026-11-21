@@ -1,225 +1,356 @@
 {% extends 'base.html' %}
 
-{% block title %}{% if asset %}Edit Asset - {{ asset.asset_tag }}{% else %}Add New Asset{% endif %} | Akij Group IT Audit{% endblock %}
+{% block title %}{% if asset %}Edit Asset - {{ asset.asset_tag }}{% else %}Register New IT Asset{% endif %} | {{ portal.application_short_name }}{% endblock %}
 {% block header_title %}{% if asset %}Edit Asset Record{% else %}Register New IT Asset{% endif %}{% endblock %}
-{% block header_subtitle %}Dynamic location-wise physical IT asset management for Akij Group{% endblock %}
+{% block header_subtitle %}Physical Hardware &amp; Logical / Virtual IT Asset Tracking across Akij Group Locations{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto">
+<div class="max-w-4xl mx-auto space-y-6">
 
+    <!-- Top Banner Card -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-
-        <!-- Form Top Banner -->
-        <div class="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-            <div class="flex items-center space-x-3">
-                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md">
-                    <i class="fa-solid fa-laptop-file"></i>
+        <div class="p-6 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md flex-shrink-0" id="banner-icon">
+                    <i class="fa-solid {% if asset and asset.asset_nature == 'LOGICAL' %}fa-cloud{% else %}fa-laptop-file{% endif %}"></i>
                 </div>
                 <div>
-                    <h3 class="font-bold text-lg">{% if asset %}Edit Asset: {{ asset.asset_tag }}{% else %}Add New Asset to Inventory{% endif %}</h3>
-                    <p class="text-xs text-slate-400">Track device assignments, specifications, and location lifecycle</p>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-lg">{% if asset %}Edit Asset: {{ asset.asset_tag }}{% else %}Register New IT Asset{% endif %}</h3>
+                        <span id="banner-nature-badge" class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider {% if asset and asset.asset_nature == 'LOGICAL' %}bg-purple-900/60 text-purple-300 border border-purple-700{% else %}bg-blue-900/60 text-blue-300 border border-blue-700{% endif %}">
+                            {% if asset %}{{ asset.get_asset_nature_display }}{% else %}Physical Asset{% endif %}
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">Physical hardware devices, software licenses, Cloud VMs, and network endpoints</p>
                 </div>
             </div>
-            <a href="{% url 'asset_list' %}" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5">
-                <i class="fa-solid fa-arrow-left"></i>
+            <a href="{% url 'asset_list' %}" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl transition flex items-center space-x-1.5 border border-slate-700">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
                 <span>Back to Assets</span>
             </a>
         </div>
 
-        <!-- Form Body -->
-        <form method="POST" class="p-8 space-y-6">
+        <form method="POST" class="p-6 md:p-8 space-y-8" id="asset-registration-form">
             {% csrf_token %}
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <!-- Asset Nature Selector (Physical vs Logical) -->
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2.5">
+                    1. Select Asset Nature <span class="text-red-500">*</span>
+                </label>
+                <input type="hidden" name="asset_nature" id="asset-nature-input" value="{{ current_nature|default:'PHYSICAL' }}">
 
-                <!-- 1. Location Selection (Location-wise) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Location / Unit <span class="text-red-500">*</span>
-                    </label>
-                    <div class="relative">
-                        <select name="location" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                            <option value="">-- Select Location --</option>
-                            {% for loc in locations %}
-                            <option value="{{ loc.id }}" {% if asset and asset.location_id == loc.id %}selected{% elif selected_loc_id == loc.id %}selected{% endif %}>
-                                [{{ loc.location_id }}] {{ loc.name }} ({{ loc.get_location_type_display }})
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <!-- Physical Card -->
+                    <button type="button" id="nature-tab-physical"
+                            onclick="setAssetNature('PHYSICAL')"
+                            class="nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none {% if current_nature != 'LOGICAL' %}border-blue-600 bg-blue-50/60 text-blue-950 shadow-xs{% else %}border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 text-slate-700{% endif %}">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition {% if current_nature != 'LOGICAL' %}bg-blue-600 text-white shadow-xs{% else %}bg-slate-200 text-slate-600{% endif %}" id="physical-icon-box">
+                            <i class="fa-solid fa-desktop text-base"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-bold block">Physical Asset (Hardware)</span>
+                                <span class="nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center {% if current_nature != 'LOGICAL' %}border-blue-600 bg-blue-600 text-white{% else %}border-slate-400 bg-white{% endif %}">
+                                    <i class="fa-solid fa-check text-[9px]"></i>
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Laptops, Desktops, Servers, Switches, Routers, Firewalls, Printers, Scanners, UPS &amp; Peripherals
+                            </p>
+                        </div>
+                    </button>
+
+                    <!-- Logical Card -->
+                    <button type="button" id="nature-tab-logical"
+                            onclick="setAssetNature('LOGICAL')"
+                            class="nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none {% if current_nature == 'LOGICAL' %}border-purple-600 bg-purple-50/60 text-purple-950 shadow-xs{% else %}border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 text-slate-700{% endif %}">
+                        <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition {% if current_nature == 'LOGICAL' %}bg-purple-600 text-white shadow-xs{% else %}bg-slate-200 text-slate-600{% endif %}" id="logical-icon-box">
+                            <i class="fa-solid fa-cloud text-base"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between">
+                                <span class="text-sm font-bold block">Logical / Virtual Asset</span>
+                                <span class="nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center {% if current_nature == 'LOGICAL' %}border-purple-600 bg-purple-600 text-white{% else %}border-slate-400 bg-white{% endif %}">
+                                    <i class="fa-solid fa-check text-[9px]"></i>
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-500 mt-1 leading-relaxed">
+                                Software Licenses, Cloud VMs, SSL Certificates, Domain Names, ERP Modules, IP Subnets &amp; SaaS
+                            </p>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 2. Primary Location & Type Allocation -->
+            <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">2</span>
+                    <span>Location &amp; Asset Classification</span>
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Location Selection -->
+                    <div>
+                        <label for="id_location" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Location / Unit Scope <span class="text-red-500">*</span>
+                        </label>
+                        <div class="relative">
+                            <select name="location" id="id_location" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                                <option value="">-- Select Location --</option>
+                                {% for loc in locations %}
+                                <option value="{{ loc.id }}" {% if asset and asset.location_id == loc.id %}selected{% elif selected_loc_id == loc.id %}selected{% endif %}>
+                                    [{{ loc.location_id }}] {{ loc.name }} ({{ loc.get_location_type_display }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <span class="text-[11px] text-slate-400 mt-1 block">Head Office, Factories, Depots, or Operational Branches</span>
+                    </div>
+
+                    <!-- Device / Asset Type -->
+                    <div>
+                        <label for="id_device_type" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-device-type">Device / Asset Type</span> <span class="text-red-500">*</span>
+                        </label>
+                        <select name="device_type" id="id_device_type" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            <option value="">-- Select Asset Type --</option>
+                            {% for cat in categories %}
+                            <optgroup label="📂 {{ cat.name }}">
+                                {% for dt in cat.devices.all %}
+                                <option value="{{ dt.id }}" {% if asset and asset.device_type_id == dt.id %}selected{% endif %}>
+                                    {{ dt.name }}
+                                </option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endfor %}
+                        </select>
+                        {% if can_administrate %}
+                        <span class="text-[11px] text-slate-400 mt-1 block">Need a new type? <a href="{% url 'category_list' %}" class="text-blue-600 underline font-medium">Add in Categories Catalog</a></span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Asset Tag / Barcode -->
+                    <div>
+                        <label for="id_asset_tag" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Asset Tag / Barcode <span class="text-slate-400 font-normal">(Auto-generated if empty)</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-barcode text-xs"></i>
+                            </span>
+                            <input type="text" name="asset_tag" id="id_asset_tag" value="{{ asset.asset_tag|default:'' }}"
+                                   placeholder="e.g. AST-AMFL-HO-NET-00001"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-blue-900 uppercase focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Operating Status -->
+                    <div>
+                        <label for="id_status" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Operating Status <span class="text-red-500">*</span>
+                        </label>
+                        <select name="status" id="id_status" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            {% for val, label in status_choices %}
+                            <option value="{{ val }}" {% if asset and asset.status == val %}selected{% elif not asset and val == 'IN_USE' %}selected{% endif %}>
+                                {{ label }}
                             </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <span class="text-[11px] text-slate-400 mt-1 block">Head Office, Chattak Factory, Depots, or Branches</span>
                 </div>
-
-                <!-- 2. Device Type / Category -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Device Type <span class="text-red-500">*</span>
-                    </label>
-                    <select name="device_type" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="">-- Select Device Type --</option>
-                        {% for cat in categories %}
-                        <optgroup label="📂 {{ cat.name }}">
-                            {% for dt in cat.devices.all %}
-                            <option value="{{ dt.id }}" {% if asset and asset.device_type_id == dt.id %}selected{% endif %}>
-                                {{ dt.name }}
-                            </option>
-                            {% endfor %}
-                        </optgroup>
-                        {% endfor %}
-                    </select>
-                    {% if can_administrate %}<span class="text-[11px] text-slate-400 mt-1 block">Need a new type? <a href="{% url 'category_list' %}" class="text-blue-600 underline">Add in Categories</a></span>{% endif %}
-                </div>
-
-                <!-- 3. Asset Tag -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Asset Tag / Barcode <span class="text-slate-400 font-normal">(Auto if empty)</span>
-                    </label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                            <i class="fa-solid fa-barcode text-xs"></i>
-                        </span>
-                        <input type="text" name="asset_tag" value="{{ asset.asset_tag|default:'' }}"
-                               placeholder="e.g. AST-0001 (Auto-generated)"
-                               class="w-full pl-9 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-blue-900 uppercase focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <!-- 4. Status -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Operating Status <span class="text-red-500">*</span>
-                    </label>
-                    <select name="status" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        {% for val, label in status_choices %}
-                        <option value="{{ val }}" {% if asset and asset.status == val %}selected{% elif not asset and val == 'IN_USE' %}selected{% endif %}>
-                            {{ label }}
-                        </option>
-                        {% endfor %}
-                    </select>
-                </div>
-
-                <!-- 5. Brand & Model -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Brand / Manufacturer</label>
-                    <input type="text" name="brand" value="{{ asset.brand|default:'' }}"
-                           placeholder="e.g. Dell, HP, Cisco, Lenovo, Canon, MikroTik"
-                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Model Name / Number</label>
-                    <input type="text" name="model_name" value="{{ asset.model_name|default:'' }}"
-                           placeholder="e.g. Latitude 3420 / Catalyst 2960 / ProLiant DL380"
-                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                </div>
-
-                <!-- 6. Serial Number -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Serial Number</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-fingerprint text-xs"></i>
-                        </span>
-                        <input type="text" name="serial_number" value="{{ asset.serial_number|default:'' }}"
-                               placeholder="e.g. CN-0J6K7L-72481-89B-05M"
-                               class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <!-- 7. Department & Assigned User -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department / Section</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-sitemap text-xs"></i>
-                        </span>
-                        <input type="text" name="department" value="{{ asset.department|default:'' }}"
-                               placeholder="e.g. IT Department, Accounts, HR, Production, Dispatch"
-                               class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Assigned User / Custodian</label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-user-check text-xs"></i>
-                        </span>
-                        <input type="text" name="assigned_user" value="{{ asset.assigned_user|default:'' }}"
-                               placeholder="e.g. Engr. Tanvir Ahmed, Md. Faruk Hossain"
-                               class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <!-- 8. Network Details (IP & MAC) -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">IP Address <span class="text-slate-400 font-normal">(Optional)</span></label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-network-wired text-xs"></i>
-                        </span>
-                        <input type="text" name="ip_address" value="{{ asset.ip_address|default:'' }}"
-                               placeholder="e.g. 192.168.10.45"
-                               class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">MAC Address <span class="text-slate-400 font-normal">(Optional)</span></label>
-                    <div class="relative">
-                        <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
-                            <i class="fa-solid fa-id-card-clip text-xs"></i>
-                        </span>
-                        <input type="text" name="mac_address" value="{{ asset.mac_address|default:'' }}"
-                               placeholder="e.g. 00:1A:2B:3C:4D:5E"
-                               class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                    </div>
-                </div>
-
-                <!-- 9. Dates: Purchase & Warranty -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Purchase Date</label>
-                    <input type="date" name="purchase_date" value="{{ asset.purchase_date|date:'Y-m-d'|default:'' }}"
-                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                </div>
-
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Warranty Expiry Date</label>
-                    <input type="date" name="warranty_expiry" value="{{ asset.warranty_expiry|date:'Y-m-d'|default:'' }}"
-                           class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
-                {% if not asset and default_warranty_months %}<p class="mt-1 text-xs text-slate-500">Leave blank to use the {{ default_warranty_months }}-month default when a purchase date is entered.</p>{% endif %}
-                </div>
-
-                <fieldset class="grid gap-4 sm:grid-cols-2 rounded-xl border border-slate-200 px-4 py-3">
-                <legend class="px-1 text-sm font-semibold">Asset classification</legend>
-                {% for key, label, choices, current in metadata_fields %}
-                <div>
-                    <label for="asset-{{ key }}" class="mb-1 block text-sm font-medium">{{ label }}</label>
-                    <select id="asset-{{ key }}" name="{{ key }}" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm">
-                        <option value="">Select {{ label|lower }}</option>
-                        {% for choice in choices %}<option value="{{ choice }}" {% if current == choice %}selected{% endif %}>{{ choice }}</option>{% endfor %}
-                    </select>
-                </div>
-                {% endfor %}
-                <div><span class="block text-sm font-medium">Asset currency</span><span class="text-sm">{{ currency }}</span></div>
-            </fieldset>
-
-            <!-- 10. Specifications & Remarks -->
-                <div class="md:col-span-2">
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Technical Specs / Remarks</label>
-                    <textarea name="remarks" rows="3"
-                              placeholder="e.g. Core i7 11th Gen, 16GB RAM, 512GB NVMe SSD, 24-inch IPS Monitor, Windows 11 Pro..."
-                              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">{{ asset.remarks|default:'' }}</textarea>
-                </div>
-
             </div>
 
-            <!-- Form Actions -->
-            <div class="pt-5 border-t border-slate-100 flex items-center justify-between">
+            <!-- 3. Identification & Technical Specs -->
+            <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">3</span>
+                    <span id="heading-technical-specs">Technical Specifications &amp; Identifiers</span>
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Brand / Vendor -->
+                    <div>
+                        <label for="id_brand" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-brand">Brand / Manufacturer</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-industry text-xs"></i>
+                            </span>
+                            <input type="text" name="brand" id="id_brand" value="{{ asset.brand|default:asset.vendor|default:'' }}"
+                                   placeholder="e.g. Dell, HP, Cisco, Lenovo, Canon"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Model / Version -->
+                    <div>
+                        <label for="id_model_name" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-model">Model Name / Number</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-tag text-xs"></i>
+                            </span>
+                            <input type="text" name="model_name" id="id_model_name" value="{{ asset.model_name|default:asset.version|default:'' }}"
+                                   placeholder="e.g. Latitude 3420, Catalyst 2960"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Serial Number / License Key -->
+                    <div class="md:col-span-2">
+                        <label for="id_serial_number" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-serial">Serial Number</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-fingerprint text-xs" id="icon-serial"></i>
+                            </span>
+                            <input type="text" name="serial_number" id="id_serial_number" value="{{ asset.serial_number|default:asset.license_key|default:'' }}"
+                                   placeholder="e.g. CN-0J6K7L-72481-89B-05M"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Network / Host Details -->
+                    <div>
+                        <label for="id_ip_address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            IP Address <span class="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-network-wired text-xs"></i>
+                            </span>
+                            <input type="text" name="ip_address" id="id_ip_address" value="{{ asset.ip_address|default:'' }}"
+                                   placeholder="e.g. 192.168.10.45"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label for="id_mac_address" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-mac">MAC Address</span> <span class="text-slate-400 font-normal">(Optional)</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-id-card-clip text-xs" id="icon-mac"></i>
+                            </span>
+                            <input type="text" name="mac_address" id="id_mac_address" value="{{ asset.mac_address|default:asset.host_server|default:'' }}"
+                                   placeholder="e.g. 00:1A:2B:3C:4D:5E"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 4. Custody, Department & User Assignment -->
+            <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">4</span>
+                    <span>Department &amp; User Custody</span>
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Department -->
+                    <div>
+                        <label for="id_department" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Department / Division</label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-sitemap text-xs"></i>
+                            </span>
+                            <input type="text" name="department" id="id_department" value="{{ asset.department|default:'' }}"
+                                   placeholder="e.g. IT Department, Accounts, HR, Production, Dispatch"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+
+                    <!-- Assigned User -->
+                    <div>
+                        <label for="id_assigned_user" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-assigned-user">Assigned User / Custodian</span>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-user-check text-xs"></i>
+                            </span>
+                            <input type="text" name="assigned_user" id="id_assigned_user" value="{{ asset.assigned_user|default:'' }}"
+                                   placeholder="e.g. Engr. Tanvir Ahmed, Md. Faruk Hossain"
+                                   class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 5. Lifecycle, Dates & Financials -->
+            <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">5</span>
+                    <span>Lifecycle, Dates &amp; Governance</span>
+                </h4>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <div>
+                        <label for="id_purchase_date" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-purchase-date">Purchase Date</span>
+                        </label>
+                        <input type="date" name="purchase_date" id="id_purchase_date" value="{{ asset.purchase_date|date:'Y-m-d'|default:'' }}"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                    </div>
+
+                    <div>
+                        <label for="id_warranty_expiry" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            <span id="label-warranty-expiry">Warranty Expiry Date</span>
+                        </label>
+                        <input type="date" name="warranty_expiry" id="id_warranty_expiry" value="{{ asset.warranty_expiry|date:'Y-m-d'|default:'' }}"
+                               class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                        {% if not asset and default_warranty_months %}
+                        <p class="mt-1 text-[11px] text-slate-500">Leave blank to use the {{ default_warranty_months }}-month default when a purchase date is entered.</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Asset Classifications -->
+                <fieldset class="mt-5 grid gap-4 sm:grid-cols-2 rounded-2xl border border-slate-200 bg-slate-50/50 p-4">
+                    <legend class="px-2 text-xs font-bold uppercase tracking-wider text-slate-700">Governance &amp; Metadata Classification</legend>
+                    {% for key, label, choices, current in metadata_fields %}
+                    <div>
+                        <label for="asset-{{ key }}" class="mb-1 block text-xs font-semibold text-slate-700">{{ label }}</label>
+                        <select id="asset-{{ key }}" name="{{ key }}" class="w-full rounded-xl border border-slate-300 bg-white px-3 py-2 text-xs text-slate-800 focus:border-blue-500 focus:outline-none">
+                            <option value="">Select {{ label|lower }}</option>
+                            {% for choice in choices %}
+                            <option value="{{ choice }}" {% if current == choice %}selected{% endif %}>{{ choice }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% endfor %}
+                    <div class="sm:col-span-2 pt-1 border-t border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                        <span>Standard Asset Currency: <strong class="text-slate-900 font-mono">{{ currency }}</strong></span>
+                        <span class="text-slate-400">Configured in System Settings</span>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- 6. Specifications & Remarks -->
+            <div class="pt-2 border-t border-slate-100">
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">6</span>
+                    <span id="heading-remarks">Technical Specifications / Entitlements</span>
+                </h4>
+                <div>
+                    <textarea name="remarks" id="id_remarks" rows="3"
+                              placeholder="e.g. Core i7 11th Gen, 16GB RAM, 512GB NVMe SSD, Windows 11 Pro..."
+                              class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">{{ asset.remarks|default:'' }}</textarea>
+                </div>
+            </div>
+
+            <!-- Form Actions Bar -->
+            <div class="pt-6 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     {% if asset %}
-                    <a href="{% url 'asset_delete' asset.id %}" class="inline-flex items-center space-x-1.5 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 px-3 py-2 rounded-lg transition">
+                    <a href="{% url 'asset_delete' asset.id %}" class="inline-flex items-center space-x-1.5 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 px-3.5 py-2 rounded-xl transition border border-red-200">
                         <i class="fa-solid fa-trash-can"></i>
                         <span>Delete Asset</span>
                     </a>
@@ -229,16 +360,120 @@
                     <a href="{% url 'asset_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
                         Cancel
                     </a>
-                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition flex items-center space-x-2">
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md shadow-blue-600/30 transition flex items-center space-x-2">
                         <i class="fa-solid fa-floppy-disk"></i>
-                        <span>{% if asset %}Save Changes{% else %}Save Asset{% endif %}</span>
+                        <span>{% if asset %}Save Changes{% else %}Register Asset{% endif %}</span>
                     </button>
                 </div>
             </div>
 
         </form>
-
     </div>
-
 </div>
+
+<script>
+    function setAssetNature(nature) {
+        const input = document.getElementById('asset-nature-input');
+        const physicalBtn = document.getElementById('nature-tab-physical');
+        const logicalBtn = document.getElementById('nature-tab-logical');
+        const physicalIcon = document.getElementById('physical-icon-box');
+        const logicalIcon = document.getElementById('logical-icon-box');
+        const bannerIcon = document.getElementById('banner-icon');
+        const bannerBadge = document.getElementById('banner-nature-badge');
+
+        const labelBrand = document.getElementById('label-brand');
+        const inputBrand = document.getElementById('id_brand');
+        const labelModel = document.getElementById('label-model');
+        const inputModel = document.getElementById('id_model_name');
+        const labelSerial = document.getElementById('label-serial');
+        const inputSerial = document.getElementById('id_serial_number');
+        const iconSerial = document.getElementById('icon-serial');
+        const labelMac = document.getElementById('label-mac');
+        const inputMac = document.getElementById('id_mac_address');
+        const iconMac = document.getElementById('icon-mac');
+        const labelPurchaseDate = document.getElementById('label-purchase-date');
+        const labelWarrantyExpiry = document.getElementById('label-warranty-expiry');
+        const textareaRemarks = document.getElementById('id_remarks');
+
+        input.value = nature;
+
+        if (nature === 'LOGICAL') {
+            // Update Card Styles
+            physicalBtn.className = 'nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 text-slate-700';
+            logicalBtn.className = 'nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none border-purple-600 bg-purple-50/60 text-purple-950 shadow-xs';
+            
+            physicalIcon.className = 'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition bg-slate-200 text-slate-600';
+            logicalIcon.className = 'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition bg-purple-600 text-white shadow-xs';
+            
+            bannerIcon.innerHTML = '<i class="fa-solid fa-cloud"></i>';
+            bannerIcon.className = 'w-12 h-12 rounded-xl bg-purple-600 flex items-center justify-center text-xl shadow-md flex-shrink-0';
+            bannerBadge.textContent = 'Logical Asset';
+            bannerBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-purple-900/60 text-purple-300 border border-purple-700';
+
+            // Radio dots
+            physicalBtn.querySelector('.nature-radio-indicator').className = 'nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center border-slate-400 bg-white';
+            logicalBtn.querySelector('.nature-radio-indicator').className = 'nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center border-purple-600 bg-purple-600 text-white';
+
+            // Dynamic Labels & Placeholders
+            if (labelBrand) labelBrand.textContent = 'Software Vendor / Publisher';
+            if (inputBrand) inputBrand.placeholder = 'e.g. Microsoft, Oracle, VMware, AWS, DigiCert';
+
+            if (labelModel) labelModel.textContent = 'Edition / Version / Tier';
+            if (inputModel) inputModel.placeholder = 'e.g. Windows Server 2022 Datacenter, SAP S/4HANA, Wildcard SSL';
+
+            if (labelSerial) labelSerial.textContent = 'License Key / Subscription ID';
+            if (inputSerial) inputSerial.placeholder = 'e.g. XXXXX-XXXXX-XXXXX-XXXXX or SUB-98234';
+            if (iconSerial) iconSerial.className = 'fa-solid fa-key text-xs';
+
+            if (labelMac) labelMac.textContent = 'Host Server / Cloud Cluster';
+            if (inputMac) inputMac.placeholder = 'e.g. srv-ho-db01.akij.net or AWS ap-south-1';
+            if (iconMac) iconMac.className = 'fa-solid fa-server text-xs';
+
+            if (labelPurchaseDate) labelPurchaseDate.textContent = 'Procurement / Activation Date';
+            if (labelWarrantyExpiry) labelWarrantyExpiry.textContent = 'License Renewal / Expiry Date';
+            if (textareaRemarks) textareaRemarks.placeholder = 'e.g. 500 Named User Pack, Annual Renewal, Production VM with 16 vCPUs & 64GB RAM...';
+        } else {
+            // Physical Styles
+            physicalBtn.className = 'nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none border-blue-600 bg-blue-50/60 text-blue-950 shadow-xs';
+            logicalBtn.className = 'nature-tab-btn flex items-start gap-3.5 p-4 rounded-xl border-2 text-left transition relative select-none border-slate-200 bg-slate-50/50 hover:bg-slate-100/70 text-slate-700';
+
+            physicalIcon.className = 'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition bg-blue-600 text-white shadow-xs';
+            logicalIcon.className = 'w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 transition bg-slate-200 text-slate-600';
+
+            bannerIcon.innerHTML = '<i class="fa-solid fa-laptop-file"></i>';
+            bannerIcon.className = 'w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md flex-shrink-0';
+            bannerBadge.textContent = 'Physical Asset';
+            bannerBadge.className = 'px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-blue-900/60 text-blue-300 border border-blue-700';
+
+            // Radio dots
+            physicalBtn.querySelector('.nature-radio-indicator').className = 'nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center border-blue-600 bg-blue-600 text-white';
+            logicalBtn.querySelector('.nature-radio-indicator').className = 'nature-radio-indicator w-4 h-4 rounded-full border-2 flex items-center justify-center border-slate-400 bg-white';
+
+            // Dynamic Labels & Placeholders
+            if (labelBrand) labelBrand.textContent = 'Brand / Manufacturer';
+            if (inputBrand) inputBrand.placeholder = 'e.g. Dell, HP, Cisco, Lenovo, Canon, MikroTik';
+
+            if (labelModel) labelModel.textContent = 'Model Name / Number';
+            if (inputModel) inputModel.placeholder = 'e.g. Latitude 3420, Catalyst 2960, ProLiant DL380';
+
+            if (labelSerial) labelSerial.textContent = 'Serial Number';
+            if (inputSerial) inputSerial.placeholder = 'e.g. CN-0J6K7L-72481-89B-05M';
+            if (iconSerial) iconSerial.className = 'fa-solid fa-fingerprint text-xs';
+
+            if (labelMac) labelMac.textContent = 'MAC Address';
+            if (inputMac) inputMac.placeholder = 'e.g. 00:1A:2B:3C:4D:5E';
+            if (iconMac) iconMac.className = 'fa-solid fa-id-card-clip text-xs';
+
+            if (labelPurchaseDate) labelPurchaseDate.textContent = 'Purchase Date';
+            if (labelWarrantyExpiry) labelWarrantyExpiry.textContent = 'Warranty Expiry Date';
+            if (textareaRemarks) textareaRemarks.placeholder = 'e.g. Core i7 11th Gen, 16GB RAM, 512GB NVMe SSD, 24-inch IPS Monitor...';
+        }
+    }
+
+    // Initialize state on load
+    document.addEventListener('DOMContentLoaded', () => {
+        const initialNature = '{{ current_nature|default:"PHYSICAL" }}';
+        setAssetNature(initialNature);
+    });
+</script>
 {% endblock %}

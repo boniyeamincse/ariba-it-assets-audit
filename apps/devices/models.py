@@ -8,6 +8,7 @@ class DeviceCategory(TimeStampedModel):
     CATEGORY_KEYS = (
         ('INFRASTRUCTURE', 'Infrastructure'),
         ('USERS', 'Users / End-User Devices'),
+        ('LOGICAL', 'Software & Logical Assets'),
     )
     code = models.CharField(max_length=40, choices=CATEGORY_KEYS, unique=True)
     name = models.CharField(max_length=100)
@@ -51,8 +52,13 @@ class AssetIdSequence(models.Model):
 
 class Asset(TimeStampedModel):
     """
-    Individual physical IT asset tracked location-wise across Akij Group.
+    Physical and Logical IT asset tracked location-wise across Akij Group.
     """
+    NATURE_CHOICES = (
+        ('PHYSICAL', 'Physical (Hardware)'),
+        ('LOGICAL', 'Logical / Virtual (Software/License/Cloud)'),
+    )
+
     STATUS_CHOICES = (
         ('IN_USE', 'Working / In-Use'),
         ('BACKUP', 'Backup / Spare'),
@@ -60,14 +66,28 @@ class Asset(TimeStampedModel):
         ('SCRAP', 'Damaged / Scrap'),
     )
 
+    asset_nature = models.CharField(
+        max_length=20,
+        choices=NATURE_CHOICES,
+        default='PHYSICAL',
+        verbose_name="Asset Nature",
+        db_index=True
+    )
+
     asset_tag = models.CharField(max_length=50, unique=True, verbose_name="Asset Tag / ID", db_index=True)
-    device_type = models.ForeignKey(DeviceType, on_delete=models.CASCADE, related_name='assets', verbose_name="Device Type")
+    device_type = models.ForeignKey(DeviceType, on_delete=models.CASCADE, related_name='assets', verbose_name="Device / Asset Type")
     location = models.ForeignKey('locations.Location', on_delete=models.CASCADE, related_name='assets', verbose_name="Location")
     
     brand = models.CharField(max_length=100, blank=True, null=True, verbose_name="Brand / Manufacturer")
     model_name = models.CharField(max_length=120, blank=True, null=True, verbose_name="Model Name / No")
     serial_number = models.CharField(max_length=120, blank=True, null=True, verbose_name="Serial Number")
     
+    # Logical / Virtual specific fields
+    vendor = models.CharField(max_length=120, blank=True, null=True, verbose_name="Vendor / Publisher")
+    version = models.CharField(max_length=100, blank=True, null=True, verbose_name="Version / Edition")
+    license_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="License Key / Subscription ID")
+    host_server = models.CharField(max_length=150, blank=True, null=True, verbose_name="Host Server / Cloud Cluster")
+
     department = models.CharField(max_length=100, blank=True, null=True, verbose_name="Department")
     assigned_user = models.CharField(max_length=120, blank=True, null=True, verbose_name="Assigned User / Employee")
     
@@ -125,6 +145,8 @@ class Asset(TimeStampedModel):
         return {
             'id': self.id,
             'asset_tag': self.asset_tag,
+            'asset_nature': self.asset_nature,
+            'asset_nature_display': self.get_asset_nature_display(),
             'device_type': self.device_type.name,
             'category': self.device_type.category.name,
             'location_id': self.location.location_id,
@@ -136,6 +158,10 @@ class Asset(TimeStampedModel):
             'assigned_user': self.assigned_user or '',
             'status': self.get_status_display(),
             'status_code': self.status,
+            'license_key': self.license_key or '',
+            'version': self.version or '',
+            'vendor': self.vendor or '',
+            'host_server': self.host_server or '',
         }
 
 

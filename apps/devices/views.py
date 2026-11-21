@@ -29,6 +29,7 @@ def asset_list_view(request):
     cat_filter = request.GET.get('category', '').strip()
     device_type_filter = request.GET.get('device_type', '').strip()
     status_filter = request.GET.get('status', '').strip()
+    nature_filter = request.GET.get('nature', '').strip()
     search_query = request.GET.get('q', '').strip()
 
     if loc_filter:
@@ -36,6 +37,9 @@ def asset_list_view(request):
 
     if cat_filter:
         assets_qs = assets_qs.filter(device_type__category_id=cat_filter)
+
+    if nature_filter in ('PHYSICAL', 'LOGICAL'):
+        assets_qs = assets_qs.filter(asset_nature=nature_filter)
 
     selected_device_type = None
     if device_type_filter:
@@ -53,9 +57,12 @@ def asset_list_view(request):
         assets_qs = assets_qs.filter(
             Q(asset_tag__icontains=search_query) |
             Q(serial_number__icontains=search_query) |
+            Q(license_key__icontains=search_query) |
             Q(device_type__name__icontains=search_query) |
             Q(brand__icontains=search_query) |
+            Q(vendor__icontains=search_query) |
             Q(model_name__icontains=search_query) |
+            Q(version__icontains=search_query) |
             Q(assigned_user__icontains=search_query) |
             Q(department__icontains=search_query)
         )
@@ -89,6 +96,7 @@ def asset_list_view(request):
         'categories': categories,
         'loc_filter': loc_filter,
         'cat_filter': cat_filter,
+        'nature_filter': nature_filter,
         'selected_device_type': selected_device_type,
         'status_filter': status_filter,
         'search_query': search_query,
@@ -100,7 +108,7 @@ def asset_list_view(request):
 @roles_required(*DASHBOARD_ROUTES)
 def asset_create_or_edit_view(request, asset_id=None):
     """
-    Dynamic Location-Wise Asset Entry & Edit Form.
+    Dynamic Location-Wise Physical & Logical IT Asset Entry & Edit Form.
     """
     asset = None
     if asset_id:
@@ -126,15 +134,24 @@ def asset_create_or_edit_view(request, asset_id=None):
             'device_types': device_types, 'status_choices': status_choices,
             'metadata_fields': metadata_fields, 'currency': getattr(asset, 'currency', '') or config['asset_currency'],
             'default_warranty_months': config['default_warranty_months'],
+            'nature_choices': Asset.NATURE_CHOICES,
+            'current_nature': getattr(asset, 'asset_nature', 'PHYSICAL') or 'PHYSICAL',
         }
 
     if request.method == 'POST':
+        asset_nature = request.POST.get('asset_nature', 'PHYSICAL').strip()
+        if asset_nature not in ('PHYSICAL', 'LOGICAL'):
+            asset_nature = 'PHYSICAL'
         asset_tag = request.POST.get('asset_tag', '').strip().upper()
         device_type_id = request.POST.get('device_type')
         location_id = request.POST.get('location')
         brand = request.POST.get('brand', '').strip()
         model_name = request.POST.get('model_name', '').strip()
         serial_number = request.POST.get('serial_number', '').strip()
+        vendor = request.POST.get('vendor', '').strip()
+        version = request.POST.get('version', '').strip()
+        license_key = request.POST.get('license_key', '').strip()
+        host_server = request.POST.get('host_server', '').strip()
         department = request.POST.get('department', '').strip()
         assigned_user = request.POST.get('assigned_user', '').strip()
         status = request.POST.get('status', 'IN_USE')
@@ -143,6 +160,14 @@ def asset_create_or_edit_view(request, asset_id=None):
         purchase_date_str = request.POST.get('purchase_date', '').strip()
         warranty_expiry_str = request.POST.get('warranty_expiry', '').strip()
         remarks = request.POST.get('remarks', '').strip()
+
+        if asset_nature == 'LOGICAL':
+            if vendor and not brand:
+                brand = vendor
+            if version and not model_name:
+                model_name = version
+            if license_key and not serial_number:
+                serial_number = license_key
 
         if not device_type_id or not location_id:
             messages.error(request, "Device Type and Location are required.")
@@ -169,12 +194,17 @@ def asset_create_or_edit_view(request, asset_id=None):
 
         if is_new:
             asset = Asset.objects.create(
+                asset_nature=asset_nature,
                 asset_tag=asset_tag or '',
                 device_type=dev,
                 location=loc,
                 brand=brand,
                 model_name=model_name,
                 serial_number=serial_number,
+                vendor=vendor,
+                version=version,
+                license_key=license_key,
+                host_server=host_server,
                 department=department,
                 assigned_user=assigned_user,
                 status=status,
@@ -189,10 +219,11 @@ def asset_create_or_edit_view(request, asset_id=None):
                 request=request,
                 action='CREATE_ASSET',
                 module='Assets',
-                description=f"Added asset [{asset.asset_tag}] {dev.name} to {loc.name} ({loc.location_id}). Assigned: {assigned_user or 'None'}."
+                description=f"Added {asset.get_asset_nature_display()} [{asset.asset_tag}] {dev.name} to {loc.name} ({loc.location_id}). Assigned: {assigned_user or 'None'}."
             )
-            messages.success(request, f"Asset '{asset.asset_tag}' ({dev.name}) successfully added to {loc.name}!")
+            messages.success(request, f"Asset '{asset.asset_tag}' ({dev.name}) successfully registered at {loc.name}!")
         else:
+            asset.asset_nature = asset_nature
             if asset_tag:
                 asset.asset_tag = asset_tag
             asset.device_type = dev
@@ -200,6 +231,10 @@ def asset_create_or_edit_view(request, asset_id=None):
             asset.brand = brand
             asset.model_name = model_name
             asset.serial_number = serial_number
+            asset.vendor = vendor
+            asset.version = version
+            asset.license_key = license_key
+            asset.host_server = host_server
             asset.department = department
             asset.assigned_user = assigned_user
             asset.status = status
