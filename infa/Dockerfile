@@ -20,7 +20,7 @@ COPY --chown=app:app . /app/
 COPY --chown=root:root infa/entrypoint.sh /usr/local/bin/ag-audit-entrypoint
 RUN chmod 0555 /usr/local/bin/ag-audit-entrypoint \
     && mkdir -p /app/staticfiles /app/media \
-    && chown -R app:app /app/staticfiles /app/media
+    && chown -R app:app /app
 
 USER app:app
 EXPOSE 8000
