@@ -40,9 +40,9 @@
     <!-- Executive KPI Ribbon (4 Metrics) -->
     <div class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-5">
         <!-- 1. Total Assets -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'report_asset_inventory' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-blue-400 hover:shadow-md transition group">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Inventory Assets</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600 transition">Inventory Assets</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_assets|portal_number:portal.number_format }}</h3>
                 <div class="flex items-center gap-1.5 mt-1 text-[10px] text-slate-500">
                     <span class="text-emerald-700 font-bold">{{ in_use_assets }} In-Use</span>
@@ -50,15 +50,15 @@
                     <span class="text-amber-700 font-bold">{{ spare_assets }} Spares</span>
                 </div>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl">
+            <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                 <i class="fa-solid fa-boxes-stacked"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 2. Software Compliance -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'report_software_compliance' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-purple-400 hover:shadow-md transition group">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Software Licenses</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-purple-600 transition">Software Licenses</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_software|portal_number:portal.number_format }}</h3>
                 <div class="flex items-center gap-1.5 mt-1 text-[10px]">
                     {% if pirated_count > 0 %}
@@ -68,16 +68,16 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl">
+            <div class="w-11 h-11 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                 <i class="fa-solid fa-key"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 3. Corporate Domains -->
         {% if is_central %}
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'report_domains_ssl' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-teal-400 hover:shadow-md transition group">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Domains &amp; SSL</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-teal-600 transition">Domains &amp; SSL</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_domains|portal_number:portal.number_format }}</h3>
                 <div class="flex items-center gap-1.5 mt-1 text-[10px]">
                     {% if domains_expiring_30 > 0 or domains_expired > 0 %}
@@ -87,27 +87,27 @@
                     {% endif %}
                 </div>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl">
+            <div class="w-11 h-11 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                 <i class="fa-solid fa-globe"></i>
             </div>
-        </div>
+        </a>
         {% else %}
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'report_asset_inventory' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-slate-400 hover:shadow-md transition group">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Scoped Locations</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-slate-800 transition">Scoped Locations</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_locations }}</h3>
                 <p class="text-[10px] text-slate-400 mt-1">Assigned Operational Sites</p>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-xl">
+            <div class="w-11 h-11 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                 <i class="fa-solid fa-building"></i>
             </div>
-        </div>
+        </a>
         {% endif %}
 
         <!-- 4. Physical Audit Sessions -->
-        <div class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'report_audit_reconciliation' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-emerald-400 hover:shadow-md transition group">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Physical Audits</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-emerald-600 transition">Physical Audits</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_audits|portal_number:portal.number_format }}</h3>
                 <div class="flex items-center gap-1.5 mt-1 text-[10px]">
                     <span class="text-emerald-700 font-bold">{{ approved_audits }} Approved</span>
@@ -115,10 +115,10 @@
                     <span class="text-amber-700 font-bold">{{ pending_audits }} Pending</span>
                 </div>
             </div>
-            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl">
+            <div class="w-11 h-11 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl group-hover:scale-110 transition">
                 <i class="fa-solid fa-clipboard-check"></i>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- 5 Core Report Cards Grid -->

@@ -38,36 +38,36 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3 sm:gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Total Assets</p>
+        <a href="{% url 'report_asset_inventory' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-blue-600 transition">Total Assets</p>
             <h3 class="text-xl font-black text-slate-900 mt-0.5">{{ total_count }}</h3>
             <span class="text-[10px] text-slate-500">{{ physical_count }} Physical</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-emerald-700 uppercase">In-Use Active</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}?status=IN_USE" class="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm hover:border-emerald-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-emerald-700 uppercase group-hover:text-emerald-800 transition">In-Use Active</p>
             <h3 class="text-xl font-black text-emerald-900 mt-0.5">{{ in_use_count }}</h3>
             <span class="text-[10px] text-emerald-700 font-medium">Deployed</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-amber-700 uppercase">Backup Spares</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}?status=BACKUP" class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm hover:border-amber-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-amber-700 uppercase group-hover:text-amber-800 transition">Backup Spares</p>
             <h3 class="text-xl font-black text-amber-900 mt-0.5">{{ spare_count }}</h3>
             <span class="text-[10px] text-amber-700 font-medium">Ready in stock</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-rose-100 bg-rose-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-rose-700 uppercase">Faulty / Scrap</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}?status=FAULTY" class="bg-white p-4 rounded-xl border border-rose-100 bg-rose-50/20 shadow-sm hover:border-rose-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-rose-700 uppercase group-hover:text-rose-800 transition">Faulty / Scrap</p>
             <h3 class="text-xl font-black text-rose-900 mt-0.5">{{ faulty_count }}</h3>
             <span class="text-[10px] text-rose-700 font-medium">Needs maintenance</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Logical / Software</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}?nature=LOGICAL" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-purple-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-purple-600 transition">Logical / Software</p>
             <h3 class="text-xl font-black text-slate-800 mt-0.5">{{ logical_count }}</h3>
             <span class="text-[10px] text-slate-500">Virtual / Licenses</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Retired</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}?status=RETIRED" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-slate-800 transition">Retired</p>
             <h3 class="text-xl font-black text-slate-800 mt-0.5">{{ retired_count }}</h3>
             <span class="text-[10px] text-slate-500">Scrapped / Out</span>
-        </div>
+        </a>
     </div>
 
     <!-- Filter Toolbar -->
@@ -197,24 +197,25 @@
                         </td>
                         <td class="px-4 py-3">
                             <span class="font-medium text-slate-800">{{ asset.brand|default:"Generic" }}</span>
-                            {% if asset.model_number %}
-                            <span class="block text-[10px] text-slate-500 font-mono">{{ asset.model_number }}</span>
+                            {% if asset.model_name %}
+                            <span class="block text-[10px] text-slate-500 font-mono">{{ asset.model_name }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
                             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
-                                {% if asset.status == 'IN_USE' %}bg-emerald-100 text-emerald-800
+                                {% if asset.retired_at %}bg-slate-200 text-slate-800
+                                {% elif asset.status == 'IN_USE' %}bg-emerald-100 text-emerald-800
                                 {% elif asset.status == 'BACKUP' %}bg-amber-100 text-amber-800
                                 {% elif asset.status == 'FAULTY' or asset.status == 'SCRAP' %}bg-rose-100 text-rose-800
                                 {% else %}bg-slate-100 text-slate-700{% endif %}">
-                                {{ asset.get_status_display }}
+                                {% if asset.retired_at %}Retired{% else %}{{ asset.get_status_display }}{% endif %}
                             </span>
                         </td>
                         <td class="px-4 py-3 text-slate-700">
-                            {{ asset.get_physical_condition_display }}
+                            {{ asset.condition|default:"Good" }}
                         </td>
                         <td class="px-4 py-3">
-                            <span class="font-medium text-slate-800 block truncate max-w-[130px]">{{ asset.assigned_user_name|default:"Unassigned" }}</span>
+                            <span class="font-medium text-slate-800 block truncate max-w-[130px]">{{ asset.assigned_user|default:"Unassigned" }}</span>
                             {% if asset.ip_address %}
                             <span class="text-[10px] text-blue-600 font-mono">{{ asset.ip_address }}</span>
                             {% endif %}

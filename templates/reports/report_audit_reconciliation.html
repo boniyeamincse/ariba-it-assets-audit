@@ -39,28 +39,28 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-3.5 sm:gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Scoped Locations</p>
+        <a href="{% url 'report_audit_reconciliation' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-emerald-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-emerald-700 transition">Scoped Locations</p>
             <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_locations }}</h3>
             <span class="text-[10px] text-slate-500">Operating Facilities</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-blue-100 bg-blue-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-blue-700 uppercase">Physical Counted Qty</p>
+        </a>
+        <a href="{% url 'report_audit_reconciliation' %}" class="bg-white p-4 rounded-xl border border-blue-100 bg-blue-50/20 shadow-sm hover:border-blue-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-blue-700 uppercase group-hover:text-blue-800 transition">Physical Counted Qty</p>
             <h3 class="text-2xl font-black text-blue-900 mt-1">{{ total_counted|portal_number:portal.number_format }}</h3>
             <span class="text-[10px] text-blue-700 font-medium">Verified by auditors</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">System Asset Records</p>
+        </a>
+        <a href="{% url 'report_asset_inventory' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-blue-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-blue-600 transition">System Asset Records</p>
             <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_system|portal_number:portal.number_format }}</h3>
             <span class="text-[10px] text-slate-500">Active hardware tags</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border {% if total_variance != 0 %}border-amber-200 bg-amber-50/20{% else %}border-emerald-200 bg-emerald-50/20{% endif %} shadow-sm">
-            <p class="text-[10px] font-bold {% if total_variance != 0 %}text-amber-800{% else %}text-emerald-800{% endif %} uppercase">Net Variance</p>
+        </a>
+        <a href="{% url 'report_audit_reconciliation' %}" class="bg-white p-4 rounded-xl border {% if total_variance != 0 %}border-amber-200 bg-amber-50/20{% else %}border-emerald-200 bg-emerald-50/20{% endif %} shadow-sm hover:border-emerald-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold {% if total_variance != 0 %}text-amber-800{% else %}text-emerald-800{% endif %} uppercase group-hover:text-emerald-800 transition">Net Variance</p>
             <h3 class="text-2xl font-black {% if total_variance > 0 %}text-emerald-700{% elif total_variance < 0 %}text-rose-700{% else %}text-emerald-800{% endif %} mt-1">
                 {% if total_variance > 0 %}+{% endif %}{{ total_variance }}
             </h3>
             <span class="text-[10px] text-slate-500 font-medium">Physical vs System Diff</span>
-        </div>
+        </a>
     </div>
 
     <!-- Filter Toolbar -->

@@ -411,8 +411,10 @@ def _filter_report_assets(request):
         qs = qs.filter(location_id=loc_id)
     if nature:
         qs = qs.filter(asset_nature=nature)
-    if status:
-        qs = qs.filter(status=status)
+    if status == 'RETIRED':
+        qs = qs.filter(retired_at__isnull=False)
+    elif status:
+        qs = qs.filter(status=status, retired_at__isnull=True)
     if cat_id:
         qs = qs.filter(device_type__category_id=cat_id)
 
@@ -546,7 +548,7 @@ def export_report_asset_excel(request):
             asset.brand or '',
             asset.model_name or '',
             asset.serial_number or '',
-            asset.get_status_display(),
+            'Retired' if asset.retired_at else asset.get_status_display(),
             asset.condition or 'Good',
             asset.assigned_user or '',
             asset.ip_address or '',
@@ -587,7 +589,7 @@ def export_report_asset_excel(request):
 
 def _filter_report_software(request):
     locations = visible_locations(request.user)
-    qs = Asset.objects.filter(location__in=locations, asset_nature='LOGICAL').select_related('location', 'device_type')
+    qs = Asset.objects.filter(location__in=locations, asset_nature='LOGICAL').select_related('location', 'device_type', 'device_type__category')
 
     loc_id = request.GET.get('location', '').strip()
     compliance = request.GET.get('compliance', '').strip()

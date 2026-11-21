@@ -113,6 +113,23 @@ class ReportsModuleTests(TestCase):
         self.assertEqual(filtered_res.status_code, 200)
         self.assertContains(filtered_res, 'AST-TFS-0001')
 
+        # Test filter by retired status
+        Asset.objects.create(
+            location=self.location,
+            device_type=self.device_type,
+            asset_tag='AST-TFS-RETIRED',
+            asset_nature='PHYSICAL',
+            status='SCRAP',
+            is_active=False,
+            retired_at=timezone.now(),
+            brand='HP',
+            model_name='Legacy 500',
+        )
+        retired_res = self.client.get(url, {'status': 'RETIRED'})
+        self.assertEqual(retired_res.status_code, 200)
+        self.assertContains(retired_res, 'AST-TFS-RETIRED')
+        self.assertContains(retired_res, 'Retired')
+
         # Excel export
         excel_res = self.client.get(reverse('report_asset_excel'))
         self.assertEqual(excel_res.status_code, 200)

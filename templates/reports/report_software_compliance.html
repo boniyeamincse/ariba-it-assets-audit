@@ -38,33 +38,33 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-3.5 sm:gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Software Assets</p>
+        <a href="{% url 'report_software_compliance' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-purple-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-purple-600 transition">Software Assets</p>
             <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_count }}</h3>
             <span class="text-[10px] text-slate-500">Tracked Packages</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border {% if pirated_count > 0 %}border-rose-300 bg-rose-50/20{% else %}border-slate-200{% endif %} shadow-sm">
-            <p class="text-[10px] font-bold text-rose-700 uppercase">Pirated / Cracked Risk</p>
+        </a>
+        <a href="{% url 'report_software_compliance' %}?compliance=CRACKED_PIRATED" class="bg-white p-4 rounded-xl border {% if pirated_count > 0 %}border-rose-300 bg-rose-50/20{% else %}border-slate-200{% endif %} shadow-sm hover:border-rose-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-rose-700 uppercase group-hover:text-rose-800 transition">Pirated / Cracked Risk</p>
             <h3 class="text-2xl font-black text-rose-900 mt-1">{{ pirated_count }}</h3>
             <span class="text-[10px] {% if pirated_count > 0 %}text-rose-700 font-bold{% else %}text-emerald-700 font-semibold{% endif %}">
                 {% if pirated_count > 0 %}High Legal / Malware Threat{% else %}Zero Piracy Detected{% endif %}
             </span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-amber-700 uppercase">Unlicensed / Pending</p>
+        </a>
+        <a href="{% url 'report_software_compliance' %}?compliance=UNLICENSED" class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm hover:border-amber-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-amber-700 uppercase group-hover:text-amber-800 transition">Unlicensed / Pending</p>
             <h3 class="text-2xl font-black text-amber-900 mt-1">{{ unlicensed_count }}</h3>
             <span class="text-[10px] text-amber-700 font-medium">Subscription lapsed</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-emerald-700 uppercase">Genuine / Licensed</p>
+        </a>
+        <a href="{% url 'report_software_compliance' %}?compliance=LICENSED" class="bg-white p-4 rounded-xl border border-emerald-100 bg-emerald-50/20 shadow-sm hover:border-emerald-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-emerald-700 uppercase group-hover:text-emerald-800 transition">Genuine / Licensed</p>
             <h3 class="text-2xl font-black text-emerald-900 mt-1">{{ licensed_count }}</h3>
             <span class="text-[10px] text-emerald-700 font-medium">Valid license keys</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-purple-100 bg-purple-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-purple-700 uppercase">Compliance Rate</p>
+        </a>
+        <a href="{% url 'report_software_compliance' %}" class="bg-white p-4 rounded-xl border border-purple-100 bg-purple-50/20 shadow-sm hover:border-purple-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-purple-700 uppercase group-hover:text-purple-800 transition">Compliance Rate</p>
             <h3 class="text-2xl font-black text-purple-900 mt-1">{{ compliance_rate }}%</h3>
             <span class="text-[10px] text-purple-700 font-medium">Group target: 100%</span>
-        </div>
+        </a>
     </div>
 
     <!-- Location Risk Hotspot Summary -->
@@ -190,9 +190,11 @@
                             <span class="block text-[10px] text-slate-400 font-mono">[{{ soft.location.location_id }}]</span>
                         </td>
                         <td class="px-4 py-3">
-                            <span class="font-bold text-slate-800">{{ soft.brand|default:"Software Package" }}</span>
-                            {% if soft.model_number %}
-                            <span class="block text-[10px] text-slate-500 font-mono">{{ soft.model_number }}</span>
+                            <span class="font-bold text-slate-800">{{ soft.brand|default:soft.device_type.name }}</span>
+                            {% if soft.model_name %}
+                            <span class="block text-[10px] text-slate-500 font-mono">{{ soft.model_name }}</span>
+                            {% elif soft.version %}
+                            <span class="block text-[10px] text-slate-500 font-mono">v{{ soft.version }}</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3">
@@ -205,17 +207,17 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 text-center font-mono font-bold text-slate-800">
-                            {{ soft.license_seats }}
+                            {{ soft.seats_purchased }}
                         </td>
                         <td class="px-4 py-3 font-mono text-[11px]">
-                            {% if soft.license_expiry %}
-                            {{ soft.license_expiry|date:"d M Y" }}
+                            {% if soft.warranty_expiry %}
+                            {{ soft.warranty_expiry|date:"d M Y" }}
                             {% else %}
                             <span class="text-slate-500">Perpetual</span>
                             {% endif %}
                         </td>
                         <td class="px-4 py-3 font-medium text-slate-800">
-                            {{ soft.assigned_user_name|default:"Shared Workstation" }}
+                            {{ soft.assigned_user|default:"Shared Workstation" }}
                         </td>
                     </tr>
                     {% empty %}

@@ -38,38 +38,38 @@
 
     <!-- KPI Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-6 gap-3.5 sm:gap-4">
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Total Domains</p>
+        <a href="{% url 'report_domains_ssl' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-teal-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-teal-600 transition">Total Domains</p>
             <h3 class="text-xl font-black text-slate-900 mt-0.5">{{ total_count }}</h3>
             <span class="text-[10px] text-slate-500">Corporate FQDNs</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border {% if expired_count > 0 %}border-rose-300 bg-rose-50/20{% else %}border-slate-200{% endif %} shadow-sm">
-            <p class="text-[10px] font-bold text-rose-700 uppercase">Expired Domains</p>
+        </a>
+        <a href="{% url 'report_domains_ssl' %}?expiry_range=expired" class="bg-white p-4 rounded-xl border {% if expired_count > 0 %}border-rose-300 bg-rose-50/20{% else %}border-slate-200{% endif %} shadow-sm hover:border-rose-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-rose-700 uppercase group-hover:text-rose-800 transition">Expired Domains</p>
             <h3 class="text-xl font-black text-rose-900 mt-0.5">{{ expired_count }}</h3>
             <span class="text-[10px] {% if expired_count > 0 %}text-rose-700 font-bold{% else %}text-emerald-700 font-medium{% endif %}">
                 {% if expired_count > 0 %}Action Required{% else %}No Outages{% endif %}
             </span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-amber-700 uppercase">Expiring &le; 30d</p>
+        </a>
+        <a href="{% url 'report_domains_ssl' %}?expiry_range=expiring_30" class="bg-white p-4 rounded-xl border border-amber-100 bg-amber-50/20 shadow-sm hover:border-amber-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-amber-700 uppercase group-hover:text-amber-800 transition">Expiring &le; 30d</p>
             <h3 class="text-xl font-black text-amber-900 mt-0.5">{{ expiring_30 }}</h3>
             <span class="text-[10px] text-amber-700 font-medium">Renewal Watch</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-purple-100 bg-purple-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-purple-700 uppercase">SSL Issues</p>
+        </a>
+        <a href="{% url 'report_domains_ssl' %}?ssl=issues" class="bg-white p-4 rounded-xl border border-purple-100 bg-purple-50/20 shadow-sm hover:border-purple-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-purple-700 uppercase group-hover:text-purple-800 transition">SSL Issues</p>
             <h3 class="text-xl font-black text-purple-900 mt-0.5">{{ ssl_issues }}</h3>
             <span class="text-[10px] text-purple-700 font-medium">Security Alert</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-teal-100 bg-teal-50/20 shadow-sm">
-            <p class="text-[10px] font-bold text-teal-700 uppercase">Renewal Budget (USD)</p>
+        </a>
+        <a href="{% url 'report_domains_ssl' %}?registrar=GODADDY" class="bg-white p-4 rounded-xl border border-teal-100 bg-teal-50/20 shadow-sm hover:border-teal-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-teal-700 uppercase group-hover:text-teal-800 transition">Renewal Budget (USD)</p>
             <h3 class="text-xl font-black text-teal-900 mt-0.5">${{ total_cost_usd|floatformat:2 }}</h3>
             <span class="text-[10px] text-slate-500">Annual GoDaddy/AWS</span>
-        </div>
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
-            <p class="text-[10px] font-bold text-slate-500 uppercase">Renewal Budget (BDT)</p>
+        </a>
+        <a href="{% url 'report_domains_ssl' %}?registrar=BTCL" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm hover:border-slate-400 hover:shadow-md transition group">
+            <p class="text-[10px] font-bold text-slate-500 uppercase group-hover:text-slate-800 transition">Renewal Budget (BDT)</p>
             <h3 class="text-xl font-black text-slate-900 mt-0.5">৳{{ total_cost_bdt|floatformat:2 }}</h3>
             <span class="text-[10px] text-slate-500">BTCL .bd domains</span>
-        </div>
+        </a>
     </div>
 
     <!-- Filter Toolbar -->
