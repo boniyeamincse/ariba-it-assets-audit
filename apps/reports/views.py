@@ -74,11 +74,27 @@ def dashboard_view(request):
     if role in (Role.HO_ADMIN, Role.FACTORY_ADMIN, Role.DEPOT_ADMIN) and request.user.profile.custom_role_id:
         role_label = request.user.profile.role_label
 
-    # Multi-location matrix summary for quick management decision-making
+    # Multi-location matrix summary optimized with bulk prefetching
+    asset_counts_map = dict(
+        Asset.objects.filter(location__in=locations)
+        .values('location_id')
+        .annotate(cnt=Count('id'))
+        .values_list('location_id', 'cnt')
+    )
+    latest_audits = (
+        AuditSession.objects.filter(location__in=locations)
+        .order_by('location_id', '-audit_date')
+        .prefetch_related('items')
+    )
+    latest_audits_map = {}
+    for a in latest_audits:
+        if a.location_id not in latest_audits_map:
+            latest_audits_map[a.location_id] = a
+
     location_summary = []
     for loc in locations:
-        loc_assets_count = loc.assets.count()
-        last_audit = loc.audit_sessions.order_by('-audit_date').first()
+        loc_assets_count = asset_counts_map.get(loc.id, 0)
+        last_audit = latest_audits_map.get(loc.id)
         audited_qty = last_audit.total_qty if last_audit else 0
         location_summary.append({
             'id': loc.id,

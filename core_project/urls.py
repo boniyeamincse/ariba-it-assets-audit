@@ -27,6 +27,7 @@ from apps.audits.views import (
     audit_detail_view,
     audit_print_view,
     audit_create_or_edit_view,
+    audit_status_action_view,
 )
 
 urlpatterns = [
@@ -86,6 +87,7 @@ urlpatterns = [
     path('audits/new/', audit_create_or_edit_view, name='audit_create'),
     path('audits/<int:audit_id>/', audit_detail_view, name='audit_detail'),
     path('audits/<int:audit_id>/edit/', audit_create_or_edit_view, name='audit_edit'),
+    path('audits/<int:audit_id>/status/', audit_status_action_view, name='audit_status_action'),
     path('audits/<int:audit_id>/print/', audit_print_view, name='audit_print'),
     # Enterprise System Activity & Audit Logs
     path('logs/', activity_log_view, name='legacy_activity_logs'),

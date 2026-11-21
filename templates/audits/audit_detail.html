@@ -1,42 +1,177 @@
 {% extends 'base.html' %}
 
-{% block title %}{{ audit.location.name }} Audit | Akij IT Audit{% endblock %}
+{% block title %}{{ audit.location.name }} Audit | {{ portal.application_name }}{% endblock %}
 {% block header_title %}{{ audit.location.name }} - Physical Audit{% endblock %}
 {% block header_subtitle %}Conducted on {{ audit.audit_date }} | {{ audit.location.get_location_type_display }}{% endblock %}
 
 {% block content %}
 <div class="space-y-6">
 
-    <!-- Top Action & Info Bar -->
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <!-- Back Navigation & Top Info Bar -->
+    <div class="flex items-center justify-between">
+        <a href="{% url 'audit_list' %}" class="inline-flex items-center text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white px-3 py-1.5 rounded-lg border border-slate-200 shadow-xs">
+            <i class="fa-solid fa-arrow-left mr-1.5"></i>
+            <span>Back to Audit Sessions</span>
+        </a>
+        <div class="text-xs text-slate-400">
+            Audit ID #{{ audit.id }} • Created {{ audit.created_at|date:"d M, Y" }}
+        </div>
+    </div>
+
+    <!-- Main Header Card -->
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-            <div class="flex items-center space-x-3">
+            <div class="flex items-center space-x-3 flex-wrap gap-y-2">
                 <span class="font-mono text-xs font-bold bg-blue-50 text-blue-800 border border-blue-200 px-2.5 py-1 rounded-md shadow-xs">
-                    {{ audit.location.location_id }}
+                    {{ audit.location.location_id|default:audit.location.code }}
                 </span>
-                <h3 class="text-2xl font-extrabold text-slate-900">{{ audit.location.name }}</h3>
-                <span class="px-3 py-1 rounded-full text-xs font-bold {% if audit.status == 'APPROVED' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">
-                    {{ audit.get_status_display }}
+                <h3 class="text-2xl font-black text-slate-900">{{ audit.location.name }}</h3>
+                {% if audit.location.company %}
+                <span class="text-xs font-semibold bg-slate-100 text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                    {{ audit.location.company.name }}
+                </span>
+                {% endif %}
+                <span class="px-3 py-1 rounded-full text-xs font-bold inline-flex items-center gap-1.5
+                    {% if audit.status == 'APPROVED' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                    {% elif audit.status == 'VERIFIED' %}bg-indigo-100 text-indigo-800 border border-indigo-200
+                    {% elif audit.status == 'SUBMITTED' %}bg-blue-100 text-blue-800 border border-blue-200
+                    {% else %}bg-amber-100 text-amber-800 border border-amber-200{% endif %}">
+                    <span class="w-1.5 h-1.5 rounded-full {% if audit.status == 'APPROVED' %}bg-emerald-600{% elif audit.status == 'VERIFIED' %}bg-indigo-600{% elif audit.status == 'SUBMITTED' %}bg-blue-600{% else %}bg-amber-600{% endif %}"></span>
+                    <span>{{ audit.get_status_display }}</span>
                 </span>
             </div>
-            <div class="flex items-center space-x-6 mt-2 text-xs text-slate-500">
-                <span><i class="fa-solid fa-calendar mr-1"></i> Audit Date: <strong class="text-slate-700">{{ audit.audit_date }}</strong></span>
-                <span><i class="fa-solid fa-user-check mr-1"></i> Auditor: <strong class="text-slate-700">{{ audit.auditor_name }}</strong></span>
-                <span><i class="fa-solid fa-building mr-1"></i> Verified By: <strong class="text-slate-700">{{ audit.verified_by_name|default:'Pending' }}</strong></span>
+            
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-3 text-xs text-slate-600 border-t border-slate-100 pt-3">
+                <div>
+                    <span class="text-slate-400 block font-medium">Audit Date</span>
+                    <strong class="text-slate-800 flex items-center gap-1 mt-0.5">
+                        <i class="fa-regular fa-calendar text-blue-500"></i>
+                        {{ audit.audit_date|date:"d M, Y" }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-medium">Auditor / Conducted By</span>
+                    <strong class="text-slate-800 flex items-center gap-1 mt-0.5">
+                        <i class="fa-solid fa-user-check text-slate-500"></i>
+                        {{ audit.auditor_name }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-medium">Verified By</span>
+                    <strong class="text-slate-800 flex items-center gap-1 mt-0.5">
+                        <i class="fa-solid fa-building-circle-check text-indigo-500"></i>
+                        {{ audit.verified_by_name|default:'Pending Verification' }}
+                    </strong>
+                </div>
+                <div>
+                    <span class="text-slate-400 block font-medium">Approved By</span>
+                    <strong class="text-slate-800 flex items-center gap-1 mt-0.5">
+                        <i class="fa-solid fa-signature text-emerald-600"></i>
+                        {{ audit.approved_by_name|default:'Pending Approval' }}
+                    </strong>
+                </div>
             </div>
         </div>
 
-        <div class="flex items-center space-x-3">
-            <a href="{% url 'audit_edit' audit.id %}" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-sm font-semibold px-4 py-2 rounded-lg transition">
-                <i class="fa-solid fa-pen-to-square"></i>
+        <!-- Action Buttons -->
+        <div class="flex items-center space-x-2 flex-wrap lg:flex-nowrap flex-shrink-0">
+            {% if can_edit %}
+            <a href="{% url 'audit_edit' audit.id %}" class="inline-flex items-center space-x-1.5 bg-slate-100 hover:bg-slate-200 text-slate-800 text-xs font-bold px-3.5 py-2.5 rounded-xl border border-slate-200 transition">
+                <i class="fa-solid fa-pen-to-square text-slate-600"></i>
                 <span>Edit Count</span>
             </a>
-            <a href="{% url 'audit_print' audit.id %}" target="_blank" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition">
+            {% endif %}
+            <a href="{% url 'audit_print' audit.id %}" target="_blank" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow transition">
                 <i class="fa-solid fa-print"></i>
                 <span>Print Report for Sir</span>
             </a>
         </div>
     </div>
+
+    <!-- Status Workflow Action Panel -->
+    {% if can_submit or can_verify or can_approve or can_return_draft or can_reopen %}
+    <div class="bg-gradient-to-r from-slate-50 via-blue-50/20 to-white p-4 rounded-xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="flex items-center space-x-3">
+            <div class="w-9 h-9 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                <i class="fa-solid fa-diagram-project"></i>
+            </div>
+            <div>
+                <h4 class="text-xs font-bold uppercase tracking-wider text-slate-800">Audit Workflow &amp; Approval Actions</h4>
+                <p class="text-xs text-slate-500">Current Phase: <strong class="text-slate-700">{{ audit.get_status_display }}</strong></p>
+            </div>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-wrap gap-y-2">
+            {% if can_submit %}
+            <form method="POST" action="{% url 'audit_status_action' audit.id %}" onsubmit="return confirm('Submit this audit session for central verification?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="submit">
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-xs transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-paper-plane"></i>
+                    <span>Submit for Verification</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_verify %}
+            <form method="POST" action="{% url 'audit_status_action' audit.id %}" onsubmit="return confirm('Mark this audit session as Verified?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="verify">
+                <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs px-3.5 py-2 rounded-lg shadow-xs transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Verify Device Counts</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_approve %}
+            <form method="POST" action="{% url 'audit_status_action' audit.id %}" onsubmit="return confirm('Approve and finalize this audit session? This will lock device counts.');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="approve">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs px-4 py-2 rounded-lg shadow-xs transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-circle-check"></i>
+                    <span>Approve &amp; Finalize</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_return_draft %}
+            <form method="POST" action="{% url 'audit_status_action' audit.id %}" onsubmit="return confirm('Return this audit session to Draft for corrections?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="return_draft">
+                <button type="submit" class="bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-rotate-left"></i>
+                    <span>Return to Draft</span>
+                </button>
+            </form>
+            {% endif %}
+
+            {% if can_reopen %}
+            <form method="POST" action="{% url 'audit_status_action' audit.id %}" onsubmit="return confirm('Warning: You are re-opening an APPROVED audit. Are you sure?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="reopen">
+                <button type="submit" class="bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 font-bold text-xs px-3.5 py-2 rounded-lg transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-lock-open"></i>
+                    <span>Re-open for Correction</span>
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Audit Remarks / Notes Callout -->
+    {% if audit.remarks %}
+    <div class="bg-amber-50/50 border border-amber-200 rounded-xl p-4 text-xs">
+        <h5 class="font-bold text-amber-900 uppercase tracking-wider flex items-center gap-1.5 mb-1">
+            <i class="fa-regular fa-comment-dots text-amber-600"></i>
+            <span>Audit Notes &amp; Inspector Remarks</span>
+        </h5>
+        <div class="text-slate-700 whitespace-pre-line leading-relaxed font-mono text-[11px] bg-white p-3 rounded-lg border border-amber-100 mt-2">
+            {{ audit.remarks }}
+        </div>
+    </div>
+    {% endif %}
 
     <!-- Mini KPI Cards -->
     <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -58,6 +193,8 @@
                 <span class="text-emerald-700">{{ audit.total_active }} Active</span>
                 <span class="text-slate-300">|</span>
                 <span class="text-amber-700">{{ audit.total_backup }} Backup</span>
+                <span class="text-slate-300">|</span>
+                <span class="text-red-600">{{ audit.total_faulty }} Faulty</span>
             </div>
         </div>
     </div>
@@ -92,10 +229,15 @@
                         {% for item in infra_items %}
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-2 text-center text-slate-400 text-xs">{{ forloop.counter }}</td>
-                            <td class="px-4 py-2 font-medium text-slate-900">{{ item.device_type.name }}</td>
-                            <td class="px-4 py-2 text-center text-slate-600">{{ item.active_qty }}</td>
-                            <td class="px-4 py-2 text-center text-amber-600">{{ item.backup_qty }}</td>
-                            <td class="px-4 py-2 text-center text-red-500">{{ item.faulty_qty }}</td>
+                            <td class="px-4 py-2">
+                                <div class="font-semibold text-slate-900">{{ item.device_type.name }}</div>
+                                {% if item.remarks %}
+                                <span class="text-[11px] text-slate-500 italic block">{{ item.remarks }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2 text-center text-slate-600 font-medium">{{ item.active_qty }}</td>
+                            <td class="px-4 py-2 text-center text-amber-600 font-medium">{{ item.backup_qty }}</td>
+                            <td class="px-4 py-2 text-center text-red-500 font-medium">{{ item.faulty_qty }}</td>
                             <td class="px-4 py-2 text-center font-bold text-indigo-900 bg-indigo-50/50">{{ item.total_qty }}</td>
                         </tr>
                         {% empty %}
@@ -133,10 +275,15 @@
                         {% for item in user_items %}
                         <tr class="hover:bg-slate-50">
                             <td class="px-4 py-2 text-center text-slate-400 text-xs">{{ forloop.counter }}</td>
-                            <td class="px-4 py-2 font-medium text-slate-900">{{ item.device_type.name }}</td>
-                            <td class="px-4 py-2 text-center text-slate-600">{{ item.active_qty }}</td>
-                            <td class="px-4 py-2 text-center text-amber-600">{{ item.backup_qty }}</td>
-                            <td class="px-4 py-2 text-center text-red-500">{{ item.faulty_qty }}</td>
+                            <td class="px-4 py-2">
+                                <div class="font-semibold text-slate-900">{{ item.device_type.name }}</div>
+                                {% if item.remarks %}
+                                <span class="text-[11px] text-slate-500 italic block">{{ item.remarks }}</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-2 text-center text-slate-600 font-medium">{{ item.active_qty }}</td>
+                            <td class="px-4 py-2 text-center text-amber-600 font-medium">{{ item.backup_qty }}</td>
+                            <td class="px-4 py-2 text-center text-red-500 font-medium">{{ item.faulty_qty }}</td>
                             <td class="px-4 py-2 text-center font-bold text-emerald-900 bg-emerald-50/50">{{ item.total_qty }}</td>
                         </tr>
                         {% empty %}

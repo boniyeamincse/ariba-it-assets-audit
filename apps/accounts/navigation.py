@@ -23,7 +23,7 @@ _GROUPS = (
             'report_domains_excel', 'report_audit_excel',
         ), None),
         ('Audit Records', 'audit_list', 'fa-clipboard-list', (
-            'audit_create', 'audit_edit', 'audit_detail', 'audit_print',
+            'audit_create', 'audit_edit', 'audit_detail', 'audit_status_action', 'audit_print',
         ), None),
         ('Location Matrix', 'matrix', 'fa-table-cells', ('export_excel_matrix',), None),
     )),

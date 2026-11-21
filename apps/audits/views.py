@@ -6,12 +6,21 @@ from django.db import transaction
 from django.db.models import Q
 from datetime import date
 
+from django.core.paginator import Paginator
+from django.views.decorators.http import require_http_methods
+
 from apps.devices.models import DeviceCategory, DeviceType
 from apps.audits.models import AuditSession, AuditItem
 from apps.common.utils import log_activity
-from apps.accounts.access import DASHBOARD_ROUTES, LOCAL_TYPES, role_for, roles_required, visible_locations
+from apps.accounts.access import CENTRAL_ROLES, DASHBOARD_ROUTES, LOCAL_TYPES, Role, role_for, roles_required, visible_locations
 
-from django.core.paginator import Paginator
+
+def safe_nonnegative_int(val, default=0):
+    try:
+        res = int(val or 0)
+        return max(0, res)
+    except (ValueError, TypeError):
+        return default
 
 @roles_required(*DASHBOARD_ROUTES)
 def audit_list_view(request):
@@ -75,19 +84,135 @@ def audit_list_view(request):
 @roles_required(*DASHBOARD_ROUTES)
 def audit_detail_view(request, audit_id):
     """
-    Detailed view of a single audit session.
+    Detailed view of a single audit session with workflow action permissions.
     """
     audit = get_object_or_404(AuditSession.objects.select_related('location', 'location__company'),
                               id=audit_id, location__in=visible_locations(request.user))
     infra_items = audit.items.filter(device_type__category__code='INFRASTRUCTURE').select_related('device_type')
     user_items = audit.items.filter(device_type__category__code='USERS').select_related('device_type')
 
+    role = role_for(request.user)
+    is_central = role in CENTRAL_ROLES
+    is_super = role == Role.SUPER_ADMIN
+    local_admin = role in LOCAL_TYPES
+
+    can_edit = not local_admin or audit.status == 'DRAFT'
+    can_submit = (local_admin or is_central) and audit.status == 'DRAFT'
+    can_verify = is_central and audit.status in ('SUBMITTED', 'DRAFT')
+    can_approve = is_central and audit.status in ('VERIFIED', 'SUBMITTED', 'DRAFT')
+    can_return_draft = is_central and audit.status in ('SUBMITTED', 'VERIFIED')
+    can_reopen = is_super and audit.status == 'APPROVED'
+
     context = {
         'audit': audit,
         'infra_items': infra_items,
         'user_items': user_items,
+        'is_central': is_central,
+        'can_edit': can_edit,
+        'can_submit': can_submit,
+        'can_verify': can_verify,
+        'can_approve': can_approve,
+        'can_return_draft': can_return_draft,
+        'can_reopen': can_reopen,
     }
     return render(request, 'audits/audit_detail.html', context)
+
+
+@roles_required(*DASHBOARD_ROUTES)
+@require_http_methods(['POST'])
+def audit_status_action_view(request, audit_id):
+    """
+    Direct workflow actions for audit sessions:
+    - submit: submits a draft audit for verification
+    - verify: in-charge / HO verifies device counts
+    - approve: management / HO approves the audit
+    - return_draft: reverts audit to draft for corrections
+    - reopen: super admin reverts approved audit to draft
+    """
+    scoped_audits = AuditSession.objects.filter(location__in=visible_locations(request.user))
+    audit = get_object_or_404(scoped_audits, pk=audit_id)
+    role = role_for(request.user)
+    is_central = role in CENTRAL_ROLES
+    is_super = role == Role.SUPER_ADMIN
+    action = request.POST.get('action', '').strip()
+    notes = request.POST.get('action_notes', '').strip()
+    user_name = request.user.get_full_name() or request.user.username
+
+    if action == 'submit':
+        if audit.status != 'DRAFT':
+            messages.warning(request, f"Audit session is already in {audit.get_status_display()} status.")
+            return redirect('audit_detail', audit_id=audit.id)
+        audit.status = 'SUBMITTED'
+        if notes:
+            audit.remarks = f"{audit.remarks}\n[Submission Notes]: {notes}".strip() if audit.remarks else f"[Submission Notes]: {notes}"
+        audit.save(update_fields=['status', 'remarks', 'updated_at'])
+        log_activity(
+            request=request,
+            action='SUBMIT_AUDIT',
+            module='Audits',
+            description=f"Submitted audit session for {audit.location.name} ({audit.audit_date}) for verification."
+        )
+        messages.success(request, f"Audit for {audit.location.name} successfully submitted for verification.")
+
+    elif action == 'verify':
+        if not is_central:
+            raise PermissionDenied("Only Central/HO Administrators can verify audit sessions.")
+        if audit.status not in ('SUBMITTED', 'DRAFT'):
+            messages.warning(request, f"Audit session cannot be verified from {audit.get_status_display()} status.")
+            return redirect('audit_detail', audit_id=audit.id)
+        audit.status = 'VERIFIED'
+        audit.verified_by_name = user_name
+        if notes:
+            audit.remarks = f"{audit.remarks}\n[Verification Notes by {user_name}]: {notes}".strip() if audit.remarks else f"[Verification Notes by {user_name}]: {notes}"
+        audit.save(update_fields=['status', 'verified_by_name', 'remarks', 'updated_at'])
+        log_activity(
+            request=request,
+            action='VERIFY_AUDIT',
+            module='Audits',
+            description=f"Verified audit session for {audit.location.name} ({audit.audit_date}) by {user_name}."
+        )
+        messages.success(request, f"Audit for {audit.location.name} marked as Verified.")
+
+    elif action == 'approve':
+        if not is_central:
+            raise PermissionDenied("Only Central/HO Administrators can approve audit sessions.")
+        audit.status = 'APPROVED'
+        audit.approved_by_name = user_name
+        if not audit.verified_by_name:
+            audit.verified_by_name = user_name
+        if notes:
+            audit.remarks = f"{audit.remarks}\n[Approval Notes by {user_name}]: {notes}".strip() if audit.remarks else f"[Approval Notes by {user_name}]: {notes}"
+        audit.save(update_fields=['status', 'approved_by_name', 'verified_by_name', 'remarks', 'updated_at'])
+        log_activity(
+            request=request,
+            action='APPROVE_AUDIT',
+            module='Audits',
+            description=f"Finalized and Approved audit session for {audit.location.name} ({audit.audit_date}) by {user_name}."
+        )
+        messages.success(request, f"Audit session for {audit.location.name} has been Approved and Finalized!")
+
+    elif action in ('return_draft', 'reopen'):
+        if action == 'reopen' and not is_super:
+            raise PermissionDenied("Only Super Administrators can re-open approved audits.")
+        elif action == 'return_draft' and not is_central:
+            raise PermissionDenied("Only Central/HO Administrators can return audits to Draft.")
+        audit.status = 'DRAFT'
+        if notes:
+            label = "Reopened" if action == 'reopen' else "Returned to Draft"
+            audit.remarks = f"{audit.remarks}\n[{label} by {user_name}]: {notes}".strip() if audit.remarks else f"[{label} by {user_name}]: {notes}"
+        audit.save(update_fields=['status', 'remarks', 'updated_at'])
+        log_activity(
+            request=request,
+            action='REVERT_AUDIT',
+            module='Audits',
+            description=f"Reverted audit session for {audit.location.name} ({audit.audit_date}) to Draft by {user_name}."
+        )
+        messages.info(request, f"Audit session for {audit.location.name} reverted to Draft for corrections.")
+
+    else:
+        messages.error(request, "Invalid workflow action specified.")
+
+    return redirect('audit_detail', audit_id=audit.id)
 
 
 @roles_required(*DASHBOARD_ROUTES)
@@ -188,9 +313,9 @@ def audit_create_or_edit_view(request, audit_id=None):
                 faulty_key = f"faulty_{dev.id}"
                 remarks_key = f"remarks_{dev.id}"
 
-                active_qty = int(request.POST.get(active_key, 0) or 0)
-                backup_qty = int(request.POST.get(backup_key, 0) or 0)
-                faulty_qty = int(request.POST.get(faulty_key, 0) or 0)
+                active_qty = safe_nonnegative_int(request.POST.get(active_key, 0))
+                backup_qty = safe_nonnegative_int(request.POST.get(backup_key, 0))
+                faulty_qty = safe_nonnegative_int(request.POST.get(faulty_key, 0))
                 item_remarks = request.POST.get(remarks_key, '').strip()
 
                 if active_qty > 0 or backup_qty > 0 or faulty_qty > 0 or item_remarks:

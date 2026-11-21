@@ -63,9 +63,6 @@ def asset_list_view(request):
         selected_device_type = get_object_or_404(DeviceType, pk=device_type_id)
         assets_qs = assets_qs.filter(device_type=selected_device_type)
 
-    if status_filter:
-        assets_qs = assets_qs.filter(status=status_filter)
-
     if search_query:
         assets_qs = assets_qs.filter(
             Q(asset_tag__icontains=search_query) |
