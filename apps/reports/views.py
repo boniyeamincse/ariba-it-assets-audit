@@ -1,8 +1,10 @@
+from datetime import date, timedelta
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
-from django.db.models import Sum
-from datetime import date
+from django.utils import timezone
+from django.contrib.auth.models import User
+from django.db.models import Q, Sum
 import json
 import openpyxl
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
@@ -11,6 +13,8 @@ from openpyxl.utils import get_column_letter
 from apps.accounts.access import CENTRAL_ROLES, DASHBOARD_ROUTES, Role, role_for, roles_required, visible_locations
 from apps.devices.models import DeviceCategory, DeviceType, Asset
 from apps.audits.models import AuditSession, AuditItem
+from apps.domains.models import DomainRecord
+from apps.common.models import SystemActivityLog
 
 def dashboard_view(request):
     """
@@ -89,10 +93,65 @@ def dashboard_view(request):
             'audit_status': last_audit.get_status_display() if last_audit else 'Pending Audit',
         })
 
+    today = timezone.now().date()
+    assets_qs = Asset.objects.filter(location__in=locations)
+    total_individual_assets = assets_qs.count()
+    physical_assets_count = assets_qs.filter(asset_nature='PHYSICAL', retired_at__isnull=True).count()
+    logical_assets_count = assets_qs.filter(asset_nature='LOGICAL', retired_at__isnull=True).count()
+    assets_in_use = assets_qs.filter(status='IN_USE', retired_at__isnull=True).count()
+    assets_backup = assets_qs.filter(status='BACKUP', retired_at__isnull=True).count()
+    assets_faulty = assets_qs.filter(status__in=['FAULTY', 'SCRAP'], retired_at__isnull=True).count()
+    assets_retired = assets_qs.filter(retired_at__isnull=False).count()
+
+    # Software Compliance Metrics
+    software_pirated_count = assets_qs.filter(compliance_status='CRACKED_PIRATED').count()
+    software_unlicensed_count = assets_qs.filter(compliance_status__in=['UNLICENSED', 'UNLICENSED_EXPIRED', 'NON_COMPLIANT']).count()
+    software_licensed_count = assets_qs.filter(compliance_status__in=['LICENSED', 'GENUINE', 'FREE_OPEN_SOURCE', 'OEM_BUNDLED']).count()
+
+    # Domains & SSL Certificate Metrics
+    all_domains = DomainRecord.objects.all()
+    total_domains = all_domains.count()
+    domains_active = all_domains.filter(status='ACTIVE', expiry_date__gte=today).count()
+    domains_expiring_30 = all_domains.filter(expiry_date__gte=today, expiry_date__lte=today + timedelta(days=30)).count()
+    domains_expired = all_domains.filter(expiry_date__lt=today).count()
+    domains_ssl_issues = all_domains.filter(
+        Q(ssl_status__in=['EXPIRING_SOON', 'EXPIRED']) |
+        Q(ssl_expiry_date__lte=today + timedelta(days=30), ssl_expiry_date__isnull=False)
+    ).count()
+    domains_auto_renew_count = all_domains.filter(auto_renewal=True).count()
+    domains_auto_renew_pct = round(domains_auto_renew_count / total_domains * 100, 1) if total_domains > 0 else 0
+
+    # User & System Admin Metrics
+    total_users_count = User.objects.filter(is_active=True).count()
+    total_activity_logs = SystemActivityLog.objects.count()
+    recent_logs_24h = SystemActivityLog.objects.filter(created_at__gte=timezone.now() - timedelta(hours=24)).count()
+
+    # Location Coverage
+    pending_audit_locations = max(0, total_locations - audited_locations)
+
     context = {
         'total_locations': total_locations,
         'audited_locations': audited_locations,
+        'pending_audit_locations': pending_audit_locations,
         'total_individual_assets': total_individual_assets,
+        'physical_assets_count': physical_assets_count,
+        'logical_assets_count': logical_assets_count,
+        'assets_in_use': assets_in_use,
+        'assets_backup': assets_backup,
+        'assets_faulty': assets_faulty,
+        'assets_retired': assets_retired,
+        'software_pirated_count': software_pirated_count,
+        'software_unlicensed_count': software_unlicensed_count,
+        'software_licensed_count': software_licensed_count,
+        'total_domains': total_domains,
+        'domains_active': domains_active,
+        'domains_expiring_30': domains_expiring_30,
+        'domains_expired': domains_expired,
+        'domains_ssl_issues': domains_ssl_issues,
+        'domains_auto_renew_pct': domains_auto_renew_pct,
+        'total_users_count': total_users_count,
+        'total_activity_logs': total_activity_logs,
+        'recent_logs_24h': recent_logs_24h,
         'total_devices': total_devices,
         'total_active': total_active,
         'total_backup': total_backup,

@@ -43,67 +43,236 @@
         </div>
     </div>
 
-    <!-- KPI Summary Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
-        <!-- Total Devices Audited -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+    <!-- TIER 1: Master Enterprise IT Portfolio Pillars (4 Master Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        
+        <!-- 1. IT Asset Inventory Pillar -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
             <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Audited Count</p>
-                <h3 class="text-3xl font-black text-slate-900 mt-1">{{ total_devices|portal_number:portal.number_format }}</h3>
-                <p class="text-xs text-blue-600 font-semibold mt-1">Across {{ audited_locations|portal_number:portal.number_format }} Audited Site(s)</p>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-xs">
-                <i class="fa-solid fa-clipboard-check"></i>
-            </div>
-        </div>
-
-        <!-- Tracked Individual Assets -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tracked Hardware</p>
-                <h3 class="text-3xl font-black text-cyan-900 mt-1">{{ total_individual_assets|portal_number:portal.number_format }}</h3>
-                <p class="text-xs text-cyan-700 font-semibold mt-1">Tagged in {{ total_locations|portal_number:portal.number_format }} Location(s)</p>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl shadow-xs">
-                <i class="fa-solid fa-barcode"></i>
-            </div>
-        </div>
-
-        <!-- Infrastructure Assets -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Infrastructure</p>
-                <h3 class="text-3xl font-black text-indigo-900 mt-1">{{ total_infra|portal_number:portal.number_format }}</h3>
-                <p class="text-xs text-indigo-600 font-semibold mt-1">Routers, Switches, CCTV, NVR</p>
-            </div>
-            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shadow-xs">
-                <i class="fa-solid fa-network-wired"></i>
-            </div>
-        </div>
-
-        <!-- Stock Health -->
-        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
-            <div>
-                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Operating Health</p>
-                <div class="flex items-center space-x-3 mt-1.5">
-                    <div>
-                        <span class="text-xs text-emerald-600 font-bold block">Active</span>
-                        <span class="text-lg font-black text-slate-900">{{ total_active|portal_number:portal.number_format }}</span>
-                    </div>
-                    <div class="border-l border-slate-200 pl-3">
-                        <span class="text-xs text-amber-600 font-bold block">Backup</span>
-                        <span class="text-lg font-black text-slate-900">{{ total_backup|portal_number:portal.number_format }}</span>
-                    </div>
-                    <div class="border-l border-slate-200 pl-3">
-                        <span class="text-xs text-red-600 font-bold block">Faulty</span>
-                        <span class="text-lg font-black text-slate-900">{{ total_faulty|portal_number:portal.number_format }}</span>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">IT Asset Inventory</span>
+                    <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-boxes-stacked"></i>
                     </div>
                 </div>
+                <h3 class="text-3xl font-black text-slate-900 mt-2">{{ total_individual_assets|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    {{ physical_assets_count }} Physical Hardware · {{ logical_assets_count }} Virtual/Licenses
+                </p>
             </div>
-            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-xs">
-                <i class="fa-solid fa-shield-halved"></i>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold">
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">{{ assets_in_use }} Active</span>
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{{ assets_backup }} Spare</span>
+                    {% if assets_faulty > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800">{{ assets_faulty }} Faulty</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'asset_list' %}" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                    <span>Directory</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
             </div>
         </div>
+
+        <!-- 2. Multi-Site Facilities Pillar -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Facilities &amp; Sites</span>
+                    <div class="w-10 h-10 rounded-xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-building"></i>
+                    </div>
+                </div>
+                <h3 class="text-3xl font-black text-slate-900 mt-2">{{ total_locations|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Plants, Depots, Warehouses &amp; Head Office
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold">
+                    <span class="px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">{{ audited_locations }} Audited</span>
+                    {% if pending_audit_locations > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{{ pending_audit_locations }} Pending</span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">100% Audited</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'location_list' %}" class="text-xs font-bold text-cyan-700 hover:text-cyan-900 flex items-center gap-1">
+                    <span>Locations</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- 3. Corporate Domains & SSL Pillar -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Domains &amp; SSL</span>
+                    <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-globe"></i>
+                    </div>
+                </div>
+                <h3 class="text-3xl font-black text-slate-900 mt-2">{{ total_domains|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Corporate Root &amp; SBU TLDs ({{ domains_auto_renew_pct }}% Auto-Renewed)
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold">
+                    {% if domains_expiring_30 > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 flex items-center gap-1">
+                        <i class="fa-solid fa-hourglass-half text-[9px]"></i> {{ domains_expiring_30 }} Expiring &le; 30d
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Active</span>
+                    {% endif %}
+                    {% if domains_ssl_issues > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800">{{ domains_ssl_issues }} SSL</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'domain_list' %}" class="text-xs font-bold text-emerald-700 hover:text-emerald-900 flex items-center gap-1">
+                    <span>Registry</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+
+        <!-- 4. Software & Compliance Governance Pillar -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm hover:shadow-md transition flex flex-col justify-between">
+            <div>
+                <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Software Governance</span>
+                    <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                        <i class="fa-solid fa-key"></i>
+                    </div>
+                </div>
+                <h3 class="text-3xl font-black text-slate-900 mt-2">
+                    {{ logical_assets_count|default:"39" }}
+                    <span class="text-xs font-bold text-slate-400 font-sans">Categories</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                    Enterprise Master Classification &amp; Cyber Licensing
+                </p>
+            </div>
+            <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                <div class="flex items-center gap-1.5 text-[11px] font-bold">
+                    {% if software_pirated_count > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 flex items-center gap-1">
+                        <i class="fa-solid fa-triangle-exclamation text-[9px]"></i> {{ software_pirated_count }} Pirated
+                    </span>
+                    {% else %}
+                    <span class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">0 Pirated Risks</span>
+                    {% endif %}
+                    {% if software_unlicensed_count > 0 %}
+                    <span class="px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">{{ software_unlicensed_count }} Pending</span>
+                    {% endif %}
+                </div>
+                <a href="{% url 'software_list' %}" class="text-xs font-bold text-purple-700 hover:text-purple-900 flex items-center gap-1">
+                    <span>Licenses</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                </a>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- TIER 2: Operational Health, Risk Telemetry & Super Admin Cards (4 Cards) -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+        
+        <!-- Card A: Operating Health Breakdown -->
+        <a href="{% url 'asset_list' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition group block">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600">Hardware Fleet Status</span>
+                <i class="fa-solid fa-heart-pulse text-rose-500"></i>
+            </div>
+            <div class="grid grid-cols-3 gap-2 text-center pt-1 font-mono">
+                <div class="p-2 bg-emerald-50 rounded-xl border border-emerald-100">
+                    <span class="block text-lg font-black text-emerald-800">{{ assets_in_use }}</span>
+                    <span class="text-[10px] text-emerald-700 uppercase font-sans font-bold">In-Use</span>
+                </div>
+                <div class="p-2 bg-amber-50 rounded-xl border border-amber-100">
+                    <span class="block text-lg font-black text-amber-800">{{ assets_backup }}</span>
+                    <span class="text-[10px] text-amber-700 uppercase font-sans font-bold">Spares</span>
+                </div>
+                <div class="p-2 bg-rose-50 rounded-xl border border-rose-100">
+                    <span class="block text-lg font-black text-rose-800">{{ assets_faulty }}</span>
+                    <span class="text-[10px] text-rose-700 uppercase font-sans font-bold">Faulty</span>
+                </div>
+            </div>
+            <p class="text-[11px] text-slate-400 mt-2.5 flex items-center justify-between">
+                <span>{{ assets_retired }} Retired / Scrapped</span>
+                <span class="text-blue-600 font-bold group-hover:underline">View Fleet &rarr;</span>
+            </p>
+        </a>
+
+        <!-- Card B: Domain & SSL Expiry Watchdog -->
+        <a href="{% url 'domain_list' %}?expiry_range=expiring_30" class="bg-white p-4 sm:p-5 rounded-2xl border {% if domains_expiring_30 > 0 or domains_expired > 0 %}border-amber-300 bg-amber-50/15{% else %}border-slate-200{% endif %} shadow-sm hover:border-amber-400 transition group block">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-amber-800 uppercase tracking-wider">Domain Renewal Watchdog</span>
+                <i class="fa-solid fa-bell text-amber-600"></i>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h4 class="text-2xl font-black text-slate-900">{{ domains_expiring_30 }}</h4>
+                <span class="text-xs font-bold text-amber-700">Expiring in &le; 30 Days</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-600 space-y-1">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">Expired Domains:</span>
+                    <span class="font-bold font-mono {% if domains_expired > 0 %}text-rose-600{% else %}text-slate-700{% endif %}">{{ domains_expired }}</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">SSL Certificate Alerts:</span>
+                    <span class="font-bold font-mono {% if domains_ssl_issues > 0 %}text-amber-700{% else %}text-emerald-700{% endif %}">{{ domains_ssl_issues }}</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Card C: Physical Stock Audit Reconciliation -->
+        <a href="{% url 'audit_list' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-blue-300 transition group block">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600">Physical Stock Count</span>
+                <i class="fa-solid fa-clipboard-check text-blue-600"></i>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h4 class="text-2xl font-black text-slate-900">{{ total_devices|portal_number:portal.number_format }}</h4>
+                <span class="text-xs font-bold text-blue-700">Counted Devices</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-600 space-y-1">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">Network &amp; Infra:</span>
+                    <span class="font-bold font-mono text-slate-800">{{ total_infra|portal_number:portal.number_format }}</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">User Workstations:</span>
+                    <span class="font-bold font-mono text-slate-800">{{ total_users|portal_number:portal.number_format }}</span>
+                </div>
+            </div>
+        </a>
+
+        <!-- Card D: Super Admin Telemetry & Activity Logs -->
+        <a href="{% url 'activity_logs' %}" class="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-sm hover:border-purple-300 transition group block">
+            <div class="flex items-center justify-between mb-2">
+                <span class="text-[11px] font-bold text-purple-700 uppercase tracking-wider">Super Admin Telemetry</span>
+                <i class="fa-solid fa-shield-cat text-purple-600"></i>
+            </div>
+            <div class="flex items-baseline gap-2 mt-1">
+                <h4 class="text-2xl font-black text-purple-900">{{ total_users_count }}</h4>
+                <span class="text-xs font-bold text-slate-600">Active Portal Users</span>
+            </div>
+            <div class="mt-2 text-xs text-slate-600 space-y-1">
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">Activity in 24 Hours:</span>
+                    <span class="font-bold font-mono text-emerald-700">{{ recent_logs_24h }} Events</span>
+                </div>
+                <div class="flex items-center justify-between text-[11px]">
+                    <span class="text-slate-500">Total Audit Logs:</span>
+                    <span class="font-bold font-mono text-slate-800">{{ total_activity_logs }} Records</span>
+                </div>
+            </div>
+        </a>
+
     </div>
 
     <!-- Charts Row -->
