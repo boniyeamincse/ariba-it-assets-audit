@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.urls import path
+from django.urls import path, include
 from apps.accounts import administration
 from apps.accounts.access import Role, roles_required
 from apps.accounts.views import login_view, logout_view
@@ -22,8 +22,6 @@ from apps.audits.views import (
     audit_detail_view,
     audit_print_view,
     audit_create_or_edit_view,
-    export_audit_json,
-    sync_json_view
 )
 
 urlpatterns = [
@@ -67,6 +65,7 @@ urlpatterns = [
     path('assets/<int:asset_id>/', asset_detail_view, name='asset_detail'),
     path('assets/categories/', category_list_view, name='category_list'),
     path('software/', software_list_view, name='software_list'),
+    path('domains/', include('apps.domains.urls')),
 
     # Multi-Location Master Matrix
     path('matrix/', matrix_view, name='matrix'),
@@ -78,11 +77,6 @@ urlpatterns = [
     path('audits/<int:audit_id>/', audit_detail_view, name='audit_detail'),
     path('audits/<int:audit_id>/edit/', audit_create_or_edit_view, name='audit_edit'),
     path('audits/<int:audit_id>/print/', audit_print_view, name='audit_print'),
-    path('audits/<int:audit_id>/export-json/', export_audit_json, name='export_audit_json'),
-    
-    # Offline JSON Sync
-    path('sync-json/', sync_json_view, name='sync_json'),
-
     # Enterprise System Activity & Audit Logs
     path('logs/', activity_log_view, name='legacy_activity_logs'),
 ]

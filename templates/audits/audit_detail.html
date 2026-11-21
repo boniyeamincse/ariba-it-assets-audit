@@ -31,10 +31,6 @@
                 <i class="fa-solid fa-pen-to-square"></i>
                 <span>Edit Count</span>
             </a>
-            <a href="{% url 'export_audit_json' audit.id %}" class="inline-flex items-center space-x-1.5 bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition">
-                <i class="fa-solid fa-file-code"></i>
-                <span>Export JSON</span>
-            </a>
             <a href="{% url 'audit_print' audit.id %}" target="_blank" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow transition">
                 <i class="fa-solid fa-print"></i>
                 <span>Print Report for Sir</span>

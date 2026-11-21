@@ -1,13 +1,11 @@
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import Http404, JsonResponse, HttpResponse
+from django.http import Http404
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.db.models import Q
 from datetime import date
-import json
 
-from apps.locations.models import Location
 from apps.devices.models import DeviceCategory, DeviceType
 from apps.audits.models import AuditSession, AuditItem
 from apps.common.utils import log_activity
@@ -197,140 +195,4 @@ def audit_create_or_edit_view(request, audit_id=None):
     return render(request, 'audits/audit_form.html', context)
 
 
-@roles_required(*DASHBOARD_ROUTES)
-def export_audit_json(request, audit_id):
-    """
-    Export single audit session as a structured JSON file.
-    """
-    audit = get_object_or_404(AuditSession, id=audit_id, location__in=visible_locations(request.user))
-    data = audit.to_dict()
-    filename = f"audit_{audit.location.code}_{audit.audit_date}.json"
 
-    log_activity(
-        request=request,
-        action='EXPORT_JSON',
-        module='Audits',
-        description=f"Exported offline JSON audit file for {audit.location.name} ({audit.audit_date})."
-    )
-
-    response = HttpResponse(
-        json.dumps(data, indent=2),
-        content_type="application/json"
-    )
-    response['Content-Disposition'] = f'attachment; filename="{filename}"'
-    return response
-
-
-@roles_required(*DASHBOARD_ROUTES)
-def sync_json_view(request):
-    """
-    Upload and import offline JSON audit file from field laptops.
-    """
-    role = role_for(request.user)
-    local_admin = role in LOCAL_TYPES
-    if request.method == 'POST' and request.FILES.get('json_file'):
-        try:
-            uploaded_file = request.FILES['json_file']
-            content = json.loads(uploaded_file.read().decode('utf-8'))
-
-            loc_name = content.get('location')
-            audit_date = content.get('auditDate', str(date.today()))
-            auditor = content.get('auditedBy', 'IT Audit Team')
-            verified = content.get('verifiedBy', '')
-            status = content.get('status', 'APPROVED')
-
-            locations = visible_locations(request.user)
-            if local_admin:
-                code = content.get('location_code')
-                matching = locations.filter(code=code) if code else locations.filter(name=loc_name)
-                try:
-                    loc = matching.get()
-                except (Location.DoesNotExist, Location.MultipleObjectsReturned):
-                    messages.error(request, 'Select an assigned location using its exact code or name.')
-                    return render(request, 'audits/sync_json.html', status=400)
-                status = 'DRAFT'
-                auditor = request.user.get_full_name() or request.user.username
-                verified = ''
-            else:
-                loc = locations.filter(name__icontains=loc_name).first()
-            if loc is None:
-                company = Location.objects.first().company
-                loc = Location.objects.create(
-                    company=company,
-                    name=loc_name,
-                    code=loc_name.upper().replace(' ', '-'),
-                    location_type='FACTORY'
-                )
-
-            with transaction.atomic():
-                parsed_date = date.fromisoformat(audit_date)
-                defaults = {'auditor_name': auditor, 'verified_by_name': verified, 'status': status}
-                if local_admin:
-                    audit, created = AuditSession.objects.select_for_update().get_or_create(
-                        location=loc, audit_date=parsed_date, defaults=defaults,
-                    )
-                    if audit.status != 'DRAFT':
-                        raise PermissionDenied
-                    if not created:
-                        audit.auditor_name = auditor
-                        audit.verified_by_name = verified
-                        audit.save(update_fields=['auditor_name', 'verified_by_name', 'updated_at'])
-                else:
-                    audit, _ = AuditSession.objects.update_or_create(
-                        location=loc, audit_date=parsed_date, defaults=defaults,
-                    )
-
-                # Process infrastructure
-                for item in content.get('infrastructure', []):
-                    d_name = item.get('device')
-                    qty = int(item.get('qty', 0))
-                    dev = DeviceType.objects.filter(name__iexact=d_name).first()
-                    if dev:
-                        AuditItem.objects.update_or_create(
-                            audit_session=audit,
-                            device_type=dev,
-                            defaults={
-                                'active_qty': qty,
-                                'backup_qty': 0,
-                                'faulty_qty': 0,
-                                'total_qty': qty,
-                                'remarks': item.get('remarks', '')
-                            }
-                        )
-
-                # Process users
-                for item in content.get('users', []):
-                    d_name = item.get('device')
-                    qty = int(item.get('qty', 0))
-                    act = int(item.get('active', qty))
-                    bak = int(item.get('backup', 0))
-                    flt = int(item.get('faulty', 0))
-                    dev = DeviceType.objects.filter(name__iexact=d_name).first()
-                    if dev:
-                        AuditItem.objects.update_or_create(
-                            audit_session=audit,
-                            device_type=dev,
-                            defaults={
-                                'active_qty': act,
-                                'backup_qty': bak,
-                                'faulty_qty': flt,
-                                'total_qty': act + bak + flt,
-                                'remarks': item.get('remarks', '')
-                            }
-                        )
-
-            log_activity(
-                request=request,
-                action='IMPORT_JSON',
-                module='Audits',
-                description=f"Imported offline JSON audit for {loc.name} on {audit.audit_date}. Total verified devices: {audit.total_qty} units."
-            )
-
-            messages.success(request, f"Successfully imported audit data for {loc.name}!")
-            return redirect('audit_detail', audit_id=audit.id)
-        except PermissionDenied:
-            raise
-        except Exception as e:
-            messages.error(request, f"Error importing JSON: {str(e)}")
-
-    return render(request, 'audits/sync_json.html')

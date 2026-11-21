@@ -2,7 +2,6 @@ from datetime import datetime, timezone
 from io import BytesIO
 
 from django.contrib.auth.models import User
-from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase
 from django.urls import reverse
 from openpyxl import load_workbook
@@ -126,7 +125,7 @@ class AdministrationTests(TestCase):
         self.assertContains(response, self.factory.name)
         self.assertNotContains(response, self.other_factory.name)
         self.assertNotContains(response, self.depot.name)
-        paths = ['audit_detail', 'audit_edit', 'audit_print', 'export_audit_json']
+        paths = ['audit_detail', 'audit_edit', 'audit_print']
         for name in paths:
             self.assertEqual(self.client.get(reverse(name, args=[self.other_audit.pk])).status_code, 404)
         workbook = load_workbook(BytesIO(self.client.get(reverse('export_excel_matrix')).content))
@@ -235,21 +234,6 @@ class AdministrationTests(TestCase):
         response = self.client.get(url, {'date_from': '2026-11-21', 'date_to': '2026-11-20'})
         self.assertContains(response, 'The end date must be on or after the start date.')
         self.assertEqual(response.context['total_count'], 0)
-
-    def test_local_json_is_confined_to_assigned_drafts(self):
-        self.client.force_login(self.factory_admin)
-        payload = b'{"location_code":"B","auditDate":"2026-01-01"}'
-        response = self.client.post(reverse('sync_json'), {'json_file': SimpleUploadedFile('other.json', payload)})
-        self.assertEqual(response.status_code, 400)
-        payload = b'{"location_code":"A","auditDate":"2026-01-01","status":"APPROVED"}'
-        response = self.client.post(reverse('sync_json'), {'json_file': SimpleUploadedFile('own.json', payload)})
-        self.assertEqual(response.status_code, 302)
-        audit = AuditSession.objects.get(location=self.factory)
-        self.assertEqual(audit.status, 'DRAFT')
-        audit.status = 'APPROVED'
-        audit.save()
-        response = self.client.post(reverse('sync_json'), {'json_file': SimpleUploadedFile('own.json', payload)})
-        self.assertEqual(response.status_code, 403)
 
     def test_email_based_login(self):
         self.super_admin.email = 'superadmin@akij.net'

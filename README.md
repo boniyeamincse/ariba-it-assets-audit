@@ -52,7 +52,7 @@ audit/
 │   ├── common/            # Base TimeStampedModel, Activity Logging
 │   ├── locations/         # Head Office, Factories (Chattak), Depots
 │   ├── devices/           # Master Catalog (Infrastructure & User Devices)
-│   ├── audits/            # Physical Stock Count Engine & JSON Sync
+│   ├── audits/            # Physical Stock Count Engine & Manual Data Entry
 │   └── reports/           # Executive Dashboard, Charts, PDF & Excel Export
 ├── templates/             # Modern HTML5 + Tailwind CSS UI
 │   ├── base.html          # Enterprise layout with sidebar & topbar
@@ -62,9 +62,8 @@ audit/
 │   └── audits/
 │       ├── audit_list.html
 │       ├── audit_detail.html
-│       ├── audit_form.html    # Fast data entry with live JS auto-calc
-│       ├── audit_print.html   # Official A4 Print/PDF with 3 signatures
-│       └── sync_json.html     # Offline JSON backup and upload
+│       ├── audit_form.html    # Online audit entry and live count calculation
+│       └── audit_print.html   # Official A4 Print/PDF with 3 signatures
 └── docs/
     └── SOFTWARE_SPECIFICATION.md # পূর্ণাঙ্গ সিস্টেম স্পেসিফিকেশন
 ```
@@ -79,14 +78,12 @@ audit/
 2. **Multi-Location Comparison Matrix (`/matrix/`):**
    - Head Office, Chattak Factory, Bogura Depot, Chattogram Depot—সব লোকেশন ও ডিভাইসের তুলনামূলক ক্রস-ট্যাব টেবিল।
    - **Download Excel (.xlsx):** এক ক্লিকে সম্পূর্ণ ম্যাট্রিক্স এক্সেল ফাইলে ডাউনলোড।
-3. **ছাতক ফ্যাক্টরির রেডিমেড ডেটা (APL Factory Chattak):**
-   - আপনার দেওয়া ছবি দুটি থেকে হুবহু **৪৫৯টি ডিভাইসের ডেটা** (Infrastructure: ২০৯টি, Users: ২৫০টি) অলরেডি সিস্টেমে ডাটাবেজ সহ এন্ট্রি করা আছে।
+3. **ম্যানুয়াল অডিট এন্ট্রি:**
+   - পুরোনো spreadsheet থেকে আনা নমুনা audit count সরানো হয়েছে। নতুন audit `/audits/new/` থেকে নিজে এন্ট্রি করুন।
 4. **অফিশিয়াল প্রিন্ট ও PDF রিপোর্ট (`/audits/1/print/`):**
-   - Akij Plastics Ltd-এর অফিশিয়াল হেডার ও প্যাড।
+   - Akij Plastics Ltd-এর অফিশিয়াল হেডার ও প্যাড। Audit তৈরি করার পর তার report print করুন।
    - অডিটর (Prepared By), ফ্যাক্টরি ইন-চার্জ (Verified By) এবং ম্যানেজমেন্ট / স্যারের (Approved By) সিল-স্বাক্ষরের নির্ধারিত স্থান।
-5. **অফলাইন JSON সিঙ্ক (`/sync-json/`):**
-   - প্রত্যন্ত ডিপো বা ফ্যাক্টরিতে ইন্টারনেট ছাড়া ল্যাপটপে অফলাইনে ডেটা এন্ট্রি নিয়ে `.json` ফাইল এক্সপোর্ট/ইমপোর্ট করার সুবিধা।
-6. **সিস্টেম অ্যাক্টিভিটি ও অডিট লগ পেজ (`/logs/`):**
+5. **সিস্টেম অ্যাক্টিভিটি ও অডিট লগ পেজ (`/logs/`):**
    - কে কখন লগইন করেছে, কোন ইউজার কোন ফ্যাক্টরির কাউন্ট আপডেট বা সেভ করেছে, তার সম্পূর্ণ টাইমস্ট্যাম্পযুক্ত অডিট ট্রেইল (IP অ্যাড্রেস ও ইউজারনেম সহ)।
    - মডিউল, অ্যাকশন টাইপ এবং কিওয়ার্ড দিয়ে সরাসরি ফিল্টার করার ব্যবস্থা।
 

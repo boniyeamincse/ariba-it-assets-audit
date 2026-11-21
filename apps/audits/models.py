@@ -50,42 +50,6 @@ class AuditSession(TimeStampedModel):
     def total_users(self):
         return sum(item.total_qty for item in self.items.filter(device_type__category__code='USERS'))
 
-    def to_dict(self):
-        infra_items = []
-        user_items = []
-        for itm in self.items.select_related('device_type', 'device_type__category').all():
-            data = itm.to_dict()
-            if itm.device_type.category.code == 'INFRASTRUCTURE':
-                infra_items.append(data)
-            else:
-                user_items.append(data)
-
-        return {
-            'id': self.id,
-            'company': self.location.company.name,
-            'location': self.location.name,
-            'location_code': self.location.code,
-            'location_type': self.location.get_location_type_display(),
-            'auditDate': str(self.audit_date),
-            'auditedBy': self.auditor_name,
-            'verifiedBy': self.verified_by_name or '',
-            'approvedBy': self.approved_by_name or '',
-            'status': self.status,
-            'status_display': self.get_status_display(),
-            'remarks': self.remarks or '',
-            'summary': {
-                'totalDevices': self.total_qty,
-                'totalActive': self.total_active,
-                'totalBackup': self.total_backup,
-                'totalFaulty': self.total_faulty,
-                'infrastructureQty': self.total_infrastructure,
-                'userDevicesQty': self.total_users
-            },
-            'infrastructure': infra_items,
-            'users': user_items
-        }
-
-
 class AuditItem(TimeStampedModel):
     audit_session = models.ForeignKey(AuditSession, on_delete=models.CASCADE, related_name='items')
     device_type = models.ForeignKey(DeviceType, on_delete=models.CASCADE, related_name='audit_items')
@@ -107,16 +71,3 @@ class AuditItem(TimeStampedModel):
     def __str__(self):
         return f"{self.device_type.name}: {self.total_qty} (Session: {self.audit_session.id})"
 
-    def to_dict(self):
-        return {
-            'id': self.id,
-            'device_id': self.device_type.id,
-            'device': self.device_type.name,
-            'category': self.device_type.category.name,
-            'category_code': self.device_type.category.code,
-            'active': self.active_qty,
-            'backup': self.backup_qty,
-            'faulty': self.faulty_qty,
-            'qty': self.total_qty,
-            'remarks': self.remarks or ''
-        }

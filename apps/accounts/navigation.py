@@ -11,15 +11,15 @@ _GROUPS = (
         ('Locations', 'location_list', 'fa-building', ('location_create', 'location_edit'), None),
         ('Asset Inventory', 'asset_list', 'fa-boxes-stacked', ('asset_create', 'asset_edit', 'asset_detail', 'asset_delete', 'asset_retire'), None),
         ('Software & Licenses', 'software_list', 'fa-key', (), None),
+        ('Domains & SSL', 'domain_list', 'fa-globe', ('domain_create', 'domain_edit', 'domain_detail', 'domain_delete'), None),
         ('Device Catalog', 'category_list', 'fa-layer-group', (), 'central'),
         ('Import Assets', 'asset_import_csv', 'fa-file-csv', ('asset_sample_csv',), 'central'),
     )),
     ('Audits & Reports', (
         ('Audit Records', 'audit_list', 'fa-clipboard-list', (
-            'audit_create', 'audit_edit', 'audit_detail', 'audit_print', 'export_audit_json',
+            'audit_create', 'audit_edit', 'audit_detail', 'audit_print',
         ), None),
         ('Location Matrix', 'matrix', 'fa-table-cells', ('export_excel_matrix',), None),
-        ('Offline Sync', 'sync_json', 'fa-arrows-rotate', (), None),
     )),
     ('Administration', (
         ('User Management', 'administration_users', 'fa-users', ('administration_user_create', 'administration_user_edit'), 'central'),
@@ -38,6 +38,10 @@ _SUBPAGE_LABELS = {
     'asset_detail': 'Asset details',
     'asset_delete': 'Retire asset',
     'asset_retire': 'Retire asset',
+    'domain_create': 'Register domain',
+    'domain_edit': 'Edit domain',
+    'domain_detail': 'Domain details',
+    'domain_delete': 'Delete domain',
     'audit_create': 'New audit',
     'audit_edit': 'Edit audit',
     'audit_detail': 'Audit details',
@@ -48,6 +52,7 @@ _SUBPAGE_LABELS = {
 
 _CREATE_ACTIONS = (
     ('New Asset', 'asset_create', 'fa-box', None),
+    ('New Domain', 'domain_create', 'fa-globe', 'central'),
     ('New Audit', 'audit_create', 'fa-clipboard-check', None),
     ('New Location', 'location_create', 'fa-building', 'central'),
     ('Add Role', 'administration_role_create', 'fa-user-shield', 'super'),

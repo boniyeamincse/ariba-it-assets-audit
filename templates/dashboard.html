@@ -331,9 +331,6 @@
                             <a href="{% url 'audit_print' audit.id %}" target="_blank" class="text-slate-600 hover:text-slate-900 text-xs font-semibold px-2 py-1 rounded hover:bg-slate-100">
                                 <i class="fa-solid fa-print"></i> Report for Sir
                             </a>
-                            <a href="{% url 'export_audit_json' audit.id %}" class="text-amber-600 hover:text-amber-900 text-xs font-semibold px-2 py-1 rounded hover:bg-amber-50">
-                                <i class="fa-solid fa-download"></i> JSON
-                            </a>
                         </td>
                     </tr>
                     {% empty %}
