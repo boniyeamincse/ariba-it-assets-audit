@@ -5,7 +5,12 @@ from apps.accounts.access import Role, roles_required
 from apps.accounts.views import login_view, logout_view
 from apps.reports.views import dashboard_view, matrix_view, export_excel_matrix
 from apps.common.views import activity_log_view
-from apps.locations.views import location_list_view, location_create_or_edit_view
+from apps.locations.views import (
+    location_list_view,
+    location_create_or_edit_view,
+    location_detail_view,
+    location_delete_view,
+)
 from apps.devices.views import (
     asset_list_view,
     asset_create_or_edit_view,
@@ -51,7 +56,9 @@ urlpatterns = [
     # Locations Management
     path('locations/', location_list_view, name='location_list'),
     path('locations/new/', location_create_or_edit_view, name='location_create'),
+    path('locations/<int:loc_id>/', location_detail_view, name='location_detail'),
     path('locations/<int:loc_id>/edit/', location_create_or_edit_view, name='location_edit'),
+    path('locations/<int:loc_id>/delete/', location_delete_view, name='location_delete'),
 
     # Assets Management (Location-Wise Dynamic Hardware Tracking)
     path('assets/', asset_list_view, name='asset_list'),

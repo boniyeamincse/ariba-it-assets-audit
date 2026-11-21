@@ -61,12 +61,54 @@ def location_list_view(request):
         audited_quantity=Subquery(latest.annotate(quantity=Sum('items__total_qty', default=0)).values('quantity')[:1]),
     ).order_by('name', 'pk'), 25).get_page(request.GET.get('page'))
 
+    type_counts = {item['location_type']: item['count'] for item in visible.values('location_type').annotate(count=Count('pk'))}
+
     return render(request, 'locations/location_list.html', {
         'page_obj': page,
         'filters': filters,
         'has_filters': any(filters[name].value() for name in filters.fields),
         'summary': summary,
         'inactive_count': summary['total'] - summary['active'],
+        'type_counts': type_counts,
+        'current_type': request.GET.get('type', ''),
+    })
+
+
+@roles_required(*DASHBOARD_ROUTES)
+@require_safe
+def location_detail_view(request, loc_id):
+    """
+    Detailed 360-degree technical profile of a location including assets, audit history, and personnel.
+    """
+    visible = visible_locations(request.user)
+    location = get_object_or_404(visible.select_related('company', 'parent_location'), pk=loc_id)
+    
+    # Tracked assets at this location
+    assets = location.assets.select_related('device_type__category', 'owning_company').order_by('-created_at')
+    total_assets = assets.count()
+    active_assets = assets.filter(is_active=True).count()
+    
+    # Audit history
+    audits = location.audit_sessions.order_by('-audit_date')
+    total_audits = audits.count()
+    latest_audit = audits.first()
+    
+    # Sub-locations / Annexes
+    sub_locations = location.sub_locations.select_related('company').all()
+    
+    # User profiles assigned
+    assigned_users = location.assigned_profiles.select_related('user').all()
+
+    return render(request, 'locations/location_detail.html', {
+        'location': location,
+        'assets': assets[:20],
+        'total_assets': total_assets,
+        'active_assets': active_assets,
+        'audits': audits,
+        'total_audits': total_audits,
+        'latest_audit': latest_audit,
+        'sub_locations': sub_locations,
+        'assigned_users': assigned_users,
     })
 
 
@@ -103,7 +145,7 @@ def location_create_or_edit_view(request, loc_id=None):
                         request, 'UPDATE_LOCATION' if location else 'CREATE_LOCATION', 'Locations',
                         f"Saved location [{saved.location_id}] '{saved.name}' ({saved.code}).",
                     )
-                    messages.success(request, f'Location “{saved.name}” saved.')
+                    messages.success(request, f'Location “{saved.name}” saved successfully.')
                     return redirect('location_list')
         except IntegrityError:
             form.add_error(None, 'The location code or ID was saved by another request. Check the values and try again.')
@@ -113,11 +155,54 @@ def location_create_or_edit_view(request, loc_id=None):
 
 @roles_required(*CENTRAL_ROLES)
 def location_delete_view(request, loc_id):
-    location = get_object_or_404(Location, id=loc_id)
+    """
+    Safely delete or deactivate a location record with dependency integrity verification.
+    """
+    location = get_object_or_404(Location.objects.select_related('company'), pk=loc_id)
+    asset_count = location.assets.count()
+    audit_count = location.audit_sessions.count()
+    sub_count = location.sub_locations.count()
+    has_dependencies = (asset_count > 0 or audit_count > 0 or sub_count > 0)
+
     if request.method == 'POST':
+        action = request.POST.get('action', 'delete')
+        if action == 'deactivate':
+            location.is_active = False
+            location.save()
+            log_activity(
+                request,
+                'DEACTIVATE_LOCATION',
+                'Locations',
+                f"Deactivated location [{location.location_id}] '{location.name}'."
+            )
+            messages.success(request, f"Location '{location.name}' has been deactivated.")
+            return redirect('location_list')
+
+        if has_dependencies:
+            messages.error(
+                request,
+                f"Cannot delete location '{location.name}' because it contains "
+                f"{asset_count} tracked asset(s), {audit_count} audit session(s), and {sub_count} sub-location(s). "
+                f"Please reassign or delete them first, or deactivate this location."
+            )
+            return redirect('location_edit', loc_id=location.id)
+
         loc_name = location.name
-        log_activity(request, 'DELETE_LOCATION', 'Locations', f"Deleted location: '{loc_name}'")
+        loc_id_str = location.location_id or f"ID-{location.id}"
         location.delete()
-        messages.success(request, f"Location '{loc_name}' has been deleted.")
+        log_activity(
+            request,
+            'DELETE_LOCATION',
+            'Locations',
+            f"Deleted location [{loc_id_str}] '{loc_name}'."
+        )
+        messages.success(request, f"Location '{loc_name}' has been permanently deleted.")
         return redirect('location_list')
-    return render(request, 'locations/location_confirm_delete.html', {'location': location})
+
+    return render(request, 'locations/location_confirm_delete.html', {
+        'location': location,
+        'asset_count': asset_count,
+        'audit_count': audit_count,
+        'sub_count': sub_count,
+        'has_dependencies': has_dependencies,
+    })

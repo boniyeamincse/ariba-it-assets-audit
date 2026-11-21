@@ -1,59 +1,282 @@
 {% extends 'base.html' %}
-{% block title %}{% if location %}Edit {{ location.name }}{% else %}Add location{% endif %} | {{ portal.application_short_name }}{% endblock %}
-{% block header_title %}{% if location %}Edit {{ location.name }}{% else %}Add location{% endif %}{% endblock %}
-{% block header_subtitle %}{% endblock %}
+{% load static %}
+
+{% block title %}{% if location %}Edit Location: {{ location.name }}{% else %}Register New Location{% endif %} | {{ portal.application_short_name }}{% endblock %}
+
+{% block header_title %}{% if location %}Edit Location Record{% else %}Register New Location{% endif %}{% endblock %}
+{% block header_subtitle %}Physical facility details, regional SBU assignment, and site hierarchy{% endblock %}
 
 {% block content %}
-<form method="post" class="max-w-4xl space-y-5" {% if form.errors %}aria-describedby="location-form-errors"{% endif %}>
-    {% csrf_token %}
-    {% if form.errors %}
-    <div id="location-form-errors" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
-        {% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}Check the highlighted fields before saving.{% endif %}
-    </div>
-    {% endif %}
+<div class="max-w-4xl mx-auto space-y-6">
 
-    {% for title, fields in form.sections %}
-    <fieldset class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
-        <legend class="px-1 text-base font-semibold text-slate-900">{{ title }}</legend>
-        <div class="grid gap-4 sm:grid-cols-2">
-            {% for field in fields %}
-            <div class="min-w-0 space-y-1 text-sm {% if field.field.widget.attrs.rows %}sm:col-span-2{% endif %} [&_label]:block [&_label]:font-medium [&_label]:text-slate-700 [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:rounded-lg [&_select]:rounded-lg [&_textarea]:rounded-lg [&_input]:border [&_select]:border [&_textarea]:border [&_input]:border-slate-300 [&_select]:border-slate-300 [&_textarea]:border-slate-300 [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white [&_input]:px-3 [&_select]:px-3 [&_textarea]:px-3 [&_input]:py-2 [&_select]:py-2 [&_textarea]:py-2 [&_:disabled]:bg-slate-100 [&_:disabled]:text-slate-600 [&_[aria-invalid=true]]:border-red-500 [&_.errorlist]:text-red-700">
-                {{ field.label_tag }}{{ field }}
-                {% if field.help_text %}<p class="text-xs text-slate-600" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
-                {{ field.errors }}
+    <!-- Top Banner Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 bg-slate-900 text-white flex flex-wrap items-center justify-between gap-4 border-b border-slate-800">
+            <div class="flex items-center space-x-3.5">
+                <div class="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md flex-shrink-0">
+                    <i class="fa-solid fa-building"></i>
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-lg">
+                            {% if location %}Edit Location: {{ location.name }}{% else %}Register New Facility{% endif %}
+                        </h3>
+                        {% if location %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                            {% if location.is_active %}bg-emerald-900/60 text-emerald-300 border border-emerald-700
+                            {% else %}bg-slate-800 text-slate-300 border border-slate-700{% endif %}">
+                            {% if location.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p class="text-xs text-slate-400 mt-0.5">
+                        Configure physical site codes, company ownership, regional contacts, and parent site hierarchies
+                    </p>
+                </div>
             </div>
-            {% endfor %}
+            <a href="{% url 'location_list' %}" class="text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 px-4 py-2 rounded-xl transition flex items-center space-x-1.5 border border-slate-700">
+                <i class="fa-solid fa-arrow-left text-[11px]"></i>
+                <span>Back to Locations</span>
+            </a>
         </div>
-    </fieldset>
-    {% endfor %}
 
-    <div class="flex flex-wrap items-center gap-3">
-        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">{% if location %}Save changes{% else %}Add location{% endif %}</button>
-        <a href="{% url 'location_list' %}" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</a>
+        {% if form.errors %}
+        <div class="p-4 bg-rose-50 border-b border-rose-200 text-rose-800 text-xs">
+            <div class="flex items-center gap-2 font-bold mb-1">
+                <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
+                <span>Please correct the errors indicated below:</span>
+            </div>
+            <ul class="list-disc pl-5 space-y-1">
+                {% for field in form %}
+                    {% for error in field.errors %}
+                    <li><strong>{{ field.label }}:</strong> {{ error }}</li>
+                    {% endfor %}
+                {% endfor %}
+                {% for error in form.non_field_errors %}
+                    <li>{{ error }}</li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <form method="POST" class="p-6 md:p-8 space-y-8" id="location-form">
+            {% csrf_token %}
+
+            <!-- SECTION 1: Identity & Ownership -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">1</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Site Identity &amp; Corporate Ownership</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Location Name -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Facility / Site Name <span class="text-rose-500">*</span>
+                        </label>
+                        <input type="text" name="name" id="id_name" required
+                               value="{{ form.name.value|default:'' }}"
+                               placeholder="e.g. APL Factory Chattak"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-medium {% if form.name.errors %}border-rose-400 bg-rose-50/30{% endif %}">
+                    </div>
+
+                    <!-- Owning Company -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Owning Company / SBU
+                        </label>
+                        {{ form.company }}
+                        {% if form.company.help_text %}
+                        <p class="text-[11px] text-slate-400 mt-1">{{ form.company.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Facility Type -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Facility Type <span class="text-rose-500">*</span>
+                        </label>
+                        {{ form.location_type }}
+                    </div>
+
+                    <!-- Status -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Operational Status <span class="text-rose-500">*</span>
+                        </label>
+                        {{ form.status }}
+                    </div>
+
+                    <!-- Location Code -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Location Code
+                        </label>
+                        {{ form.code }}
+                        {% if form.code.help_text %}
+                        <p class="text-[11px] text-slate-400 mt-1">{{ form.code.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Location ID -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Location ID (e.g. LOC-001)
+                        </label>
+                        {{ form.location_id }}
+                        {% if form.location_id.help_text %}
+                        <p class="text-[11px] text-slate-400 mt-1">{{ form.location_id.help_text }}</p>
+                        {% endif %}
+                    </div>
+
+                    <!-- Parent Location -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Parent Location (Site Hierarchy)
+                        </label>
+                        {{ form.parent_location }}
+                        <p class="text-[11px] text-slate-400 mt-1">
+                            Optional. Select if this facility is an annex, warehouse section, or sub-unit of a main plant.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 2: Physical Address & Region -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">2</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Physical Address &amp; Geographical Region</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- City -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            City / District
+                        </label>
+                        <input type="text" name="city" id="id_city"
+                               value="{{ form.city.value|default:'' }}"
+                               placeholder="e.g. Chattak, Sunamganj"
+                               class="w-full px-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                    </div>
+
+                    <!-- Division -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Administrative Division
+                        </label>
+                        {{ form.division }}
+                    </div>
+
+                    <!-- Address -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Full Street / Plot Address
+                        </label>
+                        <textarea name="address" id="id_address" rows="2"
+                                  placeholder="e.g. Akij City, Chattak, Sunamganj, Sylhet Division"
+                                  class="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">{{ form.address.value|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SECTION 3: Contact In-Charge & Notes -->
+            <div>
+                <div class="flex items-center gap-2.5 pb-2 border-b border-slate-200 mb-4">
+                    <span class="w-6 h-6 rounded-md bg-blue-50 text-blue-600 flex items-center justify-center text-xs font-black">3</span>
+                    <h4 class="text-sm font-bold text-slate-800 uppercase tracking-wider">Site In-Charge &amp; Operational Notes</h4>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Contact Person -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Site In-Charge / IT POC
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </span>
+                            <input type="text" name="contact_person" id="id_contact_person"
+                                   value="{{ form.contact_person.value|default:'' }}"
+                                   placeholder="e.g. Md. Aminur Rahman"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">
+                        </div>
+                    </div>
+
+                    <!-- Contact Number -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Contact Phone / Helpline
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400 pointer-events-none text-xs">
+                                <i class="fa-solid fa-phone"></i>
+                            </span>
+                            <input type="tel" name="contact_number" id="id_contact_number"
+                                   value="{{ form.contact_number.value|default:'' }}"
+                                   placeholder="+880 1700-000000"
+                                   class="w-full pl-9 pr-3 py-2.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition font-mono">
+                        </div>
+                    </div>
+
+                    <!-- Description -->
+                    <div class="md:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Operational Description &amp; Gatepass Notes
+                        </label>
+                        <textarea name="description" id="id_description" rows="3"
+                                  placeholder="Physical site layout details, network server room access procedures, gatepass requirements..."
+                                  class="w-full p-3 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition">{{ form.description.value|default:'' }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="pt-6 border-t border-slate-200 flex items-center justify-between">
+                <a href="{% url 'location_list' %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition flex items-center space-x-2 text-xs">
+                    <i class="fa-solid fa-save"></i>
+                    <span>{% if location %}Save Location Changes{% else %}Save &amp; Register Location{% endif %}</span>
+                </button>
+            </div>
+        </form>
     </div>
-</form>
-{% endblock %}
+</div>
 
-{% block extra_scripts %}
 <script>
     (() => {
+        // Style standard Django form widgets
+        const inputs = document.querySelectorAll('#location-form select, #location-form input[type="text"], #location-form input[type="tel"]');
+        inputs.forEach(el => {
+            if (!el.classList.contains('px-3') && !el.classList.contains('pl-9')) {
+                el.classList.add('w-full', 'px-3', 'py-2.5', 'text-xs', 'bg-slate-50', 'border', 'border-slate-200', 'rounded-xl', 'focus:bg-white', 'focus:border-blue-500', 'focus:ring-2', 'focus:ring-blue-100', 'transition');
+            }
+        });
+
         const company = document.getElementById('id_company');
         const parent = document.getElementById('id_parent_location');
-        function filterParentLocations() {
-            const companyId = company.value || company.dataset.defaultCompany;
-            for (const option of parent.options) {
-                if (!option.value) continue;
-                const available = option.dataset.company === companyId;
-                option.hidden = !available && !option.selected;
-                option.disabled = !available && !option.selected;
+        if (company && parent) {
+            function filterParentLocations() {
+                const companyId = company.value || company.dataset.defaultCompany;
+                for (const option of parent.options) {
+                    if (!option.value) continue;
+                    const available = option.dataset.company === companyId;
+                    option.hidden = !available && !option.selected;
+                    option.disabled = !available && !option.selected;
+                }
             }
-        }
-        company.addEventListener('change', () => {
-            const companyId = company.value || company.dataset.defaultCompany;
-            if (parent.selectedOptions[0]?.dataset.company !== companyId) parent.value = '';
+            company.addEventListener('change', () => {
+                const companyId = company.value || company.dataset.defaultCompany;
+                if (parent.selectedOptions[0]?.dataset.company !== companyId) parent.value = '';
+                filterParentLocations();
+            });
             filterParentLocations();
-        });
-        filterParentLocations();
+        }
     })();
 </script>
 {% endblock %}

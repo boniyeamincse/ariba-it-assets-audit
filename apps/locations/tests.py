@@ -112,3 +112,43 @@ class LocationDirectoryTests(TestCase):
         for site in (self.other, self.subsite):
             self.assertEqual(self.client.get(route, {'location': site.pk}).status_code, 404)
             self.assertEqual(self.client.post(route, {'location': site.pk}).status_code, 404)
+
+    def test_location_detail_view(self):
+        """Detail view renders site specifications, hardware assets, and audit records."""
+        Asset.objects.create(location=self.factory, device_type=self.device, asset_tag='TAG-TEST-001')
+        url = reverse('location_detail', args=[self.factory.pk])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Main factory')
+        self.assertContains(response, 'TAG-TEST-001')
+        self.assertContains(response, 'Factory annex')
+
+    def test_location_delete_view_protection_and_deactivation(self):
+        """Locations with assets cannot be hard deleted; they can be deactivated."""
+        Asset.objects.create(location=self.factory, device_type=self.device)
+        delete_url = reverse('location_delete', args=[self.factory.pk])
+
+        # GET confirmation page shows protected status
+        get_res = self.client.get(delete_url)
+        self.assertEqual(get_res.status_code, 200)
+        self.assertTrue(get_res.context['has_dependencies'])
+
+        # Attempting hard delete redirects with error
+        post_del = self.client.post(delete_url, {'action': 'delete'}, follow=True)
+        self.assertEqual(post_del.status_code, 200)
+        self.assertTrue(Location.objects.filter(pk=self.factory.pk).exists())
+
+        # Deactivation action sets is_active=False safely
+        post_deact = self.client.post(delete_url, {'action': 'deactivate'}, follow=True)
+        self.assertEqual(post_deact.status_code, 200)
+        self.factory.refresh_from_db()
+        self.assertFalse(self.factory.is_active)
+
+    def test_location_delete_view_empty_location(self):
+        """Unreferenced locations can be cleanly deleted."""
+        clean_loc = Location.objects.create(name='Empty Depot', company=self.company, code='EMPTY')
+        delete_url = reverse('location_delete', args=[clean_loc.pk])
+        post_res = self.client.post(delete_url, {'action': 'delete'}, follow=True)
+        self.assertEqual(post_res.status_code, 200)
+        self.assertFalse(Location.objects.filter(pk=clean_loc.pk).exists())
+

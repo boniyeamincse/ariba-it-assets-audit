@@ -1,0 +1,439 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ location.name }} | Location Profile | {{ portal.application_short_name }}{% endblock %}
+
+{% block header_title %}Location Profile &amp; Infrastructure{% endblock %}
+{% block header_subtitle %}Physical site specifications, tracked hardware inventory, and audit records{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto space-y-6">
+
+    <!-- Top Navigation / Breadcrumbs -->
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-2 text-xs text-slate-500">
+            <a href="{% url 'location_list' %}" class="hover:text-blue-600 transition flex items-center gap-1 font-semibold">
+                <i class="fa-solid fa-building"></i>
+                <span>Locations</span>
+            </a>
+            <i class="fa-solid fa-chevron-right text-[10px] text-slate-400"></i>
+            <span class="font-bold text-slate-800">{{ location.name }}</span>
+        </div>
+
+        <div class="flex items-center space-x-2">
+            {% if can_administrate %}
+            <a href="{% url 'location_edit' location.id %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs shadow-xs">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit Site</span>
+            </a>
+            <a href="{% url 'location_delete' location.id %}" class="bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-200 font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-trash-can"></i>
+                <span>Delete</span>
+            </a>
+            {% endif %}
+            {% if location.is_active %}
+            <a href="{% url 'audit_create' %}?location={{ location.id }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs shadow-xs">
+                <i class="fa-solid fa-clipboard-check"></i>
+                <span>Start Audit</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'location_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3.5 rounded-xl transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-arrow-left"></i>
+                <span>Back</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Location Hero Profile Card -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-6 md:p-8 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 text-white relative">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <div>
+                    <div class="flex items-center gap-2 mb-2 flex-wrap">
+                        <!-- Location Type Badge -->
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                            {% if location.location_type == 'HEAD_OFFICE' %}bg-purple-500/20 text-purple-300 border border-purple-400/30
+                            {% elif location.location_type == 'FACTORY' %}bg-blue-500/20 text-blue-300 border border-blue-400/30
+                            {% elif location.location_type == 'WAREHOUSE' %}bg-emerald-500/20 text-emerald-300 border border-emerald-400/30
+                            {% elif location.location_type == 'DEPOT' %}bg-amber-500/20 text-amber-300 border border-amber-400/30
+                            {% else %}bg-sky-500/20 text-sky-300 border border-sky-400/30{% endif %}">
+                            <i class="fa-solid 
+                                {% if location.location_type == 'HEAD_OFFICE' %}fa-landmark
+                                {% elif location.location_type == 'FACTORY' %}fa-industry
+                                {% elif location.location_type == 'WAREHOUSE' %}fa-warehouse
+                                {% elif location.location_type == 'DEPOT' %}fa-truck-ramp-box
+                                {% else %}fa-store{% endif %} mr-1"></i>
+                            {{ location.get_location_type_display }}
+                        </span>
+
+                        <!-- Status Badge -->
+                        {% if location.is_active %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
+                            <i class="fa-solid fa-circle-check mr-1"></i> Active Operating
+                        </span>
+                        {% else %}
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-700/60 text-slate-300 border border-slate-600">
+                            <i class="fa-solid fa-pause mr-1"></i> Inactive / Idle
+                        </span>
+                        {% endif %}
+
+                        <!-- Company Badge -->
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-slate-700/40 text-slate-300 border border-slate-600">
+                            {{ location.company.name }}
+                        </span>
+                    </div>
+
+                    <div class="flex items-baseline gap-3">
+                        <h1 class="text-2xl sm:text-3xl font-black tracking-tight">{{ location.name }}</h1>
+                        <span class="font-mono text-sm text-slate-400 bg-white/10 px-2 py-0.5 rounded border border-white/10">
+                            {{ location.location_id|default:location.code }} · {{ location.code }}
+                        </span>
+                    </div>
+
+                    {% if location.city or location.division %}
+                    <p class="text-xs text-slate-300 mt-2 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-rose-400"></i>
+                        <span>{{ location.city }}{% if location.city and location.division %}, {% endif %}{{ location.division }}</span>
+                        {% if location.address %}
+                        <span class="text-slate-500">•</span>
+                        <span class="text-slate-400">{{ location.address }}</span>
+                        {% endif %}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Quick KPI Stats Box -->
+                <div class="bg-white/10 backdrop-blur-md border border-white/10 rounded-2xl p-4 sm:p-5 flex items-center gap-5 min-w-[260px]">
+                    <div class="w-12 h-12 rounded-xl bg-blue-500/30 border border-blue-400/30 text-blue-300 flex items-center justify-center text-xl flex-shrink-0">
+                        <i class="fa-solid fa-boxes-stacked"></i>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Tracked Hardware</p>
+                        <h4 class="text-2xl font-black mt-0.5">{{ total_assets }} Devices</h4>
+                        <p class="text-[11px] text-emerald-400 font-medium mt-0.5">
+                            <i class="fa-solid fa-check mr-1"></i>{{ active_assets }} Active In-Use
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Metric highlights strip -->
+        <div class="grid grid-cols-2 md:grid-cols-4 border-t border-slate-200 divide-x divide-slate-100 text-xs">
+            <div class="p-4">
+                <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Parent Location</span>
+                <span class="font-bold text-slate-800 mt-1 block">
+                    {% if location.parent_location %}
+                    <a href="{% url 'location_detail' location.parent_location.id %}" class="text-blue-600 hover:underline">
+                        {{ location.parent_location.name }}
+                    </a>
+                    {% else %}
+                    Direct Root Site
+                    {% endif %}
+                </span>
+            </div>
+            <div class="p-4">
+                <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Site In-Charge</span>
+                <span class="font-bold text-slate-800 mt-1 block">
+                    {{ location.contact_person|default:"Central IT Administration" }}
+                </span>
+            </div>
+            <div class="p-4">
+                <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Contact Phone</span>
+                <span class="font-bold font-mono text-slate-800 mt-1 block">
+                    {% if location.contact_number %}
+                    <a href="tel:{{ location.contact_number }}" class="text-blue-600 hover:underline flex items-center gap-1">
+                        <i class="fa-solid fa-phone text-[10px]"></i>
+                        <span>{{ location.contact_number }}</span>
+                    </a>
+                    {% else %}
+                    N/A
+                    {% endif %}
+                </span>
+            </div>
+            <div class="p-4">
+                <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Audit Sessions</span>
+                <span class="font-bold text-slate-800 mt-1 block flex items-center gap-1.5">
+                    <span class="w-2 h-2 rounded-full {% if total_audits > 0 %}bg-emerald-500{% else %}bg-slate-400{% endif %}"></span>
+                    {{ total_audits }} Conducted
+                </span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main 2-Column Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        <!-- LEFT COLUMN (1 Col): Geography, Contact & Assigned Staff -->
+        <div class="space-y-6">
+
+            <!-- Card: Site Specifications -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div class="flex items-center space-x-2.5 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-map-location-dot"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-slate-800">Physical Site Details</h3>
+                </div>
+
+                <div class="space-y-3 text-xs">
+                    <div>
+                        <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Full Address</span>
+                        <p class="font-medium text-slate-800 mt-1 leading-relaxed">
+                            {{ location.address|default:"No physical street address recorded." }}
+                        </p>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 pt-1">
+                        <div>
+                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">City / Town</span>
+                            <span class="font-bold text-slate-800 mt-0.5 block">{{ location.city|default:"—" }}</span>
+                        </div>
+                        <div>
+                            <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Division</span>
+                            <span class="font-bold text-slate-800 mt-0.5 block">{{ location.division|default:"—" }}</span>
+                        </div>
+                    </div>
+
+                    {% if location.description %}
+                    <div class="pt-2 border-t border-slate-100">
+                        <span class="text-slate-400 block text-[10px] font-bold uppercase tracking-wider">Notes &amp; Description</span>
+                        <p class="text-slate-600 mt-1 leading-relaxed whitespace-pre-wrap">{{ location.description }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Card: Assigned Personnel & IT Access -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+                <div class="flex items-center space-x-2.5 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-user-shield"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-slate-800">Assigned Regional IT Admins</h3>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    {% if assigned_users %}
+                    {% for profile in assigned_users %}
+                    <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200">
+                        <div class="min-w-0">
+                            <p class="font-bold text-slate-900 truncate">{{ profile.user.get_full_name|default:profile.user.username }}</p>
+                            <p class="text-[11px] text-slate-500 font-mono">{{ profile.user.email }}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-700 flex-shrink-0">
+                            {{ profile.get_role_display }}
+                        </span>
+                    </div>
+                    {% endfor %}
+                    {% else %}
+                    <p class="text-slate-500 text-xs py-2 text-center">
+                        Managed globally by Central IT &amp; HO Auditors.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+
+            {% if sub_locations %}
+            <!-- Card: Sub-locations / Annexes -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-3">
+                <div class="flex items-center space-x-2.5 pb-3 border-b border-slate-100">
+                    <div class="w-8 h-8 rounded-lg bg-teal-50 text-teal-600 flex items-center justify-center text-sm">
+                        <i class="fa-solid fa-sitemap"></i>
+                    </div>
+                    <h3 class="font-bold text-sm text-slate-800">Sub-Sites &amp; Sections ({{ sub_locations|length }})</h3>
+                </div>
+
+                <div class="space-y-2 text-xs">
+                    {% for sub in sub_locations %}
+                    <a href="{% url 'location_detail' sub.id %}" class="flex items-center justify-between p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 transition group">
+                        <div>
+                            <p class="font-bold text-slate-800 group-hover:text-blue-600 transition">{{ sub.name }}</p>
+                            <p class="text-[10px] text-slate-400 font-mono">{{ sub.location_id|default:sub.code }}</p>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-slate-300 text-xs group-hover:text-blue-500 transition"></i>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <!-- RIGHT COLUMN (2 Cols): Hardware Assets & Audit History -->
+        <div class="lg:col-span-2 space-y-6">
+
+            <!-- Card: Tracked IT Hardware Assets -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 flex items-center justify-between border-b border-slate-100">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-laptop-file"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800">Tracked Physical Hardware Assets</h3>
+                            <p class="text-[11px] text-slate-400">Assigned computers, network gear &amp; endpoints</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <a href="{% url 'asset_list' %}?location={{ location.id }}" class="text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+                            <span>View All ({{ total_assets }})</span>
+                            <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                        </a>
+                        {% if can_administrate %}
+                        <a href="{% url 'asset_create' %}" class="text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-xl transition flex items-center gap-1">
+                            <i class="fa-solid fa-plus text-[10px]"></i>
+                            <span>Add Asset</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if assets %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-[11px]">
+                            <tr>
+                                <th class="px-4 py-3">Asset Tag</th>
+                                <th class="px-4 py-3">Device / Model</th>
+                                <th class="px-4 py-3">Category</th>
+                                <th class="px-4 py-3">Serial No</th>
+                                <th class="px-4 py-3">Status</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for asset in assets %}
+                            <tr class="hover:bg-slate-50/70 transition">
+                                <td class="px-4 py-3 font-mono font-bold text-blue-600">
+                                    <a href="{% url 'asset_detail' asset.id %}" class="hover:underline">
+                                        {{ asset.asset_tag }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3">
+                                    <p class="font-bold text-slate-800">{{ asset.device_type.name }}</p>
+                                    {% if asset.brand or asset.model_name %}
+                                    <p class="text-[10px] text-slate-400">{{ asset.brand|default:"" }} {{ asset.model_name|default:"" }}</p>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                        {{ asset.device_type.category.name }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 font-mono text-slate-500">
+                                    {{ asset.serial_number|default:"—" }}
+                                </td>
+                                <td class="px-4 py-3">
+                                    {% if asset.is_active %}
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                                    </span>
+                                    {% else %}
+                                    <span class="inline-flex items-center gap-1 text-[10px] font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-full border border-slate-200">
+                                        Retired
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                <td class="px-4 py-3 text-right">
+                                    <a href="{% url 'asset_detail' asset.id %}" class="text-slate-400 hover:text-blue-600 transition px-1.5 py-1">
+                                        <i class="fa-solid fa-eye"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-slate-500 text-xs">
+                    <i class="fa-solid fa-boxes-stacked text-2xl text-slate-300 mb-2 block"></i>
+                    <p class="font-medium text-slate-700">No hardware assets registered at this location yet.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Register devices or import via CSV to begin tracking.</p>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Card: Audit History -->
+            <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="p-5 flex items-center justify-between border-b border-slate-100">
+                    <div class="flex items-center space-x-2.5">
+                        <div class="w-8 h-8 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-sm">
+                            <i class="fa-solid fa-clipboard-check"></i>
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm text-slate-800">Physical Stock Count &amp; Audits</h3>
+                            <p class="text-[11px] text-slate-400">Reconciliation records and official sign-off sheets</p>
+                        </div>
+                    </div>
+                    {% if location.is_active %}
+                    <a href="{% url 'audit_create' %}?location={{ location.id }}" class="text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 rounded-xl transition flex items-center gap-1 shadow-xs">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>Conduct Audit</span>
+                    </a>
+                    {% endif %}
+                </div>
+
+                {% if audits %}
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left text-xs">
+                        <thead class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-[11px]">
+                            <tr>
+                                <th class="px-4 py-3">Audit Date</th>
+                                <th class="px-4 py-3">Auditor In-Charge</th>
+                                <th class="px-4 py-3">Counted Qty</th>
+                                <th class="px-4 py-3">Audit Status</th>
+                                <th class="px-4 py-3 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for audit in audits %}
+                            <tr class="hover:bg-slate-50/70 transition">
+                                <td class="px-4 py-3 font-mono font-bold text-slate-900">
+                                    <a href="{% url 'audit_detail' audit.id %}" class="hover:text-blue-600 transition">
+                                        {{ audit.audit_date|date:"d M Y" }}
+                                    </a>
+                                </td>
+                                <td class="px-4 py-3 text-slate-700">
+                                    {{ audit.auditor_name }}
+                                </td>
+                                <td class="px-4 py-3 font-bold font-mono text-slate-800">
+                                    {{ audit.total_qty }} Devices
+                                </td>
+                                <td class="px-4 py-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                        {% if audit.status == 'APPROVED' %}bg-emerald-100 text-emerald-800 border border-emerald-200
+                                        {% elif audit.status == 'VERIFIED' %}bg-blue-100 text-blue-800 border border-blue-200
+                                        {% elif audit.status == 'SUBMITTED' %}bg-amber-100 text-amber-800 border border-amber-200
+                                        {% else %}bg-slate-100 text-slate-700 border border-slate-200{% endif %}">
+                                        {{ audit.get_status_display }}
+                                    </span>
+                                </td>
+                                <td class="px-4 py-3 text-right space-x-2">
+                                    <a href="{% url 'audit_detail' audit.id %}" class="text-blue-600 hover:text-blue-800 font-semibold">
+                                        View
+                                    </a>
+                                    <a href="{% url 'audit_print' audit.id %}" target="_blank" class="text-slate-500 hover:text-slate-800" title="Print Report">
+                                        <i class="fa-solid fa-print"></i>
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="p-8 text-center text-slate-500 text-xs">
+                    <i class="fa-solid fa-clipboard-list text-2xl text-slate-300 mb-2 block"></i>
+                    <p class="font-medium text-slate-700">No physical audits conducted for this location yet.</p>
+                    <p class="text-[11px] text-slate-400 mt-1">Start a stock count audit to reconcile inventory.</p>
+                </div>
+                {% endif %}
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+{% endblock %}

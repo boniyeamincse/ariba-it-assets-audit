@@ -1,0 +1,122 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Delete Location: {{ location.name }} | {{ portal.application_short_name }}{% endblock %}
+
+{% block header_title %}Confirm Location Deletion{% endblock %}
+{% block header_subtitle %}Site Removal and Multi-Location Integrity Verification{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto py-8">
+    <div class="bg-white rounded-2xl border border-rose-200 shadow-lg overflow-hidden">
+        
+        <!-- Danger Header -->
+        <div class="p-6 bg-rose-600 text-white flex items-center space-x-4">
+            <div class="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center text-2xl flex-shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-lg font-black tracking-tight">Delete Location Record</h3>
+                <p class="text-xs text-rose-100 mt-0.5">Physical Site &amp; Multi-Location Node Removal</p>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="p-6 md:p-8 space-y-6">
+            <p class="text-sm text-slate-700 leading-relaxed">
+                Are you sure you want to delete the location record for
+                <span class="font-bold text-slate-900 px-2 py-0.5 bg-slate-100 rounded border border-slate-200">
+                    {{ location.name }}
+                </span>?
+            </p>
+
+            <!-- Location Details Summary -->
+            <div class="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2 text-xs">
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-medium">Location ID &amp; Code:</span>
+                    <span class="font-bold font-mono text-slate-800">{{ location.location_id|default:location.code }} · {{ location.code }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-medium">Site Type:</span>
+                    <span class="font-semibold text-slate-800">{{ location.get_location_type_display }}</span>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-medium">Owning Company:</span>
+                    <span class="font-semibold text-slate-800">{{ location.company.name }}</span>
+                </div>
+                {% if location.city or location.division %}
+                <div class="flex items-center justify-between">
+                    <span class="text-slate-500 font-medium">Region:</span>
+                    <span class="font-semibold text-slate-800">{{ location.city }}{% if location.city and location.division %}, {% endif %}{{ location.division }}</span>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if has_dependencies %}
+            <!-- Protected / Has Dependencies Alert -->
+            <div class="p-4 bg-amber-50 rounded-xl border border-amber-300 text-amber-900 text-xs space-y-2.5">
+                <div class="flex items-center gap-2 font-bold text-sm text-amber-800">
+                    <i class="fa-solid fa-shield-halved text-amber-600"></i>
+                    <span>Protected Location (Active Dependencies Detected)</span>
+                </div>
+                <p class="leading-relaxed">
+                    This location cannot be permanently deleted because it has active relational records associated with it:
+                </p>
+                <div class="grid grid-cols-3 gap-2 pt-1 text-center font-mono">
+                    <div class="p-2 bg-white rounded-lg border border-amber-200">
+                        <span class="block text-base font-bold text-amber-900">{{ asset_count }}</span>
+                        <span class="text-[10px] text-amber-700 uppercase font-sans">Tracked Assets</span>
+                    </div>
+                    <div class="p-2 bg-white rounded-lg border border-amber-200">
+                        <span class="block text-base font-bold text-amber-900">{{ audit_count }}</span>
+                        <span class="text-[10px] text-amber-700 uppercase font-sans">Audit Sessions</span>
+                    </div>
+                    <div class="p-2 bg-white rounded-lg border border-amber-200">
+                        <span class="block text-base font-bold text-amber-900">{{ sub_count }}</span>
+                        <span class="text-[10px] text-amber-700 uppercase font-sans">Sub-Locations</span>
+                    </div>
+                </div>
+                <p class="text-[11px] text-amber-800 pt-1">
+                    To maintain audit trail compliance and asset protection, you can <strong>Deactivate</strong> this site instead.
+                </p>
+            </div>
+
+            <!-- Form: Deactivate option -->
+            <form method="POST" class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="deactivate">
+                <a href="{% url 'location_list' %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition flex items-center space-x-2 text-xs">
+                    <i class="fa-solid fa-pause"></i>
+                    <span>Deactivate Site (Recommended)</span>
+                </button>
+            </form>
+
+            {% else %}
+            <!-- Safe to Delete -->
+            <div class="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-rose-800 text-xs flex items-start gap-2.5">
+                <i class="fa-solid fa-circle-exclamation text-rose-600 mt-0.5 flex-shrink-0"></i>
+                <div class="leading-relaxed">
+                    This location has no attached hardware assets or audit history. Deleting will permanently remove it from the database.
+                </div>
+            </div>
+
+            <form method="POST" class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <a href="{% url 'location_list' %}" class="px-5 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl transition">
+                    Cancel &amp; Keep
+                </a>
+                <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white font-bold py-2.5 px-6 rounded-xl shadow-sm transition flex items-center space-x-2 text-xs">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Yes, Permanently Delete</span>
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -8,7 +8,7 @@ _GROUPS = (
         ('Dashboard', 'dashboard', 'fa-gauge-high', ('home', *DASHBOARD_ROUTES.values()), None),
     )),
     ('Inventory', (
-        ('Locations', 'location_list', 'fa-building', ('location_create', 'location_edit'), None),
+        ('Locations', 'location_list', 'fa-building', ('location_create', 'location_edit', 'location_detail', 'location_delete'), None),
         ('Asset Inventory', 'asset_list', 'fa-boxes-stacked', ('asset_create', 'asset_edit', 'asset_detail', 'asset_delete', 'asset_retire'), None),
         ('Software & Licenses', 'software_list', 'fa-key', (), None),
         ('Domains & SSL', 'domain_list', 'fa-globe', ('domain_create', 'domain_edit', 'domain_detail', 'domain_delete'), None),
@@ -33,6 +33,8 @@ _GROUPS = (
 _SUBPAGE_LABELS = {
     'location_create': 'New location',
     'location_edit': 'Edit location',
+    'location_detail': 'Location details',
+    'location_delete': 'Delete location',
     'asset_create': 'New asset',
     'asset_edit': 'Edit asset',
     'asset_detail': 'Asset details',
