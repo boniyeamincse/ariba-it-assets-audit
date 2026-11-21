@@ -155,14 +155,26 @@ def asset_create_or_edit_view(request, asset_id=None):
         metadata_fields.append((key, label, choices, current))
 
     def form_context():
+        initial_nature = request.POST.get('asset_nature') or getattr(asset, 'asset_nature', '') or request.GET.get('nature')
+        if not initial_nature and request.GET.get('type') == 'chat':
+            initial_nature = 'LOGICAL'
+        if initial_nature not in ('PHYSICAL', 'LOGICAL'):
+            initial_nature = 'PHYSICAL'
+
+        initial_device_id = request.POST.get('device_type') or request.GET.get('device_type')
+        if not initial_device_id and request.GET.get('type') == 'chat':
+            chat_dt = DeviceType.objects.filter(name__icontains='chat').first()
+            if chat_dt:
+                initial_device_id = str(chat_dt.id)
+
         return {
             'asset': asset, 'locations': locations, 'categories': categories,
             'device_types': device_types, 'status_choices': status_choices,
             'metadata_fields': metadata_fields, 'currency': getattr(asset, 'currency', '') or config['asset_currency'],
             'default_warranty_months': config['default_warranty_months'],
             'nature_choices': Asset.NATURE_CHOICES,
-            'current_nature': request.POST.get('asset_nature') or getattr(asset, 'asset_nature', 'PHYSICAL'),
-            'submitted_device_id': request.POST.get('device_type'),
+            'current_nature': initial_nature,
+            'submitted_device_id': initial_device_id,
             'submitted_location_id': request.POST.get('location'),
             'submitted_tag': request.POST.get('asset_tag', ''),
             'owner_choices': owners if can_set_owner else None,
