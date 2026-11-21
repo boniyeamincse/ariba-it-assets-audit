@@ -41,7 +41,7 @@ _TAG_CATEGORY_KEYWORDS = (
     ('UPS', r'ups|ips'),
     ('MON', r'monitor|display|screen'),
     ('IPP', r'ip phone|phone|telephone|voip'),
-    ('LIC', r'software|license|licence'),
+    ('LIC', r'software|license|licence|chat|slack|teams|messaging|communication'),
     ('RCK', r'rack|cabinet'),
 )
 
