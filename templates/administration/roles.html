@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% block title %}Roles &amp; Permissions | {{ portal.application_short_name }}{% endblock %}
+{% block header_title %}Roles &amp; Permissions{% endblock %}
+{% block header_subtitle %}Role access and location scope{% endblock %}
+{% block content %}
+<section aria-labelledby="built-in-roles-heading" class="space-y-3">
+<div class="flex flex-wrap items-center justify-between gap-3">
+    <h2 id="built-in-roles-heading" class="text-base font-semibold text-slate-900">Built-in roles</h2>
+    {% if request.user.is_superuser %}
+    <a href="{% url 'administration_role_create' %}" class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"><i class="fa-solid fa-plus" aria-hidden="true"></i>Add Role</a>
+    {% endif %}
+</div>
+<div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+    <table class="w-full text-left text-sm">
+        <thead class="bg-slate-50 text-slate-600"><tr><th scope="col" class="p-4">Role</th><th scope="col" class="p-4">Location scope</th><th scope="col" class="p-4">Permissions</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+            <tr><th scope="row" class="p-4">Super Admin</th><td class="p-4">All locations for system administration</td><td class="p-4">Manage accounts including HO Admin, view logs, edit settings and access Django Admin.</td></tr>
+            <tr><th scope="row" class="p-4">{% if request.user.is_superuser %}<a class="text-blue-700" href="{% url 'administration_users' %}?role=HO_ADMIN">HO Admin</a>{% else %}HO Admin{% endif %}</th><td class="p-4">All operational locations</td><td class="p-4">Manage local accounts and assignments, administer the shared catalog and locations, view logs and view settings.</td></tr>
+            <tr><th scope="row" class="p-4"><a class="text-blue-700" href="{% url 'administration_users' %}?role=FACTORY_ADMIN">Factory Admin</a></th><td class="p-4">Assigned factories</td><td class="p-4">Manage local assets and audit entries, and view or export local reports.</td></tr>
+            <tr><th scope="row" class="p-4"><a class="text-blue-700" href="{% url 'administration_users' %}?role=DEPOT_ADMIN">Depot Admin</a></th><td class="p-4">Assigned depots</td><td class="p-4">Manage local assets and audit entries, and view or export local reports.</td></tr>
+        </tbody>
+    </table>
+</div>
+</section>
+
+<section aria-labelledby="custom-roles-heading" class="mt-6 space-y-3">
+    <div>
+        <h2 id="custom-roles-heading" class="text-base font-semibold text-slate-900">Custom roles</h2>
+        <p class="mt-1 text-sm text-slate-600">Custom roles inherit the permissions and location scope of their base role.</p>
+    </div>
+    {% if custom_roles %}
+    <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+        <table class="w-full text-left text-sm">
+            <thead class="bg-slate-50 text-slate-600"><tr><th scope="col" class="p-4">Role</th><th scope="col" class="p-4">Base role</th><th scope="col" class="p-4">Assigned users</th></tr></thead>
+            <tbody class="divide-y divide-slate-100">
+                {% for role in custom_roles %}
+                <tr>
+                    <th scope="row" class="p-4 font-semibold text-slate-900">{{ role.name }}{% if role.description %}<p class="mt-1 max-w-xl text-sm font-normal text-slate-600">{{ role.description }}</p>{% endif %}</th>
+                    <td class="p-4">{{ role.get_base_role_display }}</td>
+                    <td class="p-4">
+                        {% if request.user.is_superuser or role.base_role != 'HO_ADMIN' %}
+                        <a href="{% url 'administration_users' %}?role=custom:{{ role.pk }}" class="font-medium text-blue-700 underline" aria-label="View users assigned to {{ role.name }}">{{ role.member_count }}</a>
+                        {% else %}{{ role.member_count }}{% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="rounded-xl border border-slate-200 bg-white px-4 py-5 text-sm text-slate-600">No custom roles have been added.</p>
+    {% endif %}
+</section>
+<a class="mt-4 inline-block font-medium text-blue-700 text-sm" href="{% url 'administration_users' %}?role=PENDING">Review users pending role assignment</a>
+{% endblock %}

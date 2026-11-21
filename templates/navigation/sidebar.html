@@ -1,0 +1,33 @@
+<aside id="portal-sidebar" class="portal-sidebar no-print" data-collapsed="{{ portal.sidebar_collapsed|yesno:'true,false' }}" data-account="{{ request.user.pk }}">
+    <div class="portal-sidebar-heading">
+        <a class="portal-identity" href="{% url 'dashboard' %}" title="{{ portal.group_name|default:portal.organization_name }}">
+            <span class="portal-identity-logo">
+                {% firstof portal.sidebar_logo portal.application_logo portal.group_logo as sidebar_logo %}
+                {% if sidebar_logo %}<img src="{{ sidebar_logo }}" alt="">{% else %}<i class="fa-solid fa-microchip" aria-hidden="true"></i>{% endif %}
+            </span>
+            <span class="portal-identity-copy">
+                <strong>{{ portal.group_name|default:portal.organization_name }}</strong>
+                <small>{{ portal.application_short_name }}</small>
+            </span>
+        </a>
+        <button type="button" class="portal-icon-button portal-sidebar-collapse" data-sidebar-collapse aria-controls="portal-primary-navigation" aria-expanded="{{ portal.sidebar_collapsed|yesno:'false,true' }}" aria-label="{% if portal.sidebar_collapsed %}Expand sidebar{% else %}Collapse sidebar{% endif %}">
+            <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
+        </button>
+        <button type="button" class="portal-icon-button portal-mobile-close" data-close-dialog aria-label="Close navigation"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </div>
+    <nav id="portal-primary-navigation" class="portal-primary-navigation" aria-label="Main navigation">
+        {% for group in nav_sections %}
+        <section class="portal-nav-group" aria-labelledby="portal-nav-group-{{ forloop.counter }}">
+            <h2 id="portal-nav-group-{{ forloop.counter }}" class="portal-nav-heading">{{ group.label }}</h2>
+            <ul>
+                {% for link in group.links %}
+                <li><a href="{{ link.url }}" class="portal-nav-link" title="{{ link.label }}" {% if link.current %}aria-current="{{ link.current }}"{% endif %}>
+                    <i class="fa-solid {{ link.icon }}" aria-hidden="true"></i>
+                    <span class="portal-nav-label">{{ link.label }}</span>
+                </a></li>
+                {% endfor %}
+            </ul>
+        </section>
+        {% endfor %}
+    </nav>
+</aside>

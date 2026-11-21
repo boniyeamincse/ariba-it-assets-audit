@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+{% block title %}Role assignment required | Akij IT Audit{% endblock %}
+{% block header_title %}Role assignment required{% endblock %}
+{% block header_subtitle %}{% endblock %}
+{% block content %}
+<div class="max-w-xl space-y-3 rounded-xl border border-slate-200 bg-white p-6 text-sm">
+    <p>Contact an administrator to get a role and any required location assignments.</p>
+    {% if support_email %}<a class="font-medium text-blue-700 underline" href="mailto:{{ support_email }}">Email IT support</a>{% endif %}
+</div>
+{% endblock %}

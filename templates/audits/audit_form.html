@@ -1,0 +1,230 @@
+{% extends 'base.html' %}
+
+{% block title %}{% if audit %}Edit Audit - {{ audit.location.name }}{% else %}New Audit Entry{% endif %} | Akij IT Audit{% endblock %}
+{% block header_title %}{% if audit %}Edit Audit Session{% else %}New Physical Audit Entry{% endif %}{% endblock %}
+{% block header_subtitle %}Input device counts by category with real-time automatic totals{% endblock %}
+
+{% block content %}
+<form method="POST" id="auditForm" class="space-y-6">
+    {% csrf_token %}
+
+    <!-- Top Metadata Card -->
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <h4 class="text-sm font-bold text-slate-900 border-b border-slate-100 pb-2 flex items-center space-x-2">
+            <i class="fa-solid fa-location-dot text-blue-600"></i>
+            <span>Audit Location & Metadata</span>
+        </h4>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <!-- Location Selector -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Select Location *</label>
+                <select name="location" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    {% for loc in locations %}
+                    <option value="{{ loc.id }}" {% if selected_location_id == loc.id %}selected{% endif %}>
+                        [{{ loc.location_id }}] {{ loc.name }} ({{ loc.get_location_type_display }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Audit Date -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Audit Date *</label>
+                <input type="date" name="audit_date" value="{% if audit %}{{ audit.audit_date|date:'Y-m-d' }}{% else %}{{ today }}{% endif %}" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Auditor Name -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Auditor Name</label>
+                <input type="text" name="auditor_name" value="{% if audit %}{{ audit.auditor_name }}{% else %}IT Audit Team{% endif %}" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <!-- Verified By -->
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Site In-Charge</label>
+                <input type="text" name="verified_by_name" value="{% if audit %}{{ audit.verified_by_name|default:'' }}{% endif %}" placeholder="e.g. Factory In-Charge" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Audit Status</label>
+                <select name="status" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="DRAFT" {% if audit and audit.status == 'DRAFT' %}selected{% endif %}>Draft / In-Progress</option>
+                    <option value="SUBMITTED" {% if audit and audit.status == 'SUBMITTED' %}selected{% endif %}>Submitted for Verification</option>
+                    {% if can_administrate %}<option value="APPROVED" {% if audit and audit.status == 'APPROVED' %}selected{% endif %}>Approved by Sir / Management</option>{% endif %}
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Audit Remarks / Notes</label>
+                <input type="text" name="remarks" value="{% if audit %}{{ audit.remarks|default:'' }}{% endif %}" placeholder="e.g. Physical count completed" class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Total Floating Indicator -->
+    <div class="bg-blue-900 text-white p-4 rounded-xl shadow-md flex items-center justify-between">
+        <div class="flex items-center space-x-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-800 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div>
+                <span class="text-xs text-blue-200 uppercase tracking-wider block font-semibold">Live Calculated Total</span>
+                <span class="text-2xl font-black text-white" id="liveGrandTotal">0 Devices</span>
+            </div>
+        </div>
+        <button type="submit" class="bg-emerald-500 hover:bg-emerald-600 text-white font-bold px-6 py-2.5 rounded-lg shadow transition flex items-center space-x-2">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span>Save Audit Records</span>
+        </button>
+    </div>
+
+    <!-- Device Categories Formset Tables -->
+    {% for cat in categories %}
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-4 bg-slate-900 text-white flex items-center justify-between">
+            <h4 class="font-bold text-sm flex items-center space-x-2">
+                <i class="fa-solid {% if cat.code == 'INFRASTRUCTURE' %}fa-network-wired text-indigo-400{% else %}fa-laptop text-emerald-400{% endif %}"></i>
+                <span>{{ cat.name }}</span>
+            </h4>
+            <span class="text-xs bg-slate-800 px-3 py-1 rounded-full text-slate-300 font-semibold" id="catTotal_{{ cat.id }}">
+                0 items
+            </span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-sm">
+                <thead>
+                    <tr class="bg-slate-50 text-slate-600 font-semibold border-b border-slate-200 text-xs uppercase">
+                        <th class="px-4 py-2.5 text-center w-12">#</th>
+                        <th class="px-4 py-2.5 min-w-[200px]">Device Type</th>
+                        <th class="px-4 py-2.5 text-center w-28">Active / Working</th>
+                        <th class="px-4 py-2.5 text-center w-28">Backup / Spare</th>
+                        <th class="px-4 py-2.5 text-center w-28">Faulty</th>
+                        <th class="px-4 py-2.5 text-center w-28 bg-slate-100 font-bold text-slate-800">Total Qty</th>
+                        <th class="px-4 py-2.5 min-w-[150px]">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for dev in cat.devices.all %}
+                    <tr class="hover:bg-slate-50/70 transition">
+                        <td class="px-4 py-2 text-center text-slate-400 text-xs">{{ forloop.counter }}</td>
+                        <td class="px-4 py-2 font-medium text-slate-900">{{ dev.name }}</td>
+
+                        <!-- Active Qty -->
+                        <td class="px-4 py-2">
+                            <input type="number" min="0" name="active_{{ dev.id }}" data-dev-id="{{ dev.id }}" data-cat-id="{{ cat.id }}"
+                                   value="0"
+                                   class="qty-input active-input w-full border border-slate-300 rounded px-2 py-1 text-center text-sm font-semibold text-slate-800 focus:ring-1 focus:ring-blue-500">
+                        </td>
+
+                        <!-- Backup Qty -->
+                        <td class="px-4 py-2">
+                            <input type="number" min="0" name="backup_{{ dev.id }}" data-dev-id="{{ dev.id }}" data-cat-id="{{ cat.id }}"
+                                   value="0"
+                                   class="qty-input backup-input w-full border border-slate-300 rounded px-2 py-1 text-center text-sm font-semibold text-amber-700 focus:ring-1 focus:ring-blue-500">
+                        </td>
+
+                        <!-- Faulty Qty -->
+                        <td class="px-4 py-2">
+                            <input type="number" min="0" name="faulty_{{ dev.id }}" data-dev-id="{{ dev.id }}" data-cat-id="{{ cat.id }}"
+                                   value="0"
+                                   class="qty-input faulty-input w-full border border-slate-300 rounded px-2 py-1 text-center text-sm font-semibold text-red-600 focus:ring-1 focus:ring-blue-500">
+                        </td>
+
+                        <!-- Auto Total Cell -->
+                        <td class="px-4 py-2 text-center font-bold text-blue-900 bg-slate-50 text-base" id="rowTotal_{{ dev.id }}">
+                            0
+                        </td>
+
+                        <!-- Remarks -->
+                        <td class="px-4 py-2">
+                            <input type="text" name="remarks_{{ dev.id }}"
+                                   placeholder="Notes..."
+                                   class="w-full border border-slate-200 rounded px-2 py-1 text-xs text-slate-700">
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% endfor %}
+
+    <!-- Bottom Submit Button -->
+    <div class="text-right pb-10">
+        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold px-8 py-3 rounded-xl shadow-lg transition text-base">
+            <i class="fa-solid fa-floppy-disk mr-2"></i> Save & Review Audit
+        </button>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // Existing data passed from server if editing
+    const existingData = {
+        {% for dev_id, val in existing_items.items %}
+        {{ dev_id }}: {
+            active: {{ val.active }},
+            backup: {{ val.backup }},
+            faulty: {{ val.faulty }},
+            remarks: "{{ val.remarks|escapejs }}"
+        },
+        {% endfor %}
+    };
+
+    // Prepopulate if editing
+    Object.keys(existingData).forEach(devId => {
+        const item = existingData[devId];
+        const aInput = document.querySelector(`input[name="active_${devId}"]`);
+        const bInput = document.querySelector(`input[name="backup_${devId}"]`);
+        const fInput = document.querySelector(`input[name="faulty_${devId}"]`);
+        const rInput = document.querySelector(`input[name="remarks_${devId}"]`);
+
+        if (aInput) aInput.value = item.active;
+        if (bInput) bInput.value = item.backup;
+        if (fInput) fInput.value = item.faulty;
+        if (rInput) rInput.value = item.remarks;
+    });
+
+    // Real-time calculation function
+    function calculateTotals() {
+        let grandTotal = 0;
+        const catTotals = {};
+
+        document.querySelectorAll('.active-input').forEach(input => {
+            const devId = input.dataset.devId;
+            const catId = input.dataset.catId;
+
+            const active = parseInt(input.value || 0, 10);
+            const backup = parseInt(document.querySelector(`input[name="backup_${devId}"]`).value || 0, 10);
+            const faulty = parseInt(document.querySelector(`input[name="faulty_${devId}"]`).value || 0, 10);
+
+            const rowTotal = active + backup + faulty;
+            document.getElementById(`rowTotal_${devId}`).textContent = rowTotal;
+
+            grandTotal += rowTotal;
+            catTotals[catId] = (catTotals[catId] || 0) + rowTotal;
+        });
+
+        // Update category badges
+        Object.keys(catTotals).forEach(catId => {
+            const badge = document.getElementById(`catTotal_${catId}`);
+            if (badge) badge.textContent = `${catTotals[catId]} items`;
+        });
+
+        // Update grand total indicator
+        document.getElementById('liveGrandTotal').textContent = `${grandTotal} Devices`;
+    }
+
+    // Attach listeners
+    document.querySelectorAll('.qty-input').forEach(input => {
+        input.addEventListener('input', calculateTotals);
+    });
+
+    // Run once on page load
+    calculateTotals();
+</script>
+{% endblock %}

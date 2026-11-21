@@ -1,0 +1,468 @@
+{% extends 'base.html' %}
+{% block title %}{{ section_title }} | System Settings | {{ portal.application_short_name }}{% endblock %}
+{% block header_title %}System Settings{% endblock %}
+{% block header_subtitle %}Centralized system configuration &amp; governance for Akij Group{% endblock %}
+
+{% block content %}
+<div class="max-w-7xl mx-auto space-y-6">
+    <!-- Breadcrumb & Top Bar -->
+    <div class="flex flex-wrap items-center justify-between gap-4 pb-2 border-b border-slate-200">
+        <div class="flex items-center gap-2 text-sm text-slate-500">
+            <a href="{% url 'dashboard' %}" class="hover:text-blue-600 transition"><i class="fa-solid fa-house text-xs"></i></a>
+            <span>/</span>
+            <span class="font-medium text-slate-700">Administration</span>
+            <span>/</span>
+            <span class="font-semibold text-blue-600">System Settings</span>
+            <span>/</span>
+            <span class="text-slate-800 font-medium">{{ section_title }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold tracking-wide uppercase bg-red-100 text-red-800 border border-red-200 shadow-xs">
+                <i class="fa-solid fa-shield-halved text-red-600 text-xs"></i> Admin only
+            </span>
+            {% if editable %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                <i class="fa-solid fa-check-circle text-emerald-600 text-xs"></i> Super Admin (Editing Allowed)
+            </span>
+            {% else %}
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-100 text-amber-800 border border-amber-200">
+                <i class="fa-solid fa-lock text-amber-600 text-xs"></i> View Only Mode
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Main 2-Column Grid -->
+    <div class="grid lg:grid-cols-[20rem_minmax(0,1fr)] gap-6 items-start">
+        
+        <!-- Left Sidebar: Menu Structure -->
+        <nav aria-label="System settings sections" class="rounded-2xl border border-slate-200 bg-white p-3 shadow-sm lg:sticky lg:top-4">
+            <!-- Sidebar Header -->
+            <div class="px-3 py-3 border-b border-slate-100 mb-2 flex items-center justify-between">
+                <div class="flex items-center gap-2.5">
+                    <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center shadow-xs">
+                        <i class="fa-solid fa-gear text-sm"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900 leading-tight">System Settings</h2>
+                        <p class="text-[11px] text-slate-400">14 Configuration Modules</p>
+                    </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-red-50 text-red-700 border border-red-200">Admin only</span>
+            </div>
+
+            <!-- 14 Navigation Items with Title & Subtitle -->
+            <div class="space-y-1 max-h-[calc(100vh-14rem)] overflow-y-auto pr-1">
+                {% for key, meta in section_metadata.items %}
+                <a href="{% url 'administration_settings_section' key %}"
+                   {% if key == selected %}aria-current="page"{% endif %}
+                   class="group flex items-start gap-3 p-2.5 rounded-xl transition text-left border {% if key == selected %}bg-blue-50/90 border-blue-200 text-blue-900 shadow-xs{% else %}border-transparent hover:bg-slate-50 text-slate-700{% endif %}">
+                    <div class="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 transition {% if key == selected %}bg-blue-600 text-white shadow-xs{% else %}bg-slate-100 text-slate-500 group-hover:bg-slate-200 group-hover:text-slate-800{% endif %}">
+                        <i class="fa-solid {{ meta.icon }} text-xs"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-xs font-bold leading-tight truncate {% if key == selected %}text-blue-900{% else %}text-slate-800{% endif %}">
+                            {{ meta.title }}
+                        </div>
+                        <div class="text-[11px] leading-tight truncate mt-0.5 {% if key == selected %}text-blue-600 font-medium{% else %}text-slate-400{% endif %}">
+                            {{ meta.subtitle }}
+                        </div>
+                    </div>
+                    {% if key == selected %}
+                    <i class="fa-solid fa-chevron-right text-[10px] text-blue-600 mt-2"></i>
+                    {% endif %}
+                </a>
+                {% endfor %}
+            </div>
+        </nav>
+
+        <!-- Right Content Area -->
+        <main class="space-y-6">
+            <section class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
+                <!-- Header with Icon & Subtitle -->
+                <div class="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-slate-100">
+                    <div class="flex items-start gap-3.5">
+                        <div class="w-11 h-11 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center flex-shrink-0 border border-blue-100 shadow-xs">
+                            <i class="fa-solid {{ current_meta.icon|default:'fa-gear' }} text-lg"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold text-slate-900">{{ section_title }}</h2>
+                            <p class="text-xs text-slate-500 mt-1">{{ current_meta.subtitle|default:'Application and operational configuration' }}</p>
+                        </div>
+                    </div>
+                    {% if not editable %}
+                    <div class="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-1.5 text-xs flex items-center gap-2">
+                        <i class="fa-solid fa-circle-info text-amber-600"></i>
+                        <span>Super Admin can change these settings.</span>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Section-Specific Alerts & Quick Action Cards -->
+                {% if selected == 'general' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-between text-xs text-slate-600">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-building-circle-check text-blue-600 text-base"></i>
+                        <div>
+                            <span class="font-semibold text-slate-800">Akij Group Enterprise Platform</span>
+                            <p class="text-slate-500 mt-0.5">Application name, landing routes and global maintenance control.</p>
+                        </div>
+                    </div>
+                    <span class="px-2.5 py-1 rounded bg-white border border-slate-200 font-mono text-[11px] text-slate-700">Port 9000</span>
+                </div>
+                {% elif selected == 'assets' %}
+                <div class="mt-4 space-y-4">
+                    <!-- KPI Stat Cards -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                        <div class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl">
+                            <span class="text-blue-600 font-medium block">Hardware Categories</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.categories_count|default:'2' }}</span>
+                            <span class="text-[10px] text-blue-700">Top-level device groups</span>
+                        </div>
+                        <div class="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl">
+                            <span class="text-indigo-600 font-medium block">Device Sub-Types</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.types_count|default:'38' }}</span>
+                            <span class="text-[10px] text-indigo-700">Hardware models catalog</span>
+                        </div>
+                        <div class="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl">
+                            <span class="text-emerald-600 font-medium block">Tracked Physical Assets</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.total_assets|default:'20' }}</span>
+                            <span class="text-[10px] text-emerald-700">Location-wise dynamic</span>
+                        </div>
+                        <div class="p-3 bg-amber-50/80 border border-amber-200 rounded-xl">
+                            <span class="text-amber-700 font-medium block">Default Currency</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">BDT (৳)</span>
+                            <span class="text-[10px] text-amber-800">Akij Group standard</span>
+                        </div>
+                    </div>
+
+                    <!-- Categories & Types Summary -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-layer-group text-purple-600"></i> Categories &amp; Hardware Types Catalog
+                            </span>
+                            <a href="{% url 'category_list' %}" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs shadow-xs transition">
+                                <i class="fa-solid fa-pen-to-square text-[10px]"></i>
+                                <span>Manage Categories &amp; Types</span>
+                                <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                            </a>
+                        </div>
+                        <div class="grid sm:grid-cols-2 gap-3 text-xs">
+                            {% for cat in asset_stats.categories %}
+                            <div class="p-3 bg-white rounded-lg border border-slate-200 flex items-center justify-between">
+                                <div class="flex items-center gap-2.5">
+                                    <div class="w-7 h-7 rounded-md bg-purple-50 text-purple-600 flex items-center justify-center font-bold text-xs border border-purple-100">
+                                        <i class="fa-solid {% if cat.code == 'INFRASTRUCTURE' %}fa-network-wired{% else %}fa-laptop{% endif %} text-[11px]"></i>
+                                    </div>
+                                    <div>
+                                        <span class="font-bold text-slate-800 block leading-tight">{{ cat.name }}</span>
+                                        <span class="text-[10px] text-slate-400 font-mono">{{ cat.code }}</span>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <span class="font-bold text-slate-700 text-xs block">{{ cat.type_cnt }} types</span>
+                                    <span class="text-[10px] text-slate-500">{{ cat.asset_cnt }} assets</span>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="sm:col-span-2 p-3 bg-white rounded-lg border border-slate-200 text-slate-500 text-xs text-center">
+                                No categories created yet. Click Manage Categories to add hardware groups.
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Live Status Badges & Asset Distribution -->
+                    <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                <i class="fa-solid fa-tags text-blue-600"></i> Operational Statuses &amp; Live Asset Counts
+                            </span>
+                            <span class="text-[10px] font-semibold text-slate-500">Auto-mapped 4 core states</span>
+                        </div>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs" id="status-badges-preview">
+                            <div class="p-2.5 bg-white rounded-lg border border-emerald-200 flex flex-col justify-between">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-emerald-100 text-emerald-800 self-start" id="badge-in-use">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                    <span class="label-text">Working / In-Use</span>
+                                </span>
+                                <span class="text-[11px] text-slate-500 mt-2 font-medium">{{ asset_stats.status_counts.IN_USE|default:0 }} assets in service</span>
+                            </div>
+                            <div class="p-2.5 bg-white rounded-lg border border-amber-200 flex flex-col justify-between">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-amber-100 text-amber-800 self-start" id="badge-backup">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                    <span class="label-text">Backup / Spare</span>
+                                </span>
+                                <span class="text-[11px] text-slate-500 mt-2 font-medium">{{ asset_stats.status_counts.BACKUP|default:0 }} standby spares</span>
+                            </div>
+                            <div class="p-2.5 bg-white rounded-lg border border-rose-200 flex flex-col justify-between">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-rose-100 text-rose-800 self-start" id="badge-faulty">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-rose-600"></span>
+                                    <span class="label-text">Faulty / Under Repair</span>
+                                </span>
+                                <span class="text-[11px] text-slate-500 mt-2 font-medium">{{ asset_stats.status_counts.FAULTY|default:0 }} in repair</span>
+                            </div>
+                            <div class="p-2.5 bg-white rounded-lg border border-slate-300 flex flex-col justify-between">
+                                <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 self-start" id="badge-scrap">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                    <span class="label-text">Damaged / Scrap</span>
+                                </span>
+                                <span class="text-[11px] text-slate-500 mt-2 font-medium">{{ asset_stats.status_counts.SCRAP|default:0 }} decommissioned</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% elif selected == 'asset-id' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                            <i class="fa-solid fa-barcode text-blue-600"></i> Real-Time Asset Tag Generator Preview
+                        </span>
+                        <span class="text-[10px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">Active Template</span>
+                    </div>
+                    <div class="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <p class="text-[11px] text-slate-500 font-medium">Sample Generated Asset ID:</p>
+                            <output aria-live="polite" id="asset-id-example" class="font-mono font-bold text-xl text-blue-700 tracking-wide">AST-AMFL-HO-NET-00001</output>
+                        </div>
+                        <button type="button" id="copy-asset-id" class="inline-flex items-center gap-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 transition shadow-xs">
+                            <i class="fa-solid fa-copy"></i>
+                            <span>Copy example</span>
+                        </button>
+                    </div>
+                </div>
+                {% elif selected == 'email' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
+                    <i class="fa-solid fa-circle-info text-blue-600 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-800">Akij Mail Gateway (SMTP)</span>
+                        <p class="text-slate-500 mt-0.5">Use Port 587 with TLS enabled for standard enterprise relay. Port 465 requires SSL encryption.</p>
+                    </div>
+                </div>
+                {% elif selected == 'security' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
+                    <i class="fa-solid fa-shield-halved text-blue-600 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-800">Akij Cybersecurity Baseline</span>
+                        <p class="text-slate-500 mt-0.5">Enforces brute-force lockout thresholds, minimum character length, session expiry and IP network restrictions.</p>
+                    </div>
+                </div>
+                {% elif selected == 'access' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-user-shield text-blue-600 text-base"></i>
+                        <div>
+                            <span class="font-semibold text-slate-800">Account Access &amp; Sign-in Auditing</span>
+                            <p class="text-slate-500 mt-0.5">Monitor failed attempts, account activations and sign-in events.</p>
+                        </div>
+                    </div>
+                    <a class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold" href="{% url 'activity_logs' %}?module=Authentication">
+                        <span>View Login History</span>
+                        <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+                    </a>
+                </div>
+                {% elif selected == 'backup' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-3">
+                    <p class="text-xs text-slate-600">Scheduled backups require the host backup runner and a configured storage root.</p>
+                    <div class="grid sm:grid-cols-2 gap-3 text-xs">
+                        <div class="p-3 bg-white rounded-lg border border-slate-200">
+                            <span class="text-slate-500 font-medium block">Last successful backup</span>
+                            <span class="text-slate-900 font-bold text-sm mt-0.5 block">{{ portal.last_backup_at|default:'No backup recorded' }}</span>
+                        </div>
+                        <div class="p-3 bg-white rounded-lg border border-slate-200">
+                            <span class="text-slate-500 font-medium block">Last backup status</span>
+                            <span class="text-slate-900 font-bold text-sm mt-0.5 block">{{ portal.last_backup_status|default:'No scheduled job connected' }}</span>
+                        </div>
+                    </div>
+                </div>
+                {% elif selected == 'notifications' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
+                    <i class="fa-solid fa-bell text-blue-600 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-800">Alert Dispatch Engine</span>
+                        <p class="text-slate-500 mt-0.5">Email delivery uses the configured SMTP server. Daily and weekly digests are automatically dispatched by background cron workers.</p>
+                    </div>
+                </div>
+                {% elif selected == 'audit-log' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 flex flex-wrap items-center justify-between gap-3 text-xs">
+                    <div class="flex items-center gap-3">
+                        <i class="fa-solid fa-clock-rotate-left text-blue-600 text-base"></i>
+                        <div>
+                            <span class="font-semibold text-slate-800">Audit Trail Governance</span>
+                            <p class="text-slate-500 mt-0.5">Log retention policy is enforced by scheduled log cleanup jobs.</p>
+                        </div>
+                    </div>
+                    <a class="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-800 font-semibold" href="{% url 'activity_logs' %}">
+                        <span>Open Activity Logs</span>
+                        <i class="fa-solid fa-arrow-right text-[11px]"></i>
+                    </a>
+                </div>
+                {% elif selected == 'localization' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
+                    <i class="fa-solid fa-globe text-blue-600 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-800">Regional Localization Standard</span>
+                        <p class="text-slate-500 mt-0.5">Primary language is English with Bangla localization support. Timezone defaults to Asia/Dhaka (GMT+6) and currency to BDT (৳).</p>
+                    </div>
+                </div>
+                {% elif selected == 'integration' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 text-xs text-slate-600 flex items-start gap-3">
+                    <i class="fa-solid fa-plug text-blue-600 text-base mt-0.5"></i>
+                    <div>
+                        <span class="font-semibold text-slate-800">Enterprise Integrations</span>
+                        <p class="text-slate-500 mt-0.5">Connect Akij ERP databases, Active Directory (LDAP), and generate secure REST API access tokens.</p>
+                    </div>
+                </div>
+                {% elif selected == 'maintenance' %}
+                <div class="mt-4 p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2 text-xs">
+                    <div class="flex items-center justify-between">
+                        <span class="font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-heart-pulse text-emerald-600"></i> System Health Status
+                        </span>
+                        <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[11px]">Operational</span>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-slate-600">
+                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Django</span><span class="font-semibold text-slate-800">5.1.x</span></div>
+                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Port</span><span class="font-semibold text-slate-800">9000</span></div>
+                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Database</span><span class="font-semibold text-slate-800">SQLite3</span></div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Dynamic Form -->
+                <form method="post" class="mt-6 space-y-5 text-sm [&_input:not([type=checkbox])]:block [&_input:not([type=checkbox])]:w-full [&_input:not([type=checkbox])]:rounded-xl [&_input:not([type=checkbox])]:border [&_input:not([type=checkbox])]:border-slate-300 [&_input:not([type=checkbox])]:p-2.5 [&_input:not([type=checkbox])]:text-sm [&_input:not([type=checkbox])]:transition [&_input:not([type=checkbox]):focus]:border-blue-500 [&_input:not([type=checkbox]):focus]:ring-1 [&_input:not([type=checkbox]):focus]:ring-blue-500 [&_select]:block [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:p-2.5 [&_select]:text-sm [&_textarea]:block [&_textarea]:w-full [&_textarea]:rounded-xl [&_textarea]:border [&_textarea]:border-slate-300 [&_textarea]:p-2.5 [&_textarea]:text-sm [&_:disabled]:opacity-70 [&_:disabled]:bg-slate-50 [&_.errorlist]:text-red-600 [&_.errorlist]:text-xs [&_.errorlist]:mt-1" id="system-settings-form">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="p-4 rounded-xl bg-red-50 border border-red-200 text-red-800 text-xs">
+                        {{ form.non_field_errors }}
+                    </div>
+                    {% endif %}
+
+                    <div class="grid gap-5 sm:grid-cols-2">
+                        {% for field in form %}
+                        <div class="space-y-1.5 {% if field.field.widget.attrs.rows %}sm:col-span-2{% endif %}">
+                            {% if field.field.widget.input_type == 'checkbox' %}
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50/80 transition cursor-pointer select-none">
+                                <div class="pt-0.5">
+                                    {{ field }}
+                                </div>
+                                <div class="min-w-0">
+                                    <span class="text-xs font-semibold text-slate-800 block">{{ field.label }}</span>
+                                    {% if field.help_text %}
+                                    <span class="text-[11px] text-slate-500 block mt-0.5">{{ field.help_text }}</span>
+                                    {% endif %}
+                                </div>
+                            </label>
+                            {% else %}
+                            <label for="{{ field.id_for_label }}" class="block text-xs font-semibold text-slate-700">
+                                {{ field.label }}
+                                {% if field.field.required %}<span class="text-red-500">*</span>{% endif %}
+                            </label>
+                            <div class="relative">
+                                {{ field }}
+                            </div>
+                            {% if field.help_text %}
+                            <p id="{{ field.auto_id }}_helptext" class="text-[11px] text-slate-500 mt-1">{{ field.help_text }}</p>
+                            {% endif %}
+                            {% endif %}
+                            
+                            {% if field.errors %}
+                            <div class="text-xs font-medium text-red-600 mt-1">
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <!-- Bottom Action Bar -->
+                    <div class="pt-6 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
+                        <div class="text-xs text-slate-500">
+                            {% if editable %}
+                            <span class="text-emerald-700 font-medium"><i class="fa-solid fa-lock-open text-xs mr-1"></i> Changes will immediately take effect for all users.</span>
+                            {% else %}
+                            <span class="text-slate-500"><i class="fa-solid fa-lock text-xs mr-1"></i> Read-only mode for Head Office Administrator.</span>
+                            {% endif %}
+                        </div>
+                        {% if editable %}
+                        <button type="submit" class="inline-flex items-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-700 px-5 py-2.5 font-semibold text-white shadow-sm hover:shadow transition text-xs">
+                            <i class="fa-solid fa-floppy-disk"></i>
+                            <span>Save settings</span>
+                        </button>
+                        {% endif %}
+                    </div>
+                </form>
+            </section>
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if selected == 'asset-id' %}
+<script>
+    const idForm = document.getElementById('system-settings-form');
+    const idExample = document.getElementById('asset-id-example');
+    const copyButton = document.getElementById('copy-asset-id');
+    function updateExample() {
+        if (!idForm || !idExample) return;
+        const value = (name, fallback) => {
+            const el = idForm.elements['asset_id_' + name];
+            return (el && el.value) ? el.value : fallback;
+        };
+        const length = Math.max(1, Math.min(9, Number(value('length', '5')) || 5));
+        const number = value('start', '1').padStart(length, '0');
+        idExample.value = [
+            value('prefix', 'AST'),
+            value('company_code', 'AMFL'),
+            value('location_code', 'HO'),
+            value('category_code', 'NET'),
+            number
+        ].join(value('separator', '-')).toUpperCase();
+    }
+    if (idForm) {
+        idForm.addEventListener('input', updateExample);
+    }
+    if (copyButton && idExample) {
+        copyButton.addEventListener('click', async () => {
+            try {
+                await navigator.clipboard.writeText(idExample.value || idExample.innerText);
+                copyButton.innerHTML = '<i class="fa-solid fa-check text-emerald-600"></i> Copied!';
+                setTimeout(() => {
+                    copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> <span>Copy example</span>';
+                }, 2000);
+            } catch {
+                const selection = window.getSelection();
+                selection.selectAllChildren(idExample);
+                copyButton.innerHTML = '<i class="fa-solid fa-check"></i> Selected';
+            }
+        });
+    }
+    updateExample();
+</script>
+{% elif selected == 'assets' %}
+<script>
+    const statusTextarea = document.getElementById('id_asset_status_labels');
+    if (statusTextarea) {
+        const updateBadges = () => {
+            const lines = statusTextarea.value.split('\n').map(l => l.trim()).filter(Boolean);
+            const badgeIds = ['badge-in-use', 'badge-backup', 'badge-faulty', 'badge-scrap'];
+            const fallbackLabels = ['Working / In-Use', 'Backup / Spare', 'Faulty / Under Repair', 'Damaged / Scrap'];
+            badgeIds.forEach((bId, idx) => {
+                const el = document.getElementById(bId);
+                if (el) {
+                    const labelSpan = el.querySelector('.label-text');
+                    if (labelSpan) {
+                        labelSpan.textContent = lines[idx] || fallbackLabels[idx];
+                    }
+                }
+            });
+        };
+        statusTextarea.addEventListener('input', updateBadges);
+        updateBadges();
+    }
+</script>
+{% endif %}
+{% endblock %}

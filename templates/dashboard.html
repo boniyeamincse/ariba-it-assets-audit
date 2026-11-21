@@ -1,0 +1,411 @@
+{% extends 'base.html' %}
+{% load portal_format %}
+
+{% block title %}Executive Management Dashboard | Akij Group IT Asset Audit{% endblock %}
+{% block header_title %}Executive Management Dashboard{% endblock %}
+{% block header_subtitle %}{{ scope_title }}{% endblock %}
+
+{% block content %}
+<div class="portal-dashboard space-y-6" data-layout="{{ portal.dashboard_layout }}">
+
+    <!-- Executive Quick Actions & Management Scope Bar -->
+    <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2.5">
+                <span class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></span>
+                <h3 class="font-bold text-slate-900 text-sm sm:text-base">{{ scope_title }}</h3>
+                <span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                    {{ role_label }}
+                </span>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                Real-time physical IT inventory, compliance audits, and multi-location asset health tracking.
+            </p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2 text-xs">
+            <a href="{% url 'matrix' %}" class="px-3.5 py-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold transition flex items-center space-x-1.5 shadow-xs">
+                <i class="fa-solid fa-table-cells text-indigo-600"></i>
+                <span>Master Matrix</span>
+            </a>
+            <a href="{% url 'export_excel_matrix' %}" class="px-3.5 py-2 rounded-xl bg-emerald-50 hover:bg-emerald-100 text-emerald-800 font-bold transition flex items-center space-x-1.5 shadow-xs" title="Download Excel Matrix for Sir">
+                <i class="fa-solid fa-file-excel text-emerald-600"></i>
+                <span>Excel Matrix</span>
+            </a>
+            <a href="{% url 'asset_list' %}" class="px-3.5 py-2 rounded-xl bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold transition flex items-center space-x-1.5 shadow-xs">
+                <i class="fa-solid fa-boxes-stacked text-blue-600"></i>
+                <span>Assets Directory</span>
+            </a>
+            <a href="{% url 'audit_create' %}" class="px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold transition flex items-center space-x-1.5 shadow-md shadow-blue-600/20">
+                <i class="fa-solid fa-plus-circle"></i>
+                <span>New Audit</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- KPI Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
+        <!-- Total Devices Audited -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Audited Count</p>
+                <h3 class="text-3xl font-black text-slate-900 mt-1">{{ total_devices|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-blue-600 font-semibold mt-1">Across {{ audited_locations|portal_number:portal.number_format }} Audited Site(s)</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-xs">
+                <i class="fa-solid fa-clipboard-check"></i>
+            </div>
+        </div>
+
+        <!-- Tracked Individual Assets -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Tracked Hardware</p>
+                <h3 class="text-3xl font-black text-cyan-900 mt-1">{{ total_individual_assets|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-cyan-700 font-semibold mt-1">Tagged in {{ total_locations|portal_number:portal.number_format }} Location(s)</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-cyan-50 text-cyan-600 flex items-center justify-center text-xl shadow-xs">
+                <i class="fa-solid fa-barcode"></i>
+            </div>
+        </div>
+
+        <!-- Infrastructure Assets -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Infrastructure</p>
+                <h3 class="text-3xl font-black text-indigo-900 mt-1">{{ total_infra|portal_number:portal.number_format }}</h3>
+                <p class="text-xs text-indigo-600 font-semibold mt-1">Routers, Switches, CCTV, NVR</p>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-xl shadow-xs">
+                <i class="fa-solid fa-network-wired"></i>
+            </div>
+        </div>
+
+        <!-- Stock Health -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Operating Health</p>
+                <div class="flex items-center space-x-3 mt-1.5">
+                    <div>
+                        <span class="text-xs text-emerald-600 font-bold block">Active</span>
+                        <span class="text-lg font-black text-slate-900">{{ total_active|portal_number:portal.number_format }}</span>
+                    </div>
+                    <div class="border-l border-slate-200 pl-3">
+                        <span class="text-xs text-amber-600 font-bold block">Backup</span>
+                        <span class="text-lg font-black text-slate-900">{{ total_backup|portal_number:portal.number_format }}</span>
+                    </div>
+                    <div class="border-l border-slate-200 pl-3">
+                        <span class="text-xs text-red-600 font-bold block">Faulty</span>
+                        <span class="text-lg font-black text-slate-900">{{ total_faulty|portal_number:portal.number_format }}</span>
+                    </div>
+                </div>
+            </div>
+            <div class="w-12 h-12 rounded-2xl bg-amber-50 text-amber-600 flex items-center justify-center text-xl shadow-xs">
+                <i class="fa-solid fa-shield-halved"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Donut Chart: Category Split -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+            <h4 class="text-sm font-bold text-slate-800 mb-4 flex items-center space-x-2">
+                <i class="fa-solid fa-chart-pie text-indigo-600"></i>
+                <span>Category Distribution</span>
+            </h4>
+            <div class="h-64 flex items-center justify-center">
+                <canvas id="categoryChart"></canvas>
+            </div>
+            <div class="grid grid-cols-2 gap-2 mt-4 text-center text-xs">
+                <div class="bg-indigo-50 p-2 rounded-xl">
+                    <span class="block text-indigo-600 font-bold">Infrastructure</span>
+                    <span class="text-base font-black text-slate-900">{{ total_infra|portal_number:portal.number_format }} items</span>
+                </div>
+                <div class="bg-emerald-50 p-2 rounded-xl">
+                    <span class="block text-emerald-600 font-bold">End Users</span>
+                    <span class="text-base font-black text-slate-900">{{ total_users|portal_number:portal.number_format }} items</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bar Chart: Top Device Types -->
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm lg:col-span-2">
+            <div class="flex items-center justify-between mb-4">
+                <h4 class="text-sm font-bold text-slate-800 flex items-center space-x-2">
+                    <i class="fa-solid fa-chart-column text-blue-600"></i>
+                    <span>Top IT Devices by Audited Quantity</span>
+                </h4>
+                <a href="{% url 'category_list' %}" class="text-xs font-semibold text-blue-600 hover:text-blue-800">
+                    Device Catalog &rarr;
+                </a>
+            </div>
+            <div class="h-72">
+                <canvas id="topDevicesChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Multi-Location Master Overview Card for Management -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/50">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-building text-blue-600"></i>
+                    <span>Multi-Location Hardware & Audit Status</span>
+                </h4>
+                <p class="text-xs text-slate-500">Summary across factories, warehouses, depots, and head office</p>
+            </div>
+            <div class="flex items-center space-x-2 text-xs">
+                <a href="{% url 'matrix' %}" class="text-indigo-600 hover:text-indigo-800 font-bold flex items-center space-x-1">
+                    <i class="fa-solid fa-table-cells"></i>
+                    <span>Open Master Comparison Matrix</span>
+                </a>
+                <span class="text-slate-300">•</span>
+                <a href="{% url 'location_list' %}" class="text-blue-600 hover:text-blue-800 font-bold">
+                    All Locations &rarr;
+                </a>
+            </div>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider">
+                        <th class="px-4 py-3 w-28 text-center">Unit ID</th>
+                        <th class="px-4 py-3 min-w-[180px]">Location Name</th>
+                        <th class="px-4 py-3 w-28 text-center">Type</th>
+                        <th class="px-4 py-3 min-w-[120px]">City / Region</th>
+                        <th class="px-4 py-3 text-center w-28">Tagged Assets</th>
+                        <th class="px-4 py-3 text-center w-28">Audited Count</th>
+                        <th class="px-4 py-3 text-center w-28">Audit Status</th>
+                        <th class="px-4 py-3 text-right w-44">Management Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for loc in location_summary %}
+                    <tr class="hover:bg-blue-50/30 transition">
+                        <!-- Unit ID -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="font-mono font-bold text-xs bg-slate-100 text-blue-900 border border-slate-300 px-2 py-0.5 rounded shadow-xs inline-flex items-center">
+                                <i class="fa-solid fa-tag text-[9px] text-blue-600 mr-1"></i>{{ loc.location_id }}
+                            </span>
+                        </td>
+
+                        <!-- Name -->
+                        <td class="px-4 py-3">
+                            <span class="font-bold text-slate-900 text-xs block">{{ loc.name }}</span>
+                            <span class="text-[10px] font-mono text-slate-400">{{ loc.code }}</span>
+                        </td>
+
+                        <!-- Type -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                                {{ loc.location_type }}
+                            </span>
+                        </td>
+
+                        <!-- City -->
+                        <td class="px-4 py-3 text-slate-600">
+                            {{ loc.city }}
+                        </td>
+
+                        <!-- Tracked Assets -->
+                        <td class="px-4 py-3 text-center font-bold">
+                            {% if loc.tracked_assets > 0 %}
+                            <a href="{% url 'asset_list' %}?location={{ loc.id }}" class="inline-flex items-center space-x-1 bg-cyan-50 hover:bg-cyan-100 text-cyan-800 border border-cyan-200 px-2 py-0.5 rounded font-black text-xs transition" title="Filter assets in this unit">
+                                <span>{{ loc.tracked_assets }}</span>
+                                <i class="fa-solid fa-arrow-up-right-from-square text-[9px]"></i>
+                            </a>
+                            {% else %}
+                            <span class="text-slate-400">0</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Audited Qty -->
+                        <td class="px-4 py-3 text-center font-bold">
+                            {% if loc.has_audit %}
+                            <span class="bg-blue-100 text-blue-900 px-2.5 py-0.5 rounded-full text-xs font-black">
+                                {{ loc.audited_qty }}
+                            </span>
+                            {% else %}
+                            <span class="text-slate-400 text-xs">—</span>
+                            {% endif %}
+                        </td>
+
+                        <!-- Status -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold {% if loc.has_audit %}bg-emerald-100 text-emerald-800{% else %}bg-slate-200 text-slate-600{% endif %}">
+                                {% if loc.has_audit %}
+                                <i class="fa-solid fa-circle-check text-[8px] mr-1"></i> {{ loc.audit_status }}
+                                {% else %}
+                                <i class="fa-solid fa-clock text-[8px] mr-1"></i> Pending
+                                {% endif %}
+                            </span>
+                        </td>
+
+                        <!-- Actions -->
+                        <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                            {% if loc.has_audit %}
+                            <a href="{% url 'audit_detail' loc.last_audit_id %}" class="inline-flex items-center text-blue-700 bg-blue-50 hover:bg-blue-100 px-2 py-1 rounded text-xs font-semibold transition" title="View Audit Details">
+                                <i class="fa-solid fa-eye mr-1"></i> View
+                            </a>
+                            <a href="{% url 'audit_print' loc.last_audit_id %}" target="_blank" class="inline-flex items-center text-slate-700 bg-slate-100 hover:bg-slate-200 px-2 py-1 rounded text-xs font-semibold transition" title="Print Official Audit Sheet for Sir">
+                                <i class="fa-solid fa-print mr-1"></i> Print
+                            </a>
+                            {% else %}
+                            <a href="{% url 'audit_create' %}?location={{ loc.id }}" class="inline-flex items-center text-emerald-700 bg-emerald-50 hover:bg-emerald-100 px-2 py-1 rounded text-xs font-semibold transition" title="Start First Audit">
+                                <i class="fa-solid fa-plus mr-1"></i> Audit
+                            </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-6 text-slate-400">No locations found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Recent Audits Table -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div>
+                <h4 class="text-sm font-bold text-slate-900 flex items-center space-x-2">
+                    <i class="fa-solid fa-clock-rotate-left text-blue-600"></i>
+                    <span>Recent Physical Audit Inspections</span>
+                </h4>
+                <p class="text-xs text-slate-500">Official field audit sessions with item breakdown</p>
+            </div>
+            <a href="{% url 'audit_list' %}" class="text-xs font-semibold text-blue-600 hover:text-blue-800 flex items-center space-x-1">
+                <span>All Audit Records</span>
+                <i class="fa-solid fa-arrow-right"></i>
+            </a>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider">
+                        <th class="px-5 py-3">Location Unit</th>
+                        <th class="px-5 py-3">Unit Type</th>
+                        <th class="px-5 py-3">Audit Date</th>
+                        <th class="px-5 py-3 text-center">Infra Devices</th>
+                        <th class="px-5 py-3 text-center">User Devices</th>
+                        <th class="px-5 py-3 text-center">Total Devices</th>
+                        <th class="px-5 py-3 text-center">Status</th>
+                        <th class="px-5 py-3 text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for audit in recent_audits %}
+                    <tr class="hover:bg-slate-50/80 transition">
+                        <td class="px-5 py-3.5 font-bold text-slate-900">
+                            {{ audit.location.name }}
+                        </td>
+                        <td class="px-5 py-3.5">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[11px] font-semibold bg-slate-100 text-slate-700">
+                                {{ audit.location.get_location_type_display }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-slate-600 font-medium">{{ audit.audit_date }}</td>
+                        <td class="px-5 py-3.5 text-center font-bold text-indigo-700">{{ audit.total_infrastructure }}</td>
+                        <td class="px-5 py-3.5 text-center font-bold text-emerald-700">{{ audit.total_users }}</td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="bg-blue-100 text-blue-800 font-black px-2.5 py-1 rounded-full text-xs">
+                                {{ audit.total_qty }} Devices
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-center">
+                            <span class="px-2.5 py-1 rounded-full text-[10px] font-bold {% if audit.status == 'APPROVED' %}bg-emerald-100 text-emerald-800{% else %}bg-amber-100 text-amber-800{% endif %}">
+                                {{ audit.get_status_display }}
+                            </span>
+                        </td>
+                        <td class="px-5 py-3.5 text-right space-x-1 whitespace-nowrap">
+                            <a href="{% url 'audit_detail' audit.id %}" class="text-blue-600 hover:text-blue-900 text-xs font-semibold px-2 py-1 rounded hover:bg-blue-50">
+                                <i class="fa-solid fa-eye"></i> View
+                            </a>
+                            <a href="{% url 'audit_print' audit.id %}" target="_blank" class="text-slate-600 hover:text-slate-900 text-xs font-semibold px-2 py-1 rounded hover:bg-slate-100">
+                                <i class="fa-solid fa-print"></i> Report for Sir
+                            </a>
+                            <a href="{% url 'export_audit_json' audit.id %}" class="text-amber-600 hover:text-amber-900 text-xs font-semibold px-2 py-1 rounded hover:bg-amber-50">
+                                <i class="fa-solid fa-download"></i> JSON
+                            </a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center py-8 text-slate-400">No audit records found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    // 1. Donut Chart
+    const ctxCat = document.getElementById('categoryChart').getContext('2d');
+    new Chart(ctxCat, {
+        type: 'doughnut',
+        data: {
+            labels: ['Infrastructure', 'End-User Devices'],
+            datasets: [{
+                data: [{{ total_infra }}, {{ total_users }}],
+                backgroundColor: ['#4f46e5', '#10b981'],
+                borderWidth: 2,
+                borderColor: '#ffffff'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'bottom' }
+            },
+            cutout: '65%'
+        }
+    });
+
+    // 2. Top Devices Bar Chart
+    const topLabels = [{% for item in top_devices %}"{{ item.device_type__name }}",{% endfor %}];
+    const topCounts = [{% for item in top_devices %}{{ item.total }},{% endfor %}];
+
+    const ctxTop = document.getElementById('topDevicesChart').getContext('2d');
+    new Chart(ctxTop, {
+        type: 'bar',
+        data: {
+            labels: topLabels,
+            datasets: [{
+                label: 'Device Count',
+                data: topCounts,
+                backgroundColor: '#2563eb',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#f1f5f9' }
+                },
+                x: {
+                    grid: { display: false }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

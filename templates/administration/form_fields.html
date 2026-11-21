@@ -1,0 +1,25 @@
+{{ form.non_field_errors }}
+{% for heading, fields in form.sections %}
+<fieldset class="rounded-xl border border-slate-200 bg-white px-5 py-4">
+    <legend class="px-1 text-base font-semibold text-slate-900">{{ heading }}</legend>
+    <div class="grid gap-4 sm:grid-cols-2">
+    {% for field in fields %}
+    <div class="space-y-2">
+        {% if field.use_fieldset %}
+            <fieldset>
+                {% if field.label %}{{ field.legend_tag }}{% endif %}
+                <div class="max-h-60 overflow-y-auto rounded-lg border border-slate-200 p-3">{{ field }}</div>
+            </fieldset>
+        {% elif field.field.widget.input_type == 'checkbox' %}
+            <div class="flex items-center gap-2">{{ field }}{{ field.label_tag }}</div>
+        {% else %}
+            {{ field.label_tag }}
+            {{ field }}
+        {% endif %}
+        {% if field.help_text %}<p id="{{ field.auto_id }}_helptext" class="text-xs text-slate-600">{{ field.help_text }}</p>{% endif %}
+        {{ field.errors }}
+    </div>
+    {% endfor %}
+    </div>
+</fieldset>
+{% endfor %}

@@ -1,0 +1,193 @@
+{% extends 'base.html' %}
+
+{% block title %}System Activity Logs | Akij IT Audit{% endblock %}
+{% block header_title %}System Audit & Activity Logs{% endblock %}
+{% block header_subtitle %}Search account, audit and administration events{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Filters & Search Toolbar -->
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
+        <form method="GET" action="{% url 'activity_logs' %}" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4 items-start">
+
+            <!-- Search Field -->
+            <div>
+                <label for="log-search" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Search Logs</label>
+                <div class="relative">
+                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                    </span>
+                    <input id="log-search" type="text" name="q" value="{{ search_query }}" placeholder="Username, IP, action, text..."
+                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                </div>
+            </div>
+
+            <!-- Module Filter -->
+            <div>
+                <label for="log-module" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Module</label>
+                <select id="log-module" name="module" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">All Modules</option>
+                    {% for mod in available_modules %}
+                    <option value="{{ mod }}" {% if module_filter == mod %}selected{% endif %}>{{ mod }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Action Filter -->
+            <div>
+                <label for="log-action" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Action Type</label>
+                <select id="log-action" name="action" class="w-full py-2 px-3 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">All Actions</option>
+                    {% for act in available_actions %}
+                    <option value="{{ act }}" {% if action_filter == act %}selected{% endif %}>{{ act }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            {% for field in dates %}
+            <div class="space-y-1.5 text-xs [&_label]:block [&_label]:uppercase [&_label]:font-bold [&_label]:text-slate-700 [&_input]:w-full [&_input]:rounded-lg [&_input]:border [&_input]:border-slate-300 [&_input]:bg-slate-50 [&_input]:px-3 [&_input]:py-2 [&_.errorlist]:text-red-700">
+                {{ field.label_tag }}{{ field }}{{ field.errors }}
+            </div>
+            {% endfor %}
+
+            <!-- Action Buttons -->
+            <div class="flex items-center space-x-2 self-end">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1.5">
+                    <i class="fa-solid fa-filter"></i>
+                    <span>Apply Filter</span>
+                </button>
+                {% if search_query or module_filter or action_filter or dates.date_from.value or dates.date_to.value %}
+                <a href="{% url 'activity_logs' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-3 rounded-lg text-xs transition">Clear filters</a>
+                {% endif %}
+            </div>
+
+        </form>
+    </div>
+
+    <!-- Log Table Card -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between bg-slate-50/50">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-shield-halved text-blue-600"></i>
+                <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider">Audit Trail Records</h4>
+                <span class="bg-blue-100 text-blue-800 text-[11px] font-bold px-2 py-0.5 rounded-full">
+                    {{ total_count }} Entries
+                </span>
+            </div>
+            <span class="text-xs text-slate-400">Showing page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse text-xs">
+                <thead>
+                    <tr class="bg-slate-100/70 text-slate-600 font-bold border-b border-slate-200 uppercase tracking-wider">
+                        <th class="px-4 py-3 w-40">Timestamp</th>
+                        <th class="px-4 py-3 w-36">User</th>
+                        <th class="px-4 py-3 w-36 text-center">Action</th>
+                        <th class="px-4 py-3 w-32 text-center">Module</th>
+                        <th class="px-4 py-3 min-w-[300px]">Event Description</th>
+                        <th class="px-4 py-3 w-28 text-center">IP Address</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for log in page_obj %}
+                    <tr class="hover:bg-blue-50/30 transition">
+                        <!-- Timestamp -->
+                        <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">
+                            <span class="text-slate-900 font-bold">{{ log.created_at|date:portal.date_format }}</span>
+                            <span class="text-slate-400 text-[11px] block">{{ log.created_at|date:portal.time_format }}</span>
+                        </td>
+
+                        <!-- User -->
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <div class="flex items-center space-x-2">
+                                <div class="w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold flex items-center justify-center text-[10px]">
+                                    {{ log.user_name|slice:":1"|upper }}
+                                </div>
+                                <span class="font-bold text-slate-900">{{ log.user_name }}</span>
+                            </div>
+                        </td>
+
+                        <!-- Action Badge -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold
+                                {% if 'SUCCESS' in log.action or 'CREATE' in log.action %}
+                                    bg-emerald-100 text-emerald-800
+                                {% elif 'FAILED' in log.action or 'DISABLED' in log.action or 'DELETE' in log.action %}
+                                    bg-red-100 text-red-800
+                                {% elif 'EXPORT' in log.action or 'IMPORT' in log.action %}
+                                    bg-amber-100 text-amber-800
+                                {% elif 'LOGOUT' in log.action %}
+                                    bg-slate-100 text-slate-700
+                                {% else %}
+                                    bg-blue-100 text-blue-800
+                                {% endif %}">
+                                {{ log.action }}
+                            </span>
+                        </td>
+
+                        <!-- Module -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <span class="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700">
+                                {{ log.module }}
+                            </span>
+                        </td>
+
+                        <!-- Description -->
+                        <td class="px-4 py-3 font-medium text-slate-800">
+                            {{ log.description }}
+                        </td>
+
+                        <!-- IP Address -->
+                        <td class="px-4 py-3 text-center whitespace-nowrap">
+                            <code class="px-2 py-0.5 rounded bg-slate-100 text-slate-600 text-[10px] font-mono">
+                                {{ log.ip_address|default:'127.0.0.1' }}
+                            </code>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-10 text-slate-400">
+                            <i class="fa-solid fa-list-check text-2xl mb-2 block"></i>
+                            No activity logs match the selected filter criteria.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if page_obj.has_other_pages %}
+        <div class="p-4 border-t border-slate-200 bg-slate-50 flex items-center justify-between text-xs">
+            <div>
+                Showing logs <span class="font-bold">{{ page_obj.start_index }}</span> to <span class="font-bold">{{ page_obj.end_index }}</span> of <span class="font-bold">{{ total_count }}</span>
+            </div>
+            <div class="flex items-center space-x-1">
+                {% if page_obj.has_previous %}
+                <a href="{% querystring page=page_obj.previous_page_number %}"
+                   class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition">
+                    &laquo; Previous
+                </a>
+                {% endif %}
+
+                <span class="px-3 py-1.5 rounded bg-blue-600 text-white font-bold">
+                    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                </span>
+
+                {% if page_obj.has_next %}
+                <a href="{% querystring page=page_obj.next_page_number %}"
+                   class="px-3 py-1.5 rounded border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold transition">
+                    Next &raquo;
+                </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+    </div>
+
+</div>
+{% endblock %}

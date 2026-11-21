@@ -1,0 +1,5 @@
+<!doctype html>
+<html lang="{{ portal.language }}">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Maintenance | {{ portal.application_short_name }}</title></head>
+<body><main><h1>{{ portal.application_name }} is undergoing maintenance</h1><p>Please try again later.</p>{% if portal.support_email %}<p><a href="mailto:{{ portal.support_email }}">Email IT support</a></p>{% endif %}<p><a href="{% url 'login' %}">Sign in</a></p></main></body>
+</html>

@@ -1,0 +1,35 @@
+<div class="portal-toolbar-actions">
+    {% if nav_sections %}
+    <button type="button" class="portal-quick-button" data-open-command aria-label="Find in navigation" aria-keyshortcuts="Control+k Meta+k">
+        <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+        <span>Find menu</span><kbd>⌘ / Ctrl K</kbd>
+    </button>
+    <details class="portal-popover">
+        <summary class="portal-create-button"><i class="fa-solid fa-plus" aria-hidden="true"></i><span>New</span><i class="fa-solid fa-chevron-down portal-chevron" aria-hidden="true"></i></summary>
+        <div class="portal-popover-panel">
+            {% for action in nav_actions %}
+            <a href="{{ action.url }}"><i class="fa-solid {{ action.icon }}" aria-hidden="true"></i>{{ action.label }}</a>
+            {% endfor %}
+        </div>
+    </details>
+    {% endif %}
+    {% if request.user.is_authenticated %}
+    <details class="portal-popover">
+        <summary class="portal-account-button" aria-label="Account menu">
+            <span class="portal-avatar" aria-hidden="true">{{ request.user.username|slice:':1'|upper }}</span>
+            <span class="portal-account-label"><strong>{{ request.user.get_short_name|default:request.user.username }}</strong><small>{{ administration_role|default:'User' }}</small></span>
+            <i class="fa-solid fa-chevron-down portal-chevron" aria-hidden="true"></i>
+        </summary>
+        <div class="portal-popover-panel portal-account-panel">
+            <div class="portal-account-details">
+                <strong>{{ request.user.get_full_name|default:request.user.username }}</strong>
+                <span>{{ administration_role|default:'User' }}</span>
+            </div>
+            <form action="{% url 'logout' %}" method="post">
+                {% csrf_token %}
+                <button type="submit"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i>Sign out</button>
+            </form>
+        </div>
+    </details>
+    {% endif %}
+</div>

@@ -1,0 +1,27 @@
+<dialog id="portal-mobile-navigation" class="portal-mobile-dialog no-print" aria-label="Main navigation">
+    <div data-mobile-sidebar></div>
+</dialog>
+<dialog class="portal-command no-print" aria-labelledby="portal-command-title" data-command-dialog>
+    <header>
+        <h2 id="portal-command-title">Find menu</h2>
+        <button type="button" class="portal-icon-button" data-close-dialog aria-label="Close menu search"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
+    </header>
+    <input id="portal-command-filter" type="search" placeholder="Find a page or action" aria-label="Find a page or action" autofocus>
+    <p class="portal-command-empty" data-command-empty role="status" hidden>No matching pages or actions.</p>
+    <div class="portal-command-results">
+        {% for group in nav_sections %}
+        <section data-command-group>
+            <h3>{{ group.label }}</h3>
+            {% for link in group.links %}
+            <a href="{{ link.url }}" data-command-result><i class="fa-solid {{ link.icon }}" aria-hidden="true"></i>{{ link.label }}</a>
+            {% endfor %}
+        </section>
+        {% endfor %}
+        <section data-command-group>
+            <h3>Quick actions</h3>
+            {% for action in nav_actions %}
+            <a href="{{ action.url }}" data-command-result><i class="fa-solid {{ action.icon }}" aria-hidden="true"></i>{{ action.label }}</a>
+            {% endfor %}
+        </section>
+    </div>
+</dialog>

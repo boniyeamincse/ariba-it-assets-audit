@@ -1,0 +1,541 @@
+{% extends 'base.html' %}
+
+{% block title %}Device Categories & Hardware Catalog | Akij Group IT Audit{% endblock %}
+{% block header_title %}Hardware Taxonomy & Device Catalog{% endblock %}
+{% block header_subtitle %}Standardized classifications, live asset metrics, and hardware tracking specifications{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Top KPI Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-slate-500 uppercase">Categories</p>
+                <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_categories }}</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-layer-group"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-blue-600 uppercase">Device Types</p>
+                <h3 class="text-2xl font-black text-blue-900 mt-1">{{ total_device_types }}</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-microchip"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-emerald-600 uppercase">Tracked Assets</p>
+                <h3 class="text-2xl font-black text-emerald-900 mt-1">{{ total_tracked_assets }}</h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-boxes-stacked"></i>
+            </div>
+        </div>
+
+        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+            <div>
+                <p class="text-xs font-semibold text-purple-600 uppercase">Serial vs Bulk</p>
+                <h3 class="text-lg font-black text-purple-900 mt-1">{{ serial_tracked_count }} <span class="text-xs text-slate-400 font-normal">Tagged</span> / {{ bulk_count_only }} <span class="text-xs text-slate-400 font-normal">Bulk</span></h3>
+            </div>
+            <div class="w-10 h-10 rounded-xl bg-purple-50 text-purple-600 flex items-center justify-center text-lg">
+                <i class="fa-solid fa-barcode"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Live Search & Action Bar -->
+    <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+        <!-- Live Instant Search -->
+        <div class="relative flex-1 max-w-md">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                <i class="fa-solid fa-magnifying-glass text-xs"></i>
+            </span>
+            <input type="text" id="liveSearchInput" onkeyup="filterDeviceTypes()" placeholder="Instant search device types (e.g. switch, printer, laptop, router)..."
+                   class="w-full pl-10 pr-9 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+            <span id="clearSearchBtn" onclick="clearLiveSearch()" class="absolute inset-y-0 right-0 flex items-center pr-3 text-slate-400 hover:text-slate-600 cursor-pointer hidden">
+                <i class="fa-solid fa-circle-xmark text-xs"></i>
+            </span>
+        </div>
+
+        <div class="flex items-center space-x-2.5">
+            <span id="searchResultsCount" class="text-xs text-slate-500 font-medium hidden"></span>
+            <button onclick="document.getElementById('newCategoryModal').classList.remove('hidden')" class="px-3.5 py-2 rounded-xl border border-slate-300 text-slate-700 font-bold text-xs hover:bg-slate-100 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-folder-plus text-indigo-600"></i>
+                <span>Add Category</span>
+            </button>
+            <a href="{% url 'asset_list' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3.5 rounded-xl text-xs shadow-md shadow-blue-600/20 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-boxes-stacked"></i>
+                <span>All Assets</span>
+            </a>
+        </div>
+    </div>
+
+    <form method="get" action="{% url 'category_list' %}" aria-label="Filter device catalog" class="flex flex-wrap items-end gap-3 rounded-xl border border-slate-200 bg-white p-4 text-sm">
+        <div class="space-y-1">
+            <label for="catalog-status" class="block text-xs font-semibold text-slate-700">Device status</label>
+            <select id="catalog-status" name="status" class="rounded-lg border border-slate-300 bg-white px-3 py-2">
+                <option value="">All statuses</option>
+                <option value="active" {% if catalog_status == 'active' %}selected{% endif %}>Active</option>
+                <option value="archived" {% if catalog_status == 'archived' %}selected{% endif %}>Archived</option>
+            </select>
+        </div>
+        <div class="space-y-1">
+            <label for="tracking-mode" class="block text-xs font-semibold text-slate-700">Tracking mode</label>
+            <select id="tracking-mode" name="tracking" class="rounded-lg border border-slate-300 bg-white px-3 py-2">
+                <option value="">All tracking modes</option>
+                <option value="tagged" {% if tracking_mode == 'tagged' %}selected{% endif %}>Tagged Asset</option>
+                <option value="bulk" {% if tracking_mode == 'bulk' %}selected{% endif %}>Bulk Stock</option>
+            </select>
+        </div>
+        <button type="submit" class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white">Apply filters</button>
+        {% if catalog_status or tracking_mode %}
+        <a href="{% url 'category_list' %}" class="px-2 py-2 font-medium text-blue-700">Clear filters</a>
+        {% endif %}
+    </form>
+
+    <!-- Categories Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {% for cat in categories %}
+        <div class="category-card bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col" data-cat-id="{{ cat.id }}">
+
+            <!-- Category Header -->
+            <div class="p-5 bg-gradient-to-r {% if cat.code == 'INFRASTRUCTURE' %}from-slate-900 to-indigo-950 text-white{% else %}from-slate-900 to-slate-800 text-white{% endif %} flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl {% if cat.code == 'INFRASTRUCTURE' %}bg-indigo-600{% else %}bg-blue-600{% endif %} flex items-center justify-center text-white text-base shadow-sm">
+                        {% if cat.code == 'INFRASTRUCTURE' %}
+                        <i class="fa-solid fa-server"></i>
+                        {% else %}
+                        <i class="fa-solid fa-desktop"></i>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div class="flex items-center space-x-2">
+                            <h4 class="font-bold text-base text-white">{{ cat.name }}</h4>
+                            <button type="button" data-rename-category data-category-id="{{ cat.pk }}" data-category-name="{{ cat.name }}" aria-label="Rename {{ cat.name }}" title="Rename category" class="text-slate-400 hover:text-white transition text-xs">
+                                <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                        <span class="text-[10px] uppercase font-mono px-2 py-0.5 rounded bg-white/10 text-white/80">
+                            {{ cat.code }}
+                        </span>
+                        {% if not cat.is_active %}<span class="ml-1 rounded bg-white/10 px-2 py-0.5 text-xs text-white">Archived</span>{% endif %}
+                    </div>
+                </div>
+                <div class="text-right">
+                    <span class="text-xs font-bold px-2.5 py-1 rounded-full bg-white/20 text-white block">
+                        {{ cat.devices.all|length }} Device Types
+                    </span>
+                    <span class="text-[10px] text-slate-300 font-medium mt-1 block">
+                        {{ cat.category_assets_count }} Physical Assets
+                    </span>
+                </div>
+            </div>
+
+            <!-- Device Types List -->
+            <div class="p-4 flex-1 max-h-[500px] overflow-y-auto space-y-2 divide-y divide-slate-100">
+                {% for dt in cat.devices.all %}
+                <div class="device-item-row pt-2 first:pt-0 flex items-center justify-between p-2.5 rounded-xl hover:bg-slate-50 border border-transparent hover:border-slate-200 transition group"
+                     data-name="{{ dt.name|lower }}" data-cat="{{ cat.name|lower }}">
+                    
+                    <!-- Left: Icon & Device Name -->
+                    <div class="flex items-center space-x-3 min-w-0 flex-1">
+                        <div class="w-8 h-8 rounded-lg bg-slate-100 text-slate-600 flex items-center justify-center text-xs flex-shrink-0 group-hover:bg-blue-50 group-hover:text-blue-600 transition">
+                            {% if 'laptop' in dt.name|lower %}
+                                <i class="fa-solid fa-laptop"></i>
+                            {% elif 'desktop' in dt.name|lower or 'pc' in dt.name|lower %}
+                                <i class="fa-solid fa-desktop"></i>
+                            {% elif 'printer' in dt.name|lower %}
+                                <i class="fa-solid fa-print"></i>
+                            {% elif 'scanner' in dt.name|lower %}
+                                <i class="fa-solid fa-barcode"></i>
+                            {% elif 'switch' in dt.name|lower %}
+                                <i class="fa-solid fa-network-wired"></i>
+                            {% elif 'router' in dt.name|lower %}
+                                <i class="fa-solid fa-route"></i>
+                            {% elif 'ap' in dt.name|lower or 'wifi' in dt.name|lower %}
+                                <i class="fa-solid fa-wifi"></i>
+                            {% elif 'camera' in dt.name|lower or 'nvr' in dt.name|lower or 'cctv' in dt.name|lower %}
+                                <i class="fa-solid fa-video"></i>
+                            {% elif 'server' in dt.name|lower or 'rack' in dt.name|lower %}
+                                <i class="fa-solid fa-server"></i>
+                            {% elif 'ups' in dt.name|lower or 'ips' in dt.name|lower %}
+                                <i class="fa-solid fa-bolt"></i>
+                            {% elif 'mouse' in dt.name|lower %}
+                                <i class="fa-solid fa-computer-mouse"></i>
+                            {% elif 'keyboard' in dt.name|lower or 'kyboard' in dt.name|lower %}
+                                <i class="fa-solid fa-keyboard"></i>
+                            {% elif 'headphone' in dt.name|lower or 'sound' in dt.name|lower %}
+                                <i class="fa-solid fa-headphones"></i>
+                            {% else %}
+                                <i class="fa-solid fa-microchip"></i>
+                            {% endif %}
+                        </div>
+
+                        <div class="truncate">
+                            <span class="font-bold text-xs text-slate-900 block truncate group-hover:text-blue-700 transition">
+                                {{ dt.name }}
+                            </span>
+                            <div class="flex items-center space-x-1.5 mt-0.5">
+                                {% if dt.is_count_only %}
+                                <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 text-slate-600 border border-slate-200">
+                                    <i class="fa-solid fa-arrow-down-1-9 mr-0.5 text-[8px]"></i> Bulk Stock
+                                </span>
+                                {% else %}
+                                <span class="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                    <i class="fa-solid fa-tag mr-0.5 text-[8px]"></i> Tagged Asset
+                                </span>
+                                {% endif %}
+                                {% if not dt.is_active or not cat.is_active %}
+                                <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">Archived</span>
+                                {% endif %}
+                                {% if dt.remarks %}
+                                <span class="text-[10px] text-slate-400 truncate max-w-[120px]">{{ dt.remarks }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Center: Asset Counts Status Badge -->
+                    <div class="flex items-center space-x-2 mx-2">
+                        {% if dt.total_assets > 0 %}
+                        <a href="{% url 'asset_list' %}?device_type={{ dt.pk }}" class="inline-flex items-center space-x-1.5 bg-blue-50 hover:bg-blue-100 border border-blue-200 px-2 py-1 rounded-lg text-[11px] font-bold text-blue-800 transition" title="View all assets of this type">
+                            <span>{{ dt.total_assets }} Assets</span>
+                            <span class="text-slate-300">•</span>
+                            <span class="text-emerald-700" title="In Use">{{ dt.in_use_assets }}<i class="fa-solid fa-circle text-[7px] text-emerald-500 ml-0.5"></i></span>
+                            {% if dt.backup_assets > 0 %}
+                            <span class="text-amber-700" title="Backup">{{ dt.backup_assets }}<i class="fa-solid fa-circle text-[7px] text-amber-500 ml-0.5"></i></span>
+                            {% endif %}
+                            {% if dt.faulty_assets > 0 %}
+                            <span class="text-red-700" title="Faulty">{{ dt.faulty_assets }}<i class="fa-solid fa-circle text-[7px] text-red-500 ml-0.5"></i></span>
+                            {% endif %}
+                        </a>
+                        {% else %}
+                        <span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded font-medium">0 Assets</span>
+                        {% endif %}
+                    </div>
+
+                    <!-- Right: Action Buttons (Edit & Delete) -->
+                    <div class="flex items-center space-x-1">
+                        <button onclick="openEditDeviceModal('{{ dt.id }}', '{{ dt.name|escapejs }}', '{{ cat.id }}', '{{ dt.is_count_only|yesno:'1,0' }}', '{{ dt.remarks|default:''|escapejs }}')"
+                                class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Edit / Rename Device Type">
+                            <i class="fa-solid fa-pen-to-square text-xs"></i>
+                        </button>
+                        <button onclick="openDeleteDeviceModal('{{ dt.id }}', '{{ dt.name|escapejs }}', {{ dt.total_assets }})"
+                                class="p-1.5 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 transition" title="Delete Device Type">
+                            <i class="fa-solid fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+
+                </div>
+                {% empty %}
+                <p class="text-xs text-slate-400 py-6 text-center italic">No device types registered in this category yet.</p>
+                {% endfor %}
+            </div>
+
+            <!-- Inline Quick Add Device Type Form -->
+            <div class="p-4 bg-slate-50 border-t border-slate-100">
+                <form method="POST" action="{% url 'category_list' %}{% querystring %}" class="space-y-2">
+                    {% csrf_token %}
+                    <input type="hidden" name="action_type" value="add_device">
+                    <input type="hidden" name="category_id" value="{{ cat.id }}">
+                    <div class="flex items-center space-x-2">
+                        <input type="text" name="name" required placeholder="Add device item under {{ cat.name }} (e.g. WiFi 6 AP, POS Terminal)..."
+                               class="flex-1 px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+                        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3.5 rounded-xl text-xs shadow-sm transition flex items-center space-x-1 whitespace-nowrap">
+                            <i class="fa-solid fa-plus"></i>
+                            <span>Add</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center space-x-4 px-1 text-[11px] text-slate-500">
+                        <label class="flex items-center space-x-1.5 cursor-pointer">
+                            <input type="checkbox" name="is_count_only" value="1" class="rounded text-indigo-600 h-3.5 w-3.5">
+                            <span>Bulk Count Only (Peripherals / No Serial Tag needed)</span>
+                        </label>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+        {% empty %}
+        <p class="rounded-xl border border-slate-200 bg-white p-6 text-sm text-slate-600 lg:col-span-2">{% if catalog_status or tracking_mode %}No device types match the selected filters.{% else %}No device categories have been added yet.{% endif %}</p>
+        {% endfor %}
+    </div>
+
+</div>
+
+<!-- Modal: Edit Device Type -->
+<div id="editDeviceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-pen-to-square text-blue-400 text-lg"></i>
+                <h3 class="font-bold text-base">Edit Device Specification</h3>
+            </div>
+            <button onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'category_list' %}{% querystring %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action_type" value="edit_device">
+            <input type="hidden" name="device_id" id="editDevId">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Device Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="name" id="editDevName" required
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Category <span class="text-red-500">*</span>
+                </label>
+                <select name="category_id" id="editDevCat" required
+                        class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    {% for cat in all_categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.code }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Tracking Mode</label>
+                <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
+                    <label class="flex items-center space-x-2.5 cursor-pointer">
+                        <input type="checkbox" name="is_count_only" id="editDevCountOnly" value="1" class="rounded text-blue-600 h-4 w-4">
+                        <span class="text-xs font-semibold text-slate-800">Bulk Stock Count Only (No individual Tag / Serial required)</span>
+                    </label>
+                    <p class="text-[10px] text-slate-400 pl-6.5">Leave unchecked for high-value assets requiring barcode tag and serial number tracking.</p>
+                </div>
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Remarks / Specifications Notes</label>
+                <input type="text" name="remarks" id="editDevRemarks" placeholder="e.g. Standard 14-inch business laptop specification"
+                       class="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('editDeviceModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Changes</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Delete Device Confirmation -->
+<div id="deleteDeviceModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-red-200 overflow-hidden transform transition-all">
+        <div class="p-5 bg-red-600 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-triangle-exclamation text-white text-lg"></i>
+                <h3 class="font-bold text-base">Delete Device Type</h3>
+            </div>
+            <button onclick="document.getElementById('deleteDeviceModal').classList.add('hidden')" class="text-white/80 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'category_list' %}{% querystring %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action_type" value="delete_device">
+            <input type="hidden" name="device_id" id="deleteDevId">
+
+            <p class="text-sm text-slate-700">
+                Are you sure you want to delete <span id="deleteDevName" class="font-bold text-slate-900"></span>?
+            </p>
+
+            <div id="deleteDevWarningBox" class="p-3 bg-red-50 border border-red-200 rounded-xl text-xs text-red-800 hidden">
+                <i class="fa-solid fa-ban text-red-600 mr-1"></i>
+                <strong>Notice:</strong> This device type currently has <span id="deleteDevAssetCount" class="font-black"></span> physical asset(s) linked in inventory. Django will reject deletion until those assets are reassigned or removed.
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('deleteDeviceModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
+                    Cancel
+                </button>
+                <button type="submit" id="confirmDeleteDevBtn" class="px-5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-trash-can"></i>
+                    <span>Confirm Delete</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Edit Category Modal -->
+<div id="editCategoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-pen-to-square text-indigo-400 text-lg"></i>
+                <h3 class="font-bold text-base">Rename Category</h3>
+            </div>
+            <button onclick="document.getElementById('editCategoryModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'category_list' %}{% querystring %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action_type" value="edit_category">
+            <input type="hidden" name="category_id" id="editCatId">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Category Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="category_name" id="editCatName" required
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('editCategoryModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>Save Name</span>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add New Category -->
+<div id="newCategoryModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden transform transition-all">
+        <div class="p-5 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-folder-plus text-indigo-400 text-lg"></i>
+                <h3 class="font-bold text-base">Create New Category</h3>
+            </div>
+            <button onclick="document.getElementById('newCategoryModal').classList.add('hidden')" class="text-slate-400 hover:text-white">
+                <i class="fa-solid fa-xmark text-lg"></i>
+            </button>
+        </div>
+        <form method="POST" action="{% url 'category_list' %}{% querystring %}" class="p-6 space-y-4">
+            {% csrf_token %}
+            <input type="hidden" name="action_type" value="add_category">
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Category Name <span class="text-red-500">*</span>
+                </label>
+                <input type="text" name="category_name" required placeholder="e.g. Surveillance & Security"
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div>
+                <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                    Category Code <span class="text-slate-400 font-normal">(Auto if blank)</span>
+                </label>
+                <input type="text" name="category_code" placeholder="e.g. SURVEILLANCE_SECURITY"
+                       class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono uppercase text-slate-800 focus:bg-white focus:ring-2 focus:ring-indigo-500 focus:outline-none">
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-end space-x-3">
+                <button type="button" onclick="document.getElementById('newCategoryModal').classList.add('hidden')" class="px-4 py-2 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
+                    Cancel
+                </button>
+                <button type="submit" class="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs shadow-md transition">
+                    Create Category
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Interactive JS Logic -->
+<script>
+function filterDeviceTypes() {
+    var query = document.getElementById('liveSearchInput').value.trim().toLowerCase();
+    var clearBtn = document.getElementById('clearSearchBtn');
+    var countLabel = document.getElementById('searchResultsCount');
+
+    if (query.length > 0) {
+        clearBtn.classList.remove('hidden');
+    } else {
+        clearBtn.classList.add('hidden');
+    }
+
+    var items = document.querySelectorAll('.device-item-row');
+    var visibleCount = 0;
+
+    items.forEach(function(item) {
+        var name = item.getAttribute('data-name') || '';
+        var cat = item.getAttribute('data-cat') || '';
+        if (query === '' || name.includes(query) || cat.includes(query)) {
+            item.style.display = 'flex';
+            visibleCount++;
+        } else {
+            item.style.display = 'none';
+        }
+    });
+
+    if (query.length > 0) {
+        countLabel.textContent = visibleCount + ' matching device type(s)';
+        countLabel.classList.remove('hidden');
+    } else {
+        countLabel.classList.add('hidden');
+    }
+}
+
+function clearLiveSearch() {
+    var input = document.getElementById('liveSearchInput');
+    input.value = '';
+    filterDeviceTypes();
+    input.focus();
+}
+
+function openEditDeviceModal(id, name, catId, isCountOnly, remarks) {
+    document.getElementById('editDevId').value = id;
+    document.getElementById('editDevName').value = name;
+    document.getElementById('editDevCat').value = catId;
+    document.getElementById('editDevCountOnly').checked = (isCountOnly === '1' || isCountOnly === 1 || isCountOnly === true);
+    document.getElementById('editDevRemarks').value = remarks || '';
+    document.getElementById('editDeviceModal').classList.remove('hidden');
+}
+
+function openDeleteDeviceModal(id, name, assetCount) {
+    document.getElementById('deleteDevId').value = id;
+    document.getElementById('deleteDevName').textContent = name;
+    var warnBox = document.getElementById('deleteDevWarningBox');
+    var btn = document.getElementById('confirmDeleteDevBtn');
+
+    if (assetCount > 0) {
+        document.getElementById('deleteDevAssetCount').textContent = assetCount;
+        warnBox.classList.remove('hidden');
+        btn.classList.add('opacity-50', 'cursor-not-allowed');
+        btn.disabled = true;
+    } else {
+        warnBox.classList.add('hidden');
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+        btn.disabled = false;
+    }
+    document.getElementById('deleteDeviceModal').classList.remove('hidden');
+}
+
+document.querySelectorAll('[data-rename-category]').forEach((button) => {
+    button.addEventListener('click', () => {
+        const nameField = document.getElementById('editCatName');
+        document.getElementById('editCatId').value = button.dataset.categoryId;
+        nameField.value = button.dataset.categoryName;
+        document.getElementById('editCategoryModal').classList.remove('hidden');
+        nameField.focus();
+    });
+});
+</script>
+{% endblock %}

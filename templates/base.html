@@ -1,0 +1,96 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="{{ portal.language }}" data-theme="{{ portal.default_theme }}" style="--portal-primary:{{ portal.primary_color }};--portal-secondary:{{ portal.secondary_color }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}{{ portal.application_name }} | {{ portal.organization_name }}{% endblock %}</title>
+    {% if portal.favicon %}<link rel="icon" href="{{ portal.favicon }}">{% endif %}
+    {% if portal.application_description %}<meta name="description" content="{{ portal.application_description }}">{% endif %}
+    {% if portal.application_url %}<meta name="application-url" content="{{ portal.application_url }}">{% endif %}
+    <link rel="stylesheet" href="{% static 'css/portal-preferences.css' %}">
+    <link rel="stylesheet" href="{% static 'css/portal-shell.css' %}">
+    <noscript><style>
+        .portal-mobile-open, .portal-sidebar-collapse, .portal-quick-button { display: none; }
+        @media (max-width: 767px) { #portal-sidebar-home { display: block; } .portal-sidebar { width: 100%; height: auto; } }
+    </style></noscript>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        @media print {
+            .no-print { display: none !important; }
+            .print-only { display: block !important; }
+            body { background: white !important; }
+        }
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="portal-shell bg-slate-100 text-slate-800 antialiased min-h-screen">
+    <a class="portal-skip-link no-print" href="#main-content">Skip to content</a>
+    {% if nav_sections %}
+    <div id="portal-sidebar-home" class="portal-sidebar-home no-print">
+        {% include 'navigation/sidebar.html' %}
+    </div>
+    {% endif %}
+
+    <div class="portal-workspace">
+        <header class="portal-topbar no-print">
+            <div class="portal-topbar-context">
+                {% if nav_sections %}
+                <button type="button" class="portal-icon-button portal-mobile-open" data-open-mobile aria-controls="portal-mobile-navigation" aria-haspopup="dialog" aria-label="Open navigation">
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                </button>
+                {% endif %}
+                {% if nav_current %}
+                <nav class="portal-breadcrumb" aria-label="Breadcrumb">
+                    <ol>
+                        <li>{{ nav_current.group }}</li>
+                        <li aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></li>
+                        {% if nav_current.subpage %}
+                        <li><a href="{{ nav_current.url }}">{{ nav_current.label }}</a></li>
+                        <li aria-hidden="true"><i class="fa-solid fa-chevron-right"></i></li>
+                        <li aria-current="page">{{ nav_current.subpage }}</li>
+                        {% else %}
+                        <li aria-current="page">{{ nav_current.label }}</li>
+                        {% endif %}
+                    </ol>
+                </nav>
+                {% endif %}
+            </div>
+            {% include 'navigation/actions.html' %}
+        </header>
+
+        <div class="portal-page-heading no-print">
+            <h1>{% block header_title %}Executive Dashboard{% endblock %}</h1>
+            <p>{% block header_subtitle %}IT Assets Audit Across Head Office, Factories & Depots{% endblock %}</p>
+        </div>
+
+        <!-- Flash Messages -->
+        {% if messages %}
+        <div class="px-6 pt-4 no-print">
+            {% for message in messages %}
+            <div class="p-4 mb-3 rounded-lg text-sm font-medium {% if message.tags == 'success' %}bg-emerald-50 text-emerald-800 border border-emerald-200{% elif message.tags == 'error' %}bg-red-50 text-red-800 border border-red-200{% else %}bg-blue-50 text-blue-800 border border-blue-200{% endif %} flex items-center space-x-2">
+                <i class="fa-solid fa-circle-check"></i>
+                <span>{{ message }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Page Body -->
+        <main id="main-content" class="portal-page-content" tabindex="-1">
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+
+    {% if nav_sections %}{% include 'navigation/dialogs.html' %}{% endif %}
+    <script src="{% static 'js/portal-navigation.js' %}" defer></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

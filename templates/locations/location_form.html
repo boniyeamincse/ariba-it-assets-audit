@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}{% if location %}Edit {{ location.name }}{% else %}Add location{% endif %} | {{ portal.application_short_name }}{% endblock %}
+{% block header_title %}{% if location %}Edit {{ location.name }}{% else %}Add location{% endif %}{% endblock %}
+{% block header_subtitle %}{% endblock %}
+
+{% block content %}
+<form method="post" class="max-w-4xl space-y-5" {% if form.errors %}aria-describedby="location-form-errors"{% endif %}>
+    {% csrf_token %}
+    {% if form.errors %}
+    <div id="location-form-errors" role="alert" class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-800">
+        {% if form.non_field_errors %}{{ form.non_field_errors }}{% else %}Check the highlighted fields before saving.{% endif %}
+    </div>
+    {% endif %}
+
+    {% for title, fields in form.sections %}
+    <fieldset class="rounded-xl border border-slate-200 bg-white p-4 sm:p-5">
+        <legend class="px-1 text-base font-semibold text-slate-900">{{ title }}</legend>
+        <div class="grid gap-4 sm:grid-cols-2">
+            {% for field in fields %}
+            <div class="min-w-0 space-y-1 text-sm {% if field.field.widget.attrs.rows %}sm:col-span-2{% endif %} [&_label]:block [&_label]:font-medium [&_label]:text-slate-700 [&_input]:w-full [&_select]:w-full [&_textarea]:w-full [&_input]:rounded-lg [&_select]:rounded-lg [&_textarea]:rounded-lg [&_input]:border [&_select]:border [&_textarea]:border [&_input]:border-slate-300 [&_select]:border-slate-300 [&_textarea]:border-slate-300 [&_input]:bg-white [&_select]:bg-white [&_textarea]:bg-white [&_input]:px-3 [&_select]:px-3 [&_textarea]:px-3 [&_input]:py-2 [&_select]:py-2 [&_textarea]:py-2 [&_:disabled]:bg-slate-100 [&_:disabled]:text-slate-600 [&_[aria-invalid=true]]:border-red-500 [&_.errorlist]:text-red-700">
+                {{ field.label_tag }}{{ field }}
+                {% if field.help_text %}<p class="text-xs text-slate-600" id="{{ field.auto_id }}_helptext">{{ field.help_text }}</p>{% endif %}
+                {{ field.errors }}
+            </div>
+            {% endfor %}
+        </div>
+    </fieldset>
+    {% endfor %}
+
+    <div class="flex flex-wrap items-center gap-3">
+        <button type="submit" class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">{% if location %}Save changes{% else %}Add location{% endif %}</button>
+        <a href="{% url 'location_list' %}" class="rounded-lg px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-100">Cancel</a>
+    </div>
+</form>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    (() => {
+        const company = document.getElementById('id_company');
+        const parent = document.getElementById('id_parent_location');
+        function filterParentLocations() {
+            const companyId = company.value || company.dataset.defaultCompany;
+            for (const option of parent.options) {
+                if (!option.value) continue;
+                const available = option.dataset.company === companyId;
+                option.hidden = !available && !option.selected;
+                option.disabled = !available && !option.selected;
+            }
+        }
+        company.addEventListener('change', () => {
+            const companyId = company.value || company.dataset.defaultCompany;
+            if (parent.selectedOptions[0]?.dataset.company !== companyId) parent.value = '';
+            filterParentLocations();
+        });
+        filterParentLocations();
+    })();
+</script>
+{% endblock %}

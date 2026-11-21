@@ -1,0 +1,28 @@
+:root {
+    --portal-primary: #2563eb;
+    --portal-secondary: #0f172a;
+}
+.portal-sidebar, .portal-login-shell { background: var(--portal-secondary); }
+.portal-brand, .portal-login-banner, .bg-blue-600 { background-color: var(--portal-primary); }
+.portal-dashboard[data-layout="compact"] { --portal-dashboard-spacing: .75rem; }
+.portal-dashboard[data-layout="compact"] > * + * { margin-top: var(--portal-dashboard-spacing); }
+.portal-dashboard[data-layout="compact"] .grid { gap: var(--portal-dashboard-spacing); }
+.portal-dashboard[data-layout="compact"] .p-5 { padding: .875rem; }
+@media screen {
+    [data-theme="dark"] { color-scheme: dark; }
+    [data-theme="dark"] body { background-color: #0b1220; color: #e2e8f0; }
+    [data-theme="dark"] :is(.bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-100\/70) { background-color: #172336; }
+    [data-theme="dark"] :is(.text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600) { color: #e2e8f0; }
+    [data-theme="dark"] :is(.text-slate-500, .text-slate-400) { color: #b1bed1; }
+    [data-theme="dark"] :is(.border-slate-200, .border-slate-300) { border-color: #3a4861; }
+    [data-theme="dark"] :is(input, textarea, select) { background-color: #0b1220; color: #e2e8f0; }
+}
+@media screen and (prefers-color-scheme: dark) {
+    [data-theme="system"] { color-scheme: dark; }
+    [data-theme="system"] body { background-color: #0b1220; color: #e2e8f0; }
+    [data-theme="system"] :is(.bg-white, .bg-slate-50, .bg-slate-100, .bg-slate-100\/70) { background-color: #172336; }
+    [data-theme="system"] :is(.text-slate-900, .text-slate-800, .text-slate-700, .text-slate-600) { color: #e2e8f0; }
+    [data-theme="system"] :is(.text-slate-500, .text-slate-400) { color: #b1bed1; }
+    [data-theme="system"] :is(.border-slate-200, .border-slate-300) { border-color: #3a4861; }
+    [data-theme="system"] :is(input, textarea, select) { background-color: #0b1220; color: #e2e8f0; }
+}

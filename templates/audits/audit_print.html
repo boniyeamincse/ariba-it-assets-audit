@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IT Audit Report - {{ audit.location.name }} ({{ audit.audit_date|date:portal.date_format }})</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @media print {
+            .no-print { display: none !important; }
+            body { font-size: 11px; color: #000; background: #fff; }
+            table { page-break-inside: auto; }
+            tr { page-break-inside: avoid; page-break-after: auto; }
+            .print-page { padding: 0; margin: 0; }
+        }
+        @page {
+            size: A4;
+            margin: 12mm 15mm;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 p-6 md:p-10">
+
+    <div class="max-w-4xl mx-auto bg-white p-8 rounded-xl shadow-md border border-slate-200 print-page print:border-none print:shadow-none">
+
+        <!-- Top Floating Print Bar (Hidden in Print) -->
+        <div class="no-print mb-6 p-4 bg-slate-900 text-white rounded-lg flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <i class="fa-solid fa-file-pdf text-amber-400 text-xl"></i>
+                <span class="text-sm font-semibold">Official Executive Print View for Sir / Management</span>
+            </div>
+            <div class="flex items-center space-x-3">
+                <button onclick="window.print()" class="bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold px-4 py-2 rounded shadow transition flex items-center space-x-1.5">
+                    <i class="fa-solid fa-print"></i>
+                    <span>Print / Save as PDF</span>
+                </button>
+                <a href="{% url 'audit_detail' audit.id %}" class="bg-slate-700 hover:bg-slate-600 text-white text-xs font-medium px-3 py-2 rounded transition">
+                    Back to Details
+                </a>
+            </div>
+        </div>
+
+        <!-- Official Header -->
+        <div class="border-b-2 border-slate-900 pb-4 text-center">
+            {% if portal.group_logo %}<img src="{{ portal.group_logo }}" alt="" class="mx-auto mb-2 h-12 object-contain">{% endif %}
+            <h1 class="text-2xl font-black text-slate-900 tracking-wide uppercase">{{ portal.group_name|default:portal.organization_name }}</h1>
+            {% if portal.group_address %}<p class="text-xs text-slate-600">{{ portal.group_address }}</p>{% endif %}
+            {% if portal.city or portal.country %}<p class="text-xs text-slate-600">{% if portal.city %}{{ portal.city }}{% if portal.country %}, {% endif %}{% endif %}{{ portal.country }}</p>{% endif %}
+            {% if portal.contact_email or portal.contact_number or portal.website %}
+            <p class="text-xs text-slate-600">
+                {% if portal.contact_email %}<span class="mr-2">{{ portal.contact_email }}</span>{% endif %}
+                {% if portal.contact_number %}<span class="mr-2">{{ portal.contact_number }}</span>{% endif %}
+                {% if portal.website %}<span>{{ portal.website }}</span>{% endif %}
+            </p>
+            {% endif %}
+            <h2 class="text-sm font-bold text-slate-700 uppercase tracking-wider mt-0.5">IT Asset Audit & Physical Stock Count Report</h2>
+            <p class="text-xs text-slate-500 mt-1">Information Technology Department | Central Audit Division</p>
+        </div>
+
+        <!-- Location & Session Metadata -->
+        <div class="my-5 p-4 bg-slate-50 border border-slate-200 rounded-lg text-xs grid grid-cols-2 gap-y-2">
+            <div>
+                <span class="font-bold text-slate-600">Company / Unit:</span>
+                <span class="font-semibold text-slate-900 ml-1">{{ audit.location.company.name }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Audit Date:</span>
+                <span class="font-semibold text-slate-900 ml-1">{{ audit.audit_date|date:portal.date_format }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Location ID:</span>
+                <span class="font-mono font-bold text-blue-900 bg-white border border-slate-300 px-1.5 py-0.5 rounded ml-1">{{ audit.location.location_id }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Location Name:</span>
+                <span class="font-bold text-blue-900 ml-1">{{ audit.location.name }} ({{ audit.location.get_location_type_display }})</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Audited By:</span>
+                <span class="font-semibold text-slate-900 ml-1">{{ audit.auditor_name }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Site In-Charge:</span>
+                <span class="font-semibold text-slate-900 ml-1">{{ audit.verified_by_name|default:'Factory In-Charge' }}</span>
+            </div>
+            <div>
+                <span class="font-bold text-slate-600">Audit Status:</span>
+                <span class="font-bold text-emerald-800 ml-1 uppercase">{{ audit.get_status_display }}</span>
+            </div>
+        </div>
+
+        <!-- Summary Metric Badges -->
+        <div class="grid grid-cols-4 gap-3 mb-6 text-center text-xs">
+            <div class="p-2.5 border border-slate-300 rounded bg-slate-50">
+                <span class="text-slate-500 block font-medium">Total IT Assets</span>
+                <span class="text-base font-black text-slate-900">{{ audit.total_qty }}</span>
+            </div>
+            <div class="p-2.5 border border-slate-300 rounded bg-slate-50">
+                <span class="text-slate-500 block font-medium">Infrastructure</span>
+                <span class="text-base font-black text-indigo-900">{{ audit.total_infrastructure }}</span>
+            </div>
+            <div class="p-2.5 border border-slate-300 rounded bg-slate-50">
+                <span class="text-slate-500 block font-medium">End-User Devices</span>
+                <span class="text-base font-black text-emerald-900">{{ audit.total_users }}</span>
+            </div>
+            <div class="p-2.5 border border-slate-300 rounded bg-slate-50">
+                <span class="text-slate-500 block font-medium">Backup / Spare</span>
+                <span class="text-base font-black text-amber-900">{{ audit.total_backup }}</span>
+            </div>
+        </div>
+
+        <!-- Tables -->
+        <div class="space-y-6">
+
+            <!-- 1. Infrastructure Table -->
+            <div>
+                <div class="bg-slate-800 text-white px-3 py-1.5 font-bold text-xs flex justify-between">
+                    <span>SECTION A: INFRASTRUCTURE & NETWORK ASSETS</span>
+                    <span>Sub-Total: {{ audit.total_infrastructure }}</span>
+                </div>
+                <table class="w-full border-collapse border border-slate-300 text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 font-bold border-b border-slate-300">
+                            <th class="border border-slate-300 px-2 py-1 text-center w-8">SL</th>
+                            <th class="border border-slate-300 px-3 py-1 text-left">Device Type</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Active</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Backup</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Faulty</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-20 bg-slate-200">Total Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in infra_items %}
+                        <tr class="border-b border-slate-200">
+                            <td class="border border-slate-300 px-2 py-1 text-center text-slate-500">{{ forloop.counter }}</td>
+                            <td class="border border-slate-300 px-3 py-1 font-medium">{{ item.device_type.name }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.active_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.backup_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.faulty_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center font-bold bg-slate-100">{{ item.total_qty }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- 2. Users Table -->
+            <div>
+                <div class="bg-slate-800 text-white px-3 py-1.5 font-bold text-xs flex justify-between">
+                    <span>SECTION B: USERS / END-USER IT ASSETS</span>
+                    <span>Sub-Total: {{ audit.total_users }}</span>
+                </div>
+                <table class="w-full border-collapse border border-slate-300 text-xs">
+                    <thead>
+                        <tr class="bg-slate-100 font-bold border-b border-slate-300">
+                            <th class="border border-slate-300 px-2 py-1 text-center w-8">SL</th>
+                            <th class="border border-slate-300 px-3 py-1 text-left">Device Type</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Active</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Backup</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-16">Faulty</th>
+                            <th class="border border-slate-300 px-2 py-1 text-center w-20 bg-slate-200">Total Qty</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in user_items %}
+                        <tr class="border-b border-slate-200">
+                            <td class="border border-slate-300 px-2 py-1 text-center text-slate-500">{{ forloop.counter }}</td>
+                            <td class="border border-slate-300 px-3 py-1 font-medium">{{ item.device_type.name }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.active_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.backup_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center">{{ item.faulty_qty }}</td>
+                            <td class="border border-slate-300 px-2 py-1 text-center font-bold bg-slate-100">{{ item.total_qty }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+
+        <!-- Grand Total Summary Row -->
+        <div class="mt-4 p-3 bg-slate-900 text-white rounded text-xs flex items-center justify-between font-bold">
+            <span class="tracking-wider uppercase">GRAND TOTAL VERIFIED DEVICES:</span>
+            <span class="text-base text-amber-400 font-black">{{ audit.total_qty }} UNITS</span>
+        </div>
+
+        <!-- Remarks -->
+        {% if audit.remarks %}
+        <div class="mt-4 p-3 bg-slate-50 border border-slate-200 rounded text-xs text-slate-700">
+            <strong class="text-slate-900">Audit Remarks / Notes:</strong> {{ audit.remarks }}
+        </div>
+        {% endif %}
+
+        <!-- Official Signatures Block -->
+        <div class="mt-14 pt-8 border-t border-slate-300 grid grid-cols-3 gap-6 text-center text-xs">
+            <div>
+                <div class="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-800">
+                    {{ audit.auditor_name }}
+                </div>
+                <span class="text-slate-500 block">Audited By (IT Department)</span>
+            </div>
+            <div>
+                <div class="border-b border-slate-400 pb-1 mb-1 font-semibold text-slate-800">
+                    {{ audit.verified_by_name|default:'Factory In-Charge' }}
+                </div>
+                <span class="text-slate-500 block">Verified By (Location Head)</span>
+            </div>
+            <div>
+                <div class="border-b border-slate-400 pb-1 mb-1 font-bold text-slate-900">
+                    {{ audit.approved_by_name|default:'Executive Director / Sir' }}
+                </div>
+                <span class="text-slate-500 block font-semibold text-blue-900">Approved By (Management / Sir)</span>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>
