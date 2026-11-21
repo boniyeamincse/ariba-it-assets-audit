@@ -2,30 +2,30 @@
 
 {% block title %}Bulk Import Assets (CSV) | Akij Group IT Audit{% endblock %}
 {% block header_title %}Bulk Import IT Assets{% endblock %}
-{% block header_subtitle %}Rapidly register hardware inventory location-wise via CSV spreadsheet upload{% endblock %}
+{% block header_subtitle %}Rapidly register physical hardware &amp; logical software assets location-wise via CSV upload{% endblock %}
 
 {% block content %}
-<div class="max-w-4xl mx-auto space-y-6">
+<div class="max-w-5xl mx-auto space-y-6">
 
     <!-- Header Actions Card -->
     <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div class="flex items-center space-x-3">
-            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm">
+        <div class="flex items-center space-x-3.5">
+            <div class="w-12 h-12 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-xl shadow-sm border border-blue-100">
                 <i class="fa-solid fa-file-csv"></i>
             </div>
             <div>
                 <h3 class="font-bold text-lg text-slate-900">CSV Bulk Asset Ingestion</h3>
-                <p class="text-xs text-slate-500">Easily import batches from Excel, vendor delivery sheets, or field audit logs</p>
+                <p class="text-xs text-slate-500">Import inventory from site audits, ERP dumps, vendor delivery sheets, or software license lists</p>
             </div>
         </div>
-        <div class="flex items-center space-x-3">
-            <a href="{% url 'asset_sample_csv' %}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md shadow-emerald-600/20 transition flex items-center space-x-2">
-                <i class="fa-solid fa-download"></i>
-                <span>Download Sample CSV</span>
-            </a>
-            <a href="{% url 'asset_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition flex items-center space-x-1.5">
+        <div class="flex items-center space-x-2.5">
+            <a href="{% url 'asset_list' %}" class="px-4 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition flex items-center space-x-1.5 shadow-xs">
                 <i class="fa-solid fa-arrow-left"></i>
                 <span>Back to Assets</span>
+            </a>
+            <a href="{% url 'asset_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl text-xs shadow-md shadow-blue-600/20 transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-plus"></i>
+                <span>Register Single Asset</span>
             </a>
         </div>
     </div>
@@ -92,20 +92,156 @@
     </div>
     {% endif %}
 
-    <!-- Upload Form Card -->
+    <!-- ========================================== -->
+    <!-- STEP 1: DOWNLOAD CSV TEMPLATE OPTIONS CARD -->
+    <!-- ========================================== -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
-        <div class="p-6 bg-slate-900 text-white flex items-center justify-between border-b border-slate-800">
-            <div>
-                <h3 class="font-bold text-base">Select CSV Spreadsheet</h3>
-                <p class="text-xs text-slate-400">Choose a UTF-8 or Excel CSV file from your computer</p>
+        <div class="p-5 bg-gradient-to-r from-emerald-900 to-teal-900 text-white flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-emerald-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-emerald-500/20 text-emerald-300 flex items-center justify-center text-lg border border-emerald-500/30">
+                    <i class="fa-solid fa-file-arrow-down"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base flex items-center gap-2">
+                        <span>Step 1: Download CSV Template</span>
+                        <span class="text-[10px] bg-emerald-400 text-emerald-950 font-black px-2 py-0.5 rounded-full uppercase">Download Options</span>
+                    </h3>
+                    <p class="text-xs text-emerald-200/80">Select target location &amp; asset type to generate a tailored CSV template with valid formatting</p>
+                </div>
             </div>
-            <div class="w-8 h-8 rounded-lg bg-blue-600/30 text-blue-400 flex items-center justify-center">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
+            <!-- Quick Chips -->
+            <div class="flex items-center gap-2 text-xs">
+                <a href="{% url 'asset_sample_csv' %}?nature=PHYSICAL" class="px-2.5 py-1 bg-emerald-800/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700 rounded-lg transition font-medium text-[11px]" title="Quick Hardware Sample">
+                    <i class="fa-solid fa-desktop mr-1"></i>Hardware CSV
+                </a>
+                <a href="{% url 'asset_sample_csv' %}?nature=LOGICAL" class="px-2.5 py-1 bg-emerald-800/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700 rounded-lg transition font-medium text-[11px]" title="Quick Logical & Software Sample">
+                    <i class="fa-solid fa-cloud mr-1"></i>Software CSV
+                </a>
+                <a href="{% url 'asset_sample_csv' %}?blank=yes" class="px-2.5 py-1 bg-emerald-800/60 hover:bg-emerald-800 text-emerald-200 border border-emerald-700 rounded-lg transition font-medium text-[11px]" title="Empty Template">
+                    <i class="fa-solid fa-table mr-1"></i>Blank Headers
+                </a>
             </div>
         </div>
 
-        <form method="POST" enctype="multipart/form-data" class="p-8 space-y-6">
+        <div class="p-6 bg-slate-50/60 border-b border-slate-200/70">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-5 items-end">
+                <!-- Location Option for Download -->
+                <div>
+                    <label for="templateLocationSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-location-dot text-emerald-600"></i>
+                        <span>Select Location for Template</span>
+                    </label>
+                    <select id="templateLocationSelect" onchange="updateDownloadUrls()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs">
+                        <option value="">All Locations (Generic Template)</option>
+                        {% for loc in locations %}
+                        <option value="{{ loc.id }}">[{{ loc.location_id }}] {{ loc.name }} ({{ loc.get_location_type_display }})</option>
+                        {% endfor %}
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Pre-fills location code in sample rows</p>
+                </div>
+
+                <!-- Asset Nature Option for Download -->
+                <div>
+                    <label for="templateNatureSelect" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <i class="fa-solid fa-layer-group text-emerald-600"></i>
+                        <span>Asset Type / Nature</span>
+                    </label>
+                    <select id="templateNatureSelect" onchange="updateDownloadUrls()" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-emerald-500 focus:outline-none shadow-xs">
+                        <option value="PHYSICAL">Physical Hardware (Laptop, Desktop, Switch, Router, Printer)</option>
+                        <option value="LOGICAL">Logical &amp; Virtual (Software Licenses, ERP, Cloud VMs, SSL)</option>
+                        <option value="ALL">Comprehensive All-in-One (Physical + Logical Combined)</option>
+                    </select>
+                    <p class="text-[11px] text-slate-400 mt-1">Customizes column headers &amp; sample entries</p>
+                </div>
+
+                <!-- Action Download Buttons -->
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <a id="btnDownloadSample" href="{% url 'asset_sample_csv' %}" class="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3 rounded-xl text-xs shadow-md shadow-emerald-600/20 transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-download"></i>
+                        <span>Sample CSV</span>
+                    </a>
+                    <a id="btnDownloadBlank" href="{% url 'asset_sample_csv' %}?blank=yes" class="flex-1 bg-slate-800 hover:bg-slate-900 text-white font-bold py-2.5 px-3 rounded-xl text-xs shadow-md transition flex items-center justify-center space-x-1.5">
+                        <i class="fa-solid fa-file-excel"></i>
+                        <span>Blank CSV</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ======================================================= -->
+    <!-- STEP 2: UPLOAD CSV & SELECT LOCATION CONFIGURATION FORM -->
+    <!-- ======================================================= -->
+    <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+        <div class="p-5 bg-gradient-to-r from-slate-900 to-blue-950 text-white flex items-center justify-between border-b border-slate-800">
+            <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 rounded-xl bg-blue-500/20 text-blue-300 flex items-center justify-center text-lg border border-blue-500/30">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                </div>
+                <div>
+                    <h3 class="font-bold text-base flex items-center gap-2">
+                        <span>Step 2: Upload CSV &amp; Location Assignment</span>
+                        <span class="text-[10px] bg-blue-400 text-blue-950 font-black px-2 py-0.5 rounded-full uppercase">Ingestion</span>
+                    </h3>
+                    <p class="text-xs text-slate-400">Configure target location assignment and upload your completed spreadsheet</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="p-6 md:p-8 space-y-6">
             {% csrf_token %}
+
+            <!-- Location Selection & Assignment Options Box -->
+            <div class="p-5 bg-blue-50/50 border border-blue-200/70 rounded-2xl space-y-4">
+                <div class="flex items-center justify-between">
+                    <label class="block text-xs font-bold text-blue-950 uppercase tracking-wider flex items-center gap-2">
+                        <i class="fa-solid fa-building-circle-check text-blue-600 text-sm"></i>
+                        <span>Target Location Assignment Option</span>
+                    </label>
+                    <span class="text-[11px] text-blue-700 font-semibold bg-blue-100 px-2 py-0.5 rounded-md">Location Management</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 items-start">
+                    <!-- Location Dropdown -->
+                    <div>
+                        <label for="id_target_location" class="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Select Akij Group Location:
+                        </label>
+                        <select name="target_location" id="id_target_location" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:outline-none shadow-xs">
+                            <option value="">-- No specific location (Row in CSV must specify location) --</option>
+                            {% for loc in locations %}
+                            <option value="{{ loc.id }}" {% if selected_location_id == loc.id|stringformat:"s" %}selected{% endif %}>
+                                [{{ loc.location_id }}] {{ loc.name }} &bull; {{ loc.get_location_type_display }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Choose the location where the uploaded assets will be assigned.</span>
+                    </div>
+
+                    <!-- Location Mode Strategy -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1.5">
+                            Location Assignment Strategy:
+                        </label>
+                        <div class="space-y-2 bg-white p-3 border border-slate-200 rounded-xl text-xs">
+                            <label class="flex items-start space-x-2.5 cursor-pointer">
+                                <input type="radio" name="location_mode" value="force" {% if location_mode == 'force' %}checked{% endif %} class="mt-0.5 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                <div>
+                                    <span class="font-bold text-slate-800">Apply this location to ALL imported rows</span>
+                                    <p class="text-[11px] text-slate-500">Overrides row location or allows CSV without a location column (Best for site audits).</p>
+                                </div>
+                            </label>
+                            <label class="flex items-start space-x-2.5 cursor-pointer pt-1 border-t border-slate-100">
+                                <input type="radio" name="location_mode" value="fallback" {% if location_mode != 'force' %}checked{% endif %} class="mt-0.5 text-blue-600 focus:ring-blue-500 h-4 w-4">
+                                <div>
+                                    <span class="font-bold text-slate-800">Use as fallback only</span>
+                                    <p class="text-[11px] text-slate-500">Row specifies its own location; use this location only if row's location is empty.</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Dropzone style file picker -->
             <div>
@@ -113,11 +249,11 @@
                     Upload .CSV File <span class="text-red-500">*</span>
                 </label>
                 <div class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:border-blue-500 transition cursor-pointer bg-slate-50/50" onclick="document.getElementById('csvFileInput').click()">
-                    <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3 shadow-xs">
+                    <div class="w-14 h-14 mx-auto rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center text-2xl mb-3 shadow-xs border border-blue-100">
                         <i class="fa-solid fa-file-arrow-up"></i>
                     </div>
                     <p class="text-sm font-bold text-slate-800">Click to browse or drag and drop your CSV file here</p>
-                    <p class="text-xs text-slate-400 mt-1">Supports standard CSV (.csv, .txt) encoded in UTF-8 or ANSI</p>
+                    <p class="text-xs text-slate-400 mt-1">Supports standard CSV (.csv, .txt) encoded in UTF-8, ANSI, or Excel UTF-8-BOM</p>
                     <input type="file" name="csv_file" id="csvFileInput" accept=".csv,text/csv,text/plain" required class="hidden" onchange="displaySelectedFile(this)">
                     <div id="fileInfoBox" class="mt-4 hidden inline-flex items-center space-x-2 bg-blue-100 text-blue-900 px-4 py-2 rounded-xl text-xs font-semibold">
                         <i class="fa-solid fa-circle-check text-blue-600"></i>
@@ -126,68 +262,56 @@
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-5 pt-2">
-
-                <!-- Fallback Location -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                        Fallback Location <span class="text-slate-400 font-normal">(If CSV row has no location)</span>
-                    </label>
-                    <select name="fallback_location" class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                        <option value="">-- None (Row must specify location) --</option>
-                        {% for loc in locations %}
-                        <option value="{{ loc.id }}">[{{ loc.location_id }}] {{ loc.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <span class="text-[11px] text-slate-400 mt-1 block">Used if a row leaves location empty</span>
-                </div>
-
-                <!-- Update Existing Conflict Mode -->
-                <div>
-                    <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">Duplicate Tag Handling</label>
-                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-xl space-y-2">
-                        <label class="flex items-center space-x-2.5 cursor-pointer">
-                            <input type="checkbox" name="update_existing" value="yes" checked class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4">
-                            <span class="text-xs font-semibold text-slate-800">Update existing assets if Asset Tag already exists</span>
-                        </label>
-                        <p class="text-[10px] text-slate-400 pl-6">If unchecked, rows with already existing tags will be skipped.</p>
-                    </div>
-                </div>
-
+            <!-- Duplicate Handling -->
+            <div class="p-4 bg-slate-50 border border-slate-200 rounded-xl">
+                <label class="flex items-center space-x-2.5 cursor-pointer">
+                    <input type="checkbox" name="update_existing" value="yes" checked class="rounded text-blue-600 focus:ring-blue-500 h-4 w-4">
+                    <span class="text-xs font-bold text-slate-800">Update existing assets if Asset Tag already exists in system</span>
+                </label>
+                <p class="text-[11px] text-slate-500 pl-6 mt-0.5">If unchecked, duplicate asset tags found in the database will be skipped safely without overwriting.</p>
             </div>
 
             <!-- Submit Button -->
-            <div class="pt-5 border-t border-slate-100 flex items-center justify-end space-x-3">
-                <a href="{% url 'asset_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
-                    Cancel
-                </a>
-                <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition flex items-center space-x-2">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>Upload & Process CSV</span>
-                </button>
+            <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
+                <div class="text-xs text-slate-500 flex items-center gap-1.5">
+                    <i class="fa-solid fa-shield-halved text-emerald-600"></i>
+                    <span>Automatic duplicate detection &amp; activity logging active</span>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <a href="{% url 'asset_list' %}" class="px-5 py-2.5 rounded-xl border border-slate-300 text-slate-700 font-semibold text-xs hover:bg-slate-100 transition">
+                        Cancel
+                    </a>
+                    <button type="submit" class="px-6 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-lg shadow-blue-600/30 transition flex items-center space-x-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload &amp; Process CSV</span>
+                    </button>
+                </div>
             </div>
 
         </form>
     </div>
 
-    <!-- CSV Format & Column Reference Guide -->
+    <!-- ============================================== -->
+    <!-- CSV FORMAT & COLUMN SPECIFICATION REFERENCE   -->
+    <!-- ============================================== -->
     <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
             <h4 class="font-bold text-sm text-slate-800 flex items-center space-x-2">
                 <i class="fa-solid fa-circle-info text-blue-600"></i>
-                <span>Accepted CSV Column Format</span>
+                <span>Accepted CSV Column Specification &amp; Mapping</span>
             </h4>
-            <a href="{% url 'asset_sample_csv' %}" class="text-xs font-bold text-emerald-600 hover:text-emerald-800 flex items-center space-x-1">
-                <i class="fa-solid fa-file-arrow-down"></i>
-                <span>Download Template</span>
-            </a>
+            <div class="flex items-center gap-2">
+                <button type="button" onclick="showColTab('hardware')" id="tabBtnHardware" class="px-3 py-1 text-xs font-bold rounded-lg bg-blue-600 text-white transition">Hardware Columns</button>
+                <button type="button" onclick="showColTab('software')" id="tabBtnSoftware" class="px-3 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition">Software / License Columns</button>
+            </div>
         </div>
 
-        <div class="overflow-x-auto">
+        <!-- Hardware Columns Table -->
+        <div id="colTableHardware" class="overflow-x-auto">
             <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
                 <thead class="bg-slate-50 text-slate-700 font-bold border-b border-slate-200">
                     <tr>
-                        <th class="px-3.5 py-2.5 w-40">Column Name</th>
+                        <th class="px-3.5 py-2.5 w-44">Column Name</th>
                         <th class="px-3.5 py-2.5 w-24">Required?</th>
                         <th class="px-3.5 py-2.5">Example / Description</th>
                     </tr>
@@ -200,13 +324,13 @@
                     </tr>
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">location_code_or_id</td>
-                        <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional*</span></td>
-                        <td class="px-3.5 py-2"><code>LOC-001</code>, <code>LOC-002</code>, or location name <code>APL Factory Chattak</code> (*Required if no fallback selected)</td>
+                        <td class="px-3.5 py-2"><span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional*</span></td>
+                        <td class="px-3.5 py-2"><code>LOC-001</code>, <code>LOC-002</code>, or location name (*Optional if target location selected above)</td>
                     </tr>
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">asset_tag</td>
                         <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
-                        <td class="px-3.5 py-2"><code>AST-1001</code>, <code>AST-2004</code> (Auto-generated if left empty)</td>
+                        <td class="px-3.5 py-2"><code>AST-8001</code> (Auto-generated using Akij Group policy if left blank)</td>
                     </tr>
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">brand</td>
@@ -221,7 +345,7 @@
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">serial_number</td>
                         <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
-                        <td class="px-3.5 py-2">Hardware serial number / Service Tag</td>
+                        <td class="px-3.5 py-2">Hardware serial number / Service Tag (e.g. <code>SN-DL5430-9901</code>)</td>
                     </tr>
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">department</td>
@@ -231,7 +355,7 @@
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">assigned_user</td>
                         <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
-                        <td class="px-3.5 py-2">Name of the user, custodian, or station name</td>
+                        <td class="px-3.5 py-2">Name of the user, custodian, or station name (e.g. <code>Md. Aminur Rahman</code>)</td>
                     </tr>
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">status</td>
@@ -261,7 +385,62 @@
                     <tr>
                         <td class="px-3.5 py-2 font-mono font-bold text-blue-900">remarks</td>
                         <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
-                        <td class="px-3.5 py-2">Configuration notes, specifications (CPU, RAM, SSD), etc.</td>
+                        <td class="px-3.5 py-2">Configuration notes, specifications (Core i7, 16GB RAM, 512GB SSD)</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Software Columns Table -->
+        <div id="colTableSoftware" class="overflow-x-auto hidden">
+            <table class="w-full text-left text-xs border border-slate-200 rounded-xl overflow-hidden">
+                <thead class="bg-purple-50 text-purple-900 font-bold border-b border-purple-200">
+                    <tr>
+                        <th class="px-3.5 py-2.5 w-44">Column Name</th>
+                        <th class="px-3.5 py-2.5 w-24">Required?</th>
+                        <th class="px-3.5 py-2.5">Example / Description</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-purple-50 text-slate-700">
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">device_type</td>
+                        <td class="px-3.5 py-2"><span class="bg-red-100 text-red-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Required</span></td>
+                        <td class="px-3.5 py-2"><code>Software License (OS / Office)</code>, <code>Enterprise ERP User License</code>, <code>Cloud Virtual Server / VM</code>, <code>SSL / TLS Certificate</code></td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">vendor</td>
+                        <td class="px-3.5 py-2"><span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Recommended</span></td>
+                        <td class="px-3.5 py-2"><code>Microsoft Corporation</code>, <code>Oracle</code>, <code>Amazon Web Services</code>, <code>DigiCert</code></td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">version</td>
+                        <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
+                        <td class="px-3.5 py-2">Software Edition / Version (e.g. <code>Windows 11 Pro Enterprise</code>, <code>v12.4</code>)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">license_key</td>
+                        <td class="px-3.5 py-2"><span class="bg-purple-100 text-purple-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Recommended</span></td>
+                        <td class="px-3.5 py-2">Product key, Subscription ID, or SSL Serial (e.g. <code>W269N-WFGWX-YVC9B-4J6C9-T83GX</code>)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">host_server</td>
+                        <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
+                        <td class="px-3.5 py-2">Target Host Machine, Cloud Cluster, or URL (e.g. <code>AK-DC01-VMHOST</code>, <code>AWS ap-south-1</code>)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">location_code_or_id</td>
+                        <td class="px-3.5 py-2"><span class="bg-amber-100 text-amber-800 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional*</span></td>
+                        <td class="px-3.5 py-2"><code>LOC-001</code>, <code>LOC-002</code> (*Optional if target location selected above)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">purchase_date</td>
+                        <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
+                        <td class="px-3.5 py-2">Procurement or Activation Date (Format: <code>YYYY-MM-DD</code>)</td>
+                    </tr>
+                    <tr>
+                        <td class="px-3.5 py-2 font-mono font-bold text-purple-900">warranty_expiry</td>
+                        <td class="px-3.5 py-2"><span class="bg-slate-100 text-slate-700 text-[10px] font-bold px-1.5 py-0.5 rounded">Optional</span></td>
+                        <td class="px-3.5 py-2">License Renewal or Expiration Date (Format: <code>YYYY-MM-DD</code>)</td>
                     </tr>
                 </tbody>
             </table>
@@ -278,5 +457,42 @@ function displaySelectedFile(input) {
         document.getElementById('fileInfoBox').classList.remove('hidden');
     }
 }
+
+function updateDownloadUrls() {
+    const loc = document.getElementById('templateLocationSelect').value;
+    const nature = document.getElementById('templateNatureSelect').value;
+
+    let sampleUrl = '{% url "asset_sample_csv" %}?nature=' + encodeURIComponent(nature);
+    let blankUrl = '{% url "asset_sample_csv" %}?blank=yes&nature=' + encodeURIComponent(nature);
+
+    if (loc) {
+        sampleUrl += '&location=' + encodeURIComponent(loc);
+        blankUrl += '&location=' + encodeURIComponent(loc);
+    }
+
+    document.getElementById('btnDownloadSample').href = sampleUrl;
+    document.getElementById('btnDownloadBlank').href = blankUrl;
+}
+
+function showColTab(tab) {
+    const hwTable = document.getElementById('colTableHardware');
+    const swTable = document.getElementById('colTableSoftware');
+    const hwBtn = document.getElementById('tabBtnHardware');
+    const swBtn = document.getElementById('tabBtnSoftware');
+
+    if (tab === 'hardware') {
+        hwTable.classList.remove('hidden');
+        swTable.classList.add('hidden');
+        hwBtn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-blue-600 text-white transition';
+        swBtn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+    } else {
+        hwTable.classList.add('hidden');
+        swTable.classList.remove('hidden');
+        swBtn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-purple-600 text-white transition';
+        hwBtn.className = 'px-3 py-1 text-xs font-bold rounded-lg bg-slate-100 text-slate-600 hover:bg-slate-200 transition';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', updateDownloadUrls);
 </script>
 {% endblock %}

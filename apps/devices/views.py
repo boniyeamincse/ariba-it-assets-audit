@@ -468,85 +468,314 @@ def asset_delete_view(request, asset_id):
 @roles_required(*CENTRAL_ROLES)
 def download_sample_asset_csv_view(request):
     """
-    Generates and downloads a pre-formatted sample CSV template for importing assets.
+    Generates and downloads a pre-formatted sample or blank CSV template for importing assets.
+    Supports location selection (?location=LOC_ID) and asset nature (?nature=PHYSICAL|LOGICAL|ALL) and blank mode (?blank=yes).
     """
-    response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="akij_assets_import_template.csv"'
+    loc_param = request.GET.get('location', '').strip()
+    nature = request.GET.get('nature', 'PHYSICAL').upper().strip()
+    is_blank = request.GET.get('blank', 'no').lower().strip() in ('yes', '1', 'true')
+
+    target_loc_code = 'LOC-001'
+    target_loc_name = 'Akij House (Corporate HQ)'
+    loc_file_suffix = 'generic'
+
+    if loc_param:
+        loc = None
+        if loc_param.isdigit():
+            loc = Location.objects.filter(id=int(loc_param)).first()
+        if not loc:
+            loc = Location.objects.filter(location_id__iexact=loc_param).first() or Location.objects.filter(code__iexact=loc_param).first()
+        if loc:
+            target_loc_code = loc.location_id
+            target_loc_name = loc.name
+            loc_file_suffix = loc.location_id.replace('-', '_').lower()
+
+    if is_blank:
+        filename = f"akij_asset_template_{loc_file_suffix}_{nature.lower()}_blank.csv"
+    else:
+        filename = f"akij_asset_template_{loc_file_suffix}_{nature.lower()}_sample.csv"
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
     writer = csv.writer(response)
-    writer.writerow([
-        'asset_tag',
-        'device_type',
-        'location_code_or_id',
-        'brand',
-        'model_name',
-        'serial_number',
-        'department',
-        'assigned_user',
-        'status',
-        'ip_address',
-        'mac_address',
-        'purchase_date',
-        'warranty_expiry',
-        'remarks'
-    ])
 
-    # Sample rows for guidance
-    writer.writerow([
-        'AST-8001',
-        'Laptop',
-        'LOC-001',
-        'Dell',
-        'Latitude 5430',
-        'SN-DL5430-9901',
-        'Accounts & Finance',
-        'Md. Aminur Rahman',
-        'IN_USE',
-        '192.168.10.45',
-        '00:14:22:01:23:45',
-        '2023-01-15',
-        '2026-01-14',
-        'Core i7, 16GB RAM, 512GB SSD'
-    ])
-    writer.writerow([
-        'AST-8002',
-        'Desktop',
-        'LOC-002',
-        'HP',
-        'ProDesk 400 G6',
-        'SN-HP400-8812',
-        'Quality Control (QC)',
-        'Engr. Rafiqul Islam',
-        'IN_USE',
-        '10.20.2.14',
-        '00:1B:44:11:22:33',
-        '2022-06-20',
-        '2025-06-19',
-        'Factory QC Lab station'
-    ])
-    writer.writerow([
-        '',
-        'Managed Switch',
-        'LOC-003',
-        'Cisco',
-        'Catalyst 2960X',
-        'FOC2133S982',
-        'Depot IT Server Rack',
-        'IT Shared',
-        'BACKUP',
-        '',
-        '',
-        '2021-08-10',
-        '2024-08-09',
-        'Emergency buffer spare for depot'
-    ])
+    if nature == 'LOGICAL':
+        writer.writerow([
+            'asset_tag',
+            'device_type',
+            'location_code_or_id',
+            'vendor',
+            'version',
+            'license_key',
+            'host_server',
+            'department',
+            'assigned_user',
+            'status',
+            'purchase_date',
+            'warranty_expiry',
+            'remarks'
+        ])
+        if not is_blank:
+            writer.writerow([
+                'AST-LOG-0001',
+                'Software License (OS / Office)',
+                target_loc_code,
+                'Microsoft Corporation',
+                'Windows 11 Pro Enterprise',
+                'W269N-WFGWX-YVC9B-4J6C9-T83GX',
+                'Client Endpoints',
+                'Accounts & Finance',
+                'Md. Aminur Rahman',
+                'IN_USE',
+                '2024-01-01',
+                '2027-12-31',
+                'Akij Group Volume Licensing'
+            ])
+            writer.writerow([
+                'AST-LOG-0002',
+                'Enterprise ERP User License',
+                target_loc_code,
+                'Oracle Corporation',
+                'ERP Production Core v12',
+                'ORCL-ERP-AKIJ-9981',
+                'Enterprise Cloud',
+                'Supply Chain & Logistics',
+                'Factory GM',
+                'IN_USE',
+                '2023-06-15',
+                '2025-06-14',
+                'Dedicated Named User License'
+            ])
+            writer.writerow([
+                'AST-LOG-0003',
+                'Cloud Virtual Server / VM',
+                target_loc_code,
+                'Amazon Web Services',
+                'Ubuntu 22.04 LTS (t3.xlarge)',
+                'i-0ab4c12d34ef56789',
+                'AWS ap-south-1',
+                'IT Infrastructure',
+                'DevOps Team',
+                'IN_USE',
+                '2023-03-01',
+                '',
+                'Production Database Cluster Node'
+            ])
+            writer.writerow([
+                'AST-LOG-0004',
+                'SSL / TLS Certificate',
+                target_loc_code,
+                'DigiCert Inc.',
+                'Wildcard SSL (*.akij.net)',
+                'CERT-DC-2024-8871',
+                'HAProxy Load Balancer',
+                'IT Infrastructure',
+                'Network Security',
+                'IN_USE',
+                '2024-02-10',
+                '2025-02-09',
+                'Corporate Portal Certificate'
+            ])
+
+    elif nature in ('ALL', 'COMPREHENSIVE'):
+        writer.writerow([
+            'asset_tag',
+            'asset_nature',
+            'device_type',
+            'location_code_or_id',
+            'brand',
+            'model_name',
+            'serial_number',
+            'vendor',
+            'version',
+            'license_key',
+            'host_server',
+            'department',
+            'assigned_user',
+            'status',
+            'ip_address',
+            'mac_address',
+            'purchase_date',
+            'warranty_expiry',
+            'remarks'
+        ])
+        if not is_blank:
+            writer.writerow([
+                'AST-8001',
+                'PHYSICAL',
+                'Laptop',
+                target_loc_code,
+                'Dell',
+                'Latitude 5430',
+                'SN-DL5430-9901',
+                '',
+                '',
+                '',
+                '',
+                'Accounts & Finance',
+                'Md. Aminur Rahman',
+                'IN_USE',
+                '192.168.10.45',
+                '00:14:22:01:23:45',
+                '2023-01-15',
+                '2026-01-14',
+                'Core i7, 16GB RAM, 512GB SSD'
+            ])
+            writer.writerow([
+                'AST-LOG-0001',
+                'LOGICAL',
+                'Software License (OS / Office)',
+                target_loc_code,
+                '',
+                '',
+                '',
+                'Microsoft Corporation',
+                'Windows 11 Pro Enterprise',
+                'W269N-WFGWX-YVC9B-4J6C9-T83GX',
+                'Client Endpoints',
+                'Accounts & Finance',
+                'Md. Aminur Rahman',
+                'IN_USE',
+                '',
+                '',
+                '2024-01-01',
+                '2027-12-31',
+                'Akij Group Volume Licensing'
+            ])
+            writer.writerow([
+                'AST-8002',
+                'PHYSICAL',
+                'Desktop',
+                target_loc_code,
+                'HP',
+                'ProDesk 400 G6',
+                'SN-HP400-8812',
+                '',
+                '',
+                '',
+                '',
+                'Quality Control (QC)',
+                'Engr. Rafiqul Islam',
+                'IN_USE',
+                '10.20.2.14',
+                '00:1B:44:11:22:33',
+                '2022-06-20',
+                '2025-06-19',
+                'Factory QC Lab station'
+            ])
+            writer.writerow([
+                'AST-8003',
+                'PHYSICAL',
+                'Microtik Router',
+                target_loc_code,
+                'MikroTik',
+                'CCR1009-7G-1C-1S+',
+                'SN-MKCCR-99120',
+                '',
+                '',
+                '',
+                '',
+                'IT Network Room',
+                'Network Team',
+                'IN_USE',
+                '10.20.1.1',
+                '00:0C:42:F1:8A:2B',
+                '2022-01-10',
+                '2025-01-09',
+                'Core gateway router'
+            ])
+    else:  # PHYSICAL
+        writer.writerow([
+            'asset_tag',
+            'device_type',
+            'location_code_or_id',
+            'brand',
+            'model_name',
+            'serial_number',
+            'department',
+            'assigned_user',
+            'status',
+            'ip_address',
+            'mac_address',
+            'purchase_date',
+            'warranty_expiry',
+            'remarks'
+        ])
+        if not is_blank:
+            writer.writerow([
+                'AST-8001',
+                'Laptop',
+                target_loc_code,
+                'Dell',
+                'Latitude 5430',
+                'SN-DL5430-9901',
+                'Accounts & Finance',
+                'Md. Aminur Rahman',
+                'IN_USE',
+                '192.168.10.45',
+                '00:14:22:01:23:45',
+                '2023-01-15',
+                '2026-01-14',
+                'Core i7, 16GB RAM, 512GB SSD'
+            ])
+            writer.writerow([
+                'AST-8002',
+                'Desktop',
+                target_loc_code,
+                'HP',
+                'ProDesk 400 G6',
+                'SN-HP400-8812',
+                'Quality Control (QC)',
+                'Engr. Rafiqul Islam',
+                'IN_USE',
+                '10.20.2.14',
+                '00:1B:44:11:22:33',
+                '2022-06-20',
+                '2025-06-19',
+                'Factory QC Lab station'
+            ])
+            writer.writerow([
+                '',
+                'Microtik Router',
+                target_loc_code,
+                'MikroTik',
+                'CCR1009-7G-1C-1S+',
+                'SN-MKCCR-99120',
+                'IT Network Room',
+                'Network Team',
+                'IN_USE',
+                '10.20.1.1',
+                '00:0C:42:F1:8A:2B',
+                '2022-01-10',
+                '2025-01-09',
+                'Core gateway router'
+            ])
+            writer.writerow([
+                '',
+                'Managed Switch',
+                target_loc_code,
+                'Cisco',
+                'Catalyst 2960X',
+                'FOC2133S982',
+                'Depot IT Server Rack',
+                'IT Shared',
+                'BACKUP',
+                '',
+                '',
+                '2021-08-10',
+                '2024-08-09',
+                'Emergency buffer spare for depot'
+            ])
+
     return response
 
 
 @roles_required(*CENTRAL_ROLES)
 def asset_import_csv_view(request):
     """
-    Bulk import physical IT assets location-wise via CSV upload.
+    Bulk import physical & logical IT assets location-wise via CSV upload.
+    Supports location selection (force all rows vs fallback) and full logical asset ingestion.
     """
     locations = visible_locations(request.user).order_by('location_id', 'name')
     categories = DeviceCategory.objects.all()
@@ -558,19 +787,30 @@ def asset_import_csv_view(request):
     }
 
     import_results = None
+    target_location_id = request.GET.get('location', '')
+    location_mode = 'fallback'
 
     if request.method == 'POST':
         csv_file = request.FILES.get('csv_file')
-        fallback_loc_id = request.POST.get('fallback_location')
+        target_location_id = request.POST.get('target_location') or request.POST.get('fallback_location') or ''
+        location_mode = request.POST.get('location_mode', 'fallback')
         update_existing = request.POST.get('update_existing') == 'yes'
 
         if not csv_file:
             messages.error(request, "Please select a valid CSV file to upload.")
-            return render(request, 'devices/asset_import_csv.html', {'locations': locations})
+            return render(request, 'devices/asset_import_csv.html', {
+                'locations': locations,
+                'selected_location_id': target_location_id,
+                'location_mode': location_mode,
+            })
 
         if not (csv_file.name.endswith('.csv') or csv_file.name.endswith('.txt')):
             messages.error(request, "Uploaded file must be a .csv format.")
-            return render(request, 'devices/asset_import_csv.html', {'locations': locations})
+            return render(request, 'devices/asset_import_csv.html', {
+                'locations': locations,
+                'selected_location_id': target_location_id,
+                'location_mode': location_mode,
+            })
 
         # Read file with encoding fallbacks (utf-8-sig for Excel BOM, utf-8, latin1)
         try:
@@ -587,11 +827,19 @@ def asset_import_csv_view(request):
             rows = list(csv_reader)
         except Exception as e:
             messages.error(request, f"Failed to read CSV file: {str(e)}")
-            return render(request, 'devices/asset_import_csv.html', {'locations': locations})
+            return render(request, 'devices/asset_import_csv.html', {
+                'locations': locations,
+                'selected_location_id': target_location_id,
+                'location_mode': location_mode,
+            })
 
         if not rows:
             messages.error(request, "Uploaded CSV file is completely empty.")
-            return render(request, 'devices/asset_import_csv.html', {'locations': locations})
+            return render(request, 'devices/asset_import_csv.html', {
+                'locations': locations,
+                'selected_location_id': target_location_id,
+                'location_mode': location_mode,
+            })
 
         # Parse header row
         raw_headers = [h.strip().lower().replace(' ', '_').replace('-', '_') for h in rows[0]]
@@ -609,6 +857,16 @@ def asset_import_csv_view(request):
                 header_map['model_name'] = idx
             elif h in ['serial_number', 'serial_no', 'serial', 'sn']:
                 header_map['serial_number'] = idx
+            elif h in ['vendor', 'software_vendor', 'publisher']:
+                header_map['vendor'] = idx
+            elif h in ['version', 'edition', 'software_version']:
+                header_map['version'] = idx
+            elif h in ['license_key', 'license', 'product_key', 'subscription_id', 'key']:
+                header_map['license_key'] = idx
+            elif h in ['host_server', 'host', 'server', 'cloud_cluster']:
+                header_map['host_server'] = idx
+            elif h in ['asset_nature', 'nature', 'type_nature']:
+                header_map['asset_nature'] = idx
             elif h in ['department', 'dept', 'section']:
                 header_map['department'] = idx
             elif h in ['assigned_user', 'user', 'employee', 'custodian', 'assigned_to']:
@@ -623,26 +881,30 @@ def asset_import_csv_view(request):
                 header_map['ip_address'] = idx
             elif h in ['mac_address', 'mac']:
                 header_map['mac_address'] = idx
-            elif h in ['purchase_date', 'purchase']:
+            elif h in ['purchase_date', 'purchase', 'activation_date']:
                 header_map['purchase_date'] = idx
-            elif h in ['warranty_expiry', 'warranty']:
+            elif h in ['warranty_expiry', 'warranty', 'license_expiry']:
                 header_map['warranty_expiry'] = idx
             elif h in ['remarks', 'specification', 'specs', 'notes', 'comment']:
                 header_map['remarks'] = idx
 
         if 'device_type' not in header_map:
             messages.error(request, "CSV Header must contain a 'device_type' (or 'device', 'item_name') column.")
-            return render(request, 'devices/asset_import_csv.html', {'locations': locations})
+            return render(request, 'devices/asset_import_csv.html', {
+                'locations': locations,
+                'selected_location_id': target_location_id,
+                'location_mode': location_mode,
+            })
 
         # Preload lookups for speed
         loc_by_id = {loc.location_id.upper(): loc for loc in Location.objects.all()}
         loc_by_code = {loc.code.upper(): loc for loc in Location.objects.filter(code__isnull=False)}
         loc_by_name = {loc.name.lower(): loc for loc in Location.objects.all()}
 
-        fallback_loc = None
-        if fallback_loc_id:
+        selected_loc_obj = None
+        if target_location_id:
             try:
-                fallback_loc = Location.objects.get(id=fallback_loc_id)
+                selected_loc_obj = Location.objects.get(id=target_location_id)
             except Location.DoesNotExist:
                 pass
 
@@ -692,19 +954,31 @@ def asset_import_csv_view(request):
                     dt_by_name[dev_key] = dt_obj
 
             # Resolve Location
-            loc_val = get_val('location').upper()
             target_loc = None
-            if loc_val:
-                target_loc = loc_by_id.get(loc_val) or loc_by_code.get(loc_val) or loc_by_name.get(loc_val.lower())
-            if not target_loc:
-                target_loc = fallback_loc
+            if location_mode == 'force' and selected_loc_obj:
+                target_loc = selected_loc_obj
+            else:
+                loc_val = get_val('location').upper()
+                if loc_val:
+                    target_loc = loc_by_id.get(loc_val) or loc_by_code.get(loc_val) or loc_by_name.get(loc_val.lower())
+                if not target_loc:
+                    target_loc = selected_loc_obj
 
             if not target_loc:
                 error_rows.append({
                     'row': row_idx,
-                    'reason': f"Location '{get_val('location')}' not recognized and no fallback location selected."
+                    'reason': f"Location '{get_val('location')}' not recognized and no target/fallback location selected."
                 })
                 continue
+
+            # Determine Asset Nature
+            raw_nature = get_val('asset_nature').upper()
+            if raw_nature in ('PHYSICAL', 'LOGICAL'):
+                asset_nature = raw_nature
+            elif dt_obj.category.code == 'LOGICAL':
+                asset_nature = 'LOGICAL'
+            else:
+                asset_nature = 'PHYSICAL'
 
             # Normalize Status
             raw_status = get_val('status').upper().replace(' ', '_')
@@ -739,21 +1013,40 @@ def asset_import_csv_view(request):
             brand_val = get_val('brand')
             model_val = get_val('model_name')
             sn_val = get_val('serial_number')
+            vendor_val = get_val('vendor')
+            version_val = get_val('version')
+            license_val = get_val('license_key')
+            host_val = get_val('host_server')
             dept_val = get_val('department')
             user_val = get_val('assigned_user')
             ip_val = get_val('ip_address') or None
             mac_val = get_val('mac_address') or None
             remarks_val = get_val('remarks')
 
+            if asset_nature == 'LOGICAL':
+                if not brand_val and vendor_val:
+                    brand_val = vendor_val
+                if not model_val and version_val:
+                    model_val = version_val
+                if not sn_val and license_val:
+                    sn_val = license_val
+                if not mac_val and host_val:
+                    mac_val = host_val
+
             try:
                 if tag_val and Asset.objects.filter(asset_tag=tag_val).exists():
                     if update_existing:
                         asset = Asset.objects.get(asset_tag=tag_val)
+                        asset.asset_nature = asset_nature
                         asset.device_type = dt_obj
                         asset.location = target_loc
                         if brand_val: asset.brand = brand_val
                         if model_val: asset.model_name = model_val
                         if sn_val: asset.serial_number = sn_val
+                        if vendor_val: asset.vendor = vendor_val
+                        if version_val: asset.version = version_val
+                        if license_val: asset.license_key = license_val
+                        if host_val: asset.host_server = host_val
                         if dept_val: asset.department = dept_val
                         if user_val: asset.assigned_user = user_val
                         asset.status = status
@@ -771,11 +1064,16 @@ def asset_import_csv_view(request):
                 else:
                     asset = Asset.objects.create(
                         asset_tag=tag_val or '',
+                        asset_nature=asset_nature,
                         device_type=dt_obj,
                         location=target_loc,
                         brand=brand_val,
                         model_name=model_val,
                         serial_number=sn_val,
+                        vendor=vendor_val or None,
+                        version=version_val or None,
+                        license_key=license_val or None,
+                        host_server=host_val or None,
                         department=dept_val,
                         assigned_user=user_val,
                         status=status,
@@ -816,6 +1114,8 @@ def asset_import_csv_view(request):
 
     context = {
         'locations': locations,
+        'selected_location_id': target_location_id,
+        'location_mode': location_mode,
         'import_results': import_results,
     }
     return render(request, 'devices/asset_import_csv.html', context)
