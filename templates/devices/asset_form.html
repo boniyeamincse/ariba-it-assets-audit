@@ -355,17 +355,17 @@
                     <span class="text-[11px] font-semibold text-slate-500">Piracy Audit &amp; Threat Mitigation</span>
                 </div>
 
-                <!-- Dynamic Warning for Cracked Software -->
+                <!-- Dynamic Warning for Cracked / Non-compliant Software -->
                 <div id="cracked-software-alert" class="mb-5 p-4 rounded-xl border border-red-300 bg-red-50 text-red-900 hidden transition-all duration-300">
                     <div class="flex items-start gap-3">
-                        <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm">
+                        <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm" id="cracked-alert-icon">
                             <i class="fa-solid fa-triangle-exclamation"></i>
                         </div>
                         <div class="flex-1 text-xs">
                             <h5 class="font-bold text-red-950 text-sm flex items-center gap-1.5">
-                                <span>CRITICAL SECURITY RISK: Cracked / Pirated Software Detected</span>
+                                <span id="cracked-alert-heading">CRITICAL SECURITY RISK: Cracked / Pirated Software Detected</span>
                             </h5>
-                            <p class="mt-1 leading-relaxed text-red-800">
+                            <p class="mt-1 leading-relaxed" id="cracked-alert-desc">
                                 Cracked software and unauthorized keygens frequently harbor trojans, ransomware, and spyware that bypass antivirus filters.
                                 The system will automatically tag this asset as <strong>HIGH / CRITICAL RISK</strong>.
                                 An actionable remediation plan (Purchase official license or replace with an open-source alternative) is required.
@@ -375,10 +375,26 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 rounded-2xl border border-slate-200 bg-slate-50/50">
+                    <!-- Software Type -->
+                    <div>
+                        <label for="id_software_type" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Software Type <span class="text-red-500">*</span>
+                        </label>
+                        <select name="software_type" id="id_software_type"
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            {% for code, label in software_type_choices %}
+                            <option value="{{ code }}" {% if current_software_type == code %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Classification: Open Source, Commercial, Freeware, Subscription, etc.</span>
+                    </div>
+
                     <!-- Compliance Status -->
                     <div>
                         <label for="id_compliance_status" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Compliance &amp; License Status <span class="text-red-500">*</span>
+                            License / Compliance Status <span class="text-red-500">*</span>
                         </label>
                         <select name="compliance_status" id="id_compliance_status" onchange="onComplianceChange(this.value)"
                                 class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
@@ -388,7 +404,7 @@
                             </option>
                             {% endfor %}
                         </select>
-                        <span class="text-[11px] text-slate-500 mt-1 block">Legal status of software running on or as this asset</span>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Audit Status: Licensed, Unlicensed, Expired, Non-compliant, etc.</span>
                     </div>
 
                     <!-- Security Risk Level -->
@@ -616,13 +632,47 @@
 
     function onComplianceChange(status) {
         const alertBox = document.getElementById('cracked-software-alert');
+        const alertHeading = document.getElementById('cracked-alert-heading');
+        const alertDesc = document.getElementById('cracked-alert-desc');
+        const alertIcon = document.getElementById('cracked-alert-icon');
         const riskSelect = document.getElementById('id_risk_level');
         const remediationSelect = document.getElementById('id_remediation_plan');
 
         if (status === 'CRACKED_PIRATED') {
-            if (alertBox) alertBox.classList.remove('hidden');
+            if (alertBox) {
+                alertBox.className = 'mb-5 p-4 rounded-xl border border-red-300 bg-red-50 text-red-900 transition-all duration-300 block';
+                if (alertHeading) alertHeading.textContent = 'CRITICAL SECURITY RISK: Cracked / Pirated Software Detected';
+                if (alertDesc) alertDesc.innerHTML = 'Cracked software and unauthorized keygens frequently harbor trojans, ransomware, and spyware that bypass antivirus filters. The system automatically tags this asset as <strong>HIGH / CRITICAL RISK</strong>. An actionable remediation plan is required.';
+                if (alertIcon) alertIcon.className = 'w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm';
+            }
             if (riskSelect && (riskSelect.value === 'LOW' || riskSelect.value === 'MEDIUM')) {
                 riskSelect.value = 'HIGH';
+            }
+            if (remediationSelect && remediationSelect.value === 'COMPLIANT') {
+                remediationSelect.value = 'PURCHASE_OFFICIAL';
+            }
+        } else if (status === 'NON_COMPLIANT' || status === 'UNLICENSED' || status === 'UNLICENSED_EXPIRED') {
+            if (alertBox) {
+                alertBox.className = 'mb-5 p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 transition-all duration-300 block';
+                if (alertHeading) alertHeading.textContent = 'COMPLIANCE VIOLATION: Unlicensed / Non-compliant Software';
+                if (alertDesc) alertDesc.innerHTML = 'Running unlicensed or non-compliant software presents corporate legal audit liabilities and vendor penalties. The system tags this as <strong>HIGH RISK</strong>. Please plan official procurement or replacement.';
+                if (alertIcon) alertIcon.className = 'w-8 h-8 rounded-lg bg-amber-600 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm';
+            }
+            if (riskSelect && riskSelect.value === 'LOW') {
+                riskSelect.value = 'HIGH';
+            }
+            if (remediationSelect && remediationSelect.value === 'COMPLIANT') {
+                remediationSelect.value = 'PURCHASE_OFFICIAL';
+            }
+        } else if (status === 'EXPIRED') {
+            if (alertBox) {
+                alertBox.className = 'mb-5 p-4 rounded-xl border border-amber-300 bg-amber-50 text-amber-900 transition-all duration-300 block';
+                if (alertHeading) alertHeading.textContent = 'LICENSE EXPIRED: Renewal Required';
+                if (alertDesc) alertDesc.innerHTML = 'The license or subscription for this application has expired. Schedule renewal or migrate to an active entitlement.';
+                if (alertIcon) alertIcon.className = 'w-8 h-8 rounded-lg bg-amber-500 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm';
+            }
+            if (riskSelect && riskSelect.value === 'LOW') {
+                riskSelect.value = 'MEDIUM';
             }
             if (remediationSelect && remediationSelect.value === 'COMPLIANT') {
                 remediationSelect.value = 'PURCHASE_OFFICIAL';

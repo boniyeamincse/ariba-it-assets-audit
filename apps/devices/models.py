@@ -113,13 +113,30 @@ class Asset(TimeStampedModel):
     license_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="License Key / Subscription ID")
     host_server = models.CharField(max_length=150, blank=True, null=True, verbose_name="Host Server / Cloud Cluster")
 
+    # Software Type & Classification
+    SOFTWARE_TYPE_CHOICES = (
+        ('OPEN_SOURCE', 'Open Source'),
+        ('COMMERCIAL', 'Commercial'),
+        ('FREEWARE', 'Freeware'),
+        ('SUBSCRIPTION', 'Subscription'),
+        ('TRIAL', 'Trial / Evaluation'),
+        ('CUSTOM', 'Custom / In-house'),
+        ('UNKNOWN', 'Unknown'),
+    )
+
     # Software Compliance & Risk Identification
     COMPLIANCE_CHOICES = (
-        ('GENUINE', 'Genuine / Officially Licensed'),
+        ('LICENSED', 'Licensed'),
+        ('UNLICENSED', 'Unlicensed'),
+        ('EXPIRED', 'Expired'),
+        ('VERIFICATION_PENDING', 'Verification Pending'),
+        ('NON_COMPLIANT', 'Non-compliant'),
+        ('APPROVED_EXCEPTION', 'Approved Exception'),
         ('CRACKED_PIRATED', 'Cracked / Pirated (Unlicensed - High Risk)'),
-        ('UNLICENSED_EXPIRED', 'Unlicensed / Expired Trial'),
+        ('GENUINE', 'Genuine / Officially Licensed'),
         ('FREE_OPEN_SOURCE', 'Free / Open Source (Approved)'),
         ('OEM_BUNDLED', 'OEM Bundled / Pre-installed'),
+        ('UNLICENSED_EXPIRED', 'Unlicensed / Expired Trial'),
     )
 
     RISK_LEVEL_CHOICES = (
@@ -136,10 +153,18 @@ class Asset(TimeStampedModel):
         ('REMOVE_IMMEDIATELY', 'Remove / Uninstall Immediately (Security Threat)'),
     )
 
+    software_type = models.CharField(
+        max_length=30,
+        choices=SOFTWARE_TYPE_CHOICES,
+        default='COMMERCIAL',
+        blank=True,
+        verbose_name="Software Type",
+        db_index=True
+    )
     compliance_status = models.CharField(
         max_length=30,
         choices=COMPLIANCE_CHOICES,
-        default='GENUINE',
+        default='LICENSED',
         verbose_name="License Compliance Status",
         db_index=True
     )
@@ -279,6 +304,8 @@ class Asset(TimeStampedModel):
             'version': self.version or '',
             'vendor': self.vendor or '',
             'host_server': self.host_server or '',
+            'software_type': self.software_type,
+            'software_type_display': self.get_software_type_display(),
             'compliance_status': self.compliance_status,
             'compliance_status_display': self.get_compliance_status_display(),
             'risk_level': self.risk_level,

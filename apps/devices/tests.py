@@ -195,3 +195,56 @@ class SoftwareLicenseManagementTests(TestCase):
         self.assertEqual(len(response.context['page_obj']), 1)
         self.assertEqual(response.context['page_obj'][0].model_name, 'SolidWorks Pirated')
 
+    def test_software_type_and_new_compliance_statuses(self):
+        # Create an asset with software_type=SUBSCRIPTION and compliance_status=LICENSED
+        sub_asset = Asset.objects.create(
+            asset_tag='APL-SFT-30001',
+            asset_nature='LOGICAL',
+            device_type=self.os_type,
+            location=self.location,
+            brand='Microsoft',
+            model_name='Microsoft 365 E5',
+            software_type='SUBSCRIPTION',
+            compliance_status='LICENSED',
+            risk_level='LOW',
+            seats_purchased=50,
+            seats_allocated=45,
+        )
+        self.assertEqual(sub_asset.get_software_type_display(), 'Subscription')
+        self.assertEqual(sub_asset.get_compliance_status_display(), 'Licensed')
+
+        # Test to_dict contains software_type
+        asset_dict = sub_asset.to_dict()
+        self.assertEqual(asset_dict['software_type'], 'SUBSCRIPTION')
+        self.assertEqual(asset_dict['software_type_display'], 'Subscription')
+        self.assertEqual(asset_dict['compliance_status'], 'LICENSED')
+
+        # Filter by software_type
+        response = self.client.get(reverse('software_list'), {'software_type': 'SUBSCRIPTION'})
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Microsoft 365 E5')
+        self.assertContains(response, 'Subscription')
+
+    def test_unlicensed_and_non_compliant_risk_escalation_on_creation(self):
+        # Post asset with NON_COMPLIANT
+        response = self.client.post(reverse('asset_create'), {
+            'asset_nature': 'LOGICAL',
+            'location': self.location.pk,
+            'device_type': self.cad_type.pk,
+            'brand': 'Autodesk',
+            'model_name': 'Maya Unlicensed',
+            'status': 'IN_USE',
+            'software_type': 'COMMERCIAL',
+            'compliance_status': 'NON_COMPLIANT',
+            'risk_level': 'LOW',  # Should be auto-escalated to HIGH
+            'remediation_plan': 'COMPLIANT',  # Should be auto-escalated to PURCHASE_OFFICIAL
+            'seats_purchased': 0,
+            'seats_allocated': 2,
+        })
+        self.assertEqual(response.status_code, 302)
+        asset = Asset.objects.get(model_name='Maya Unlicensed')
+        self.assertEqual(asset.software_type, 'COMMERCIAL')
+        self.assertEqual(asset.compliance_status, 'NON_COMPLIANT')
+        self.assertEqual(asset.risk_level, 'HIGH')
+        self.assertEqual(asset.remediation_plan, 'PURCHASE_OFFICIAL')
+

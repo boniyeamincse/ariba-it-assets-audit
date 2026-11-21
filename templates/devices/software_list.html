@@ -129,13 +129,24 @@
 
             <!-- Software Category Dropdown (39 Categories) -->
             <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Software Category</label>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Category (39)</label>
                 <select name="category" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Categories (39)</option>
+                    <option value="">All Categories</option>
                     {% for sc in software_categories %}
                     <option value="{{ sc.id }}" {% if category_filter == sc.id|stringformat:"s" %}selected{% endif %}>
                         {{ sc.name }}
                     </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <!-- Software Type Dropdown -->
+            <div class="md:col-span-2">
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Software Type</label>
+                <select name="software_type" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">All Types</option>
+                    {% for code, label in software_type_choices %}
+                    <option value="{{ code }}" {% if type_filter == code %}selected{% endif %}>{{ label }}</option>
                     {% endfor %}
                 </select>
             </div>
@@ -151,24 +162,13 @@
                 </select>
             </div>
 
-            <!-- Risk Level Dropdown -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Security Risk Level</label>
-                <select name="risk" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Risk Levels</option>
-                    {% for code, label in risk_level_choices %}
-                    <option value="{{ code }}" {% if risk_filter == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
             <!-- Buttons -->
             <div class="md:col-span-1 flex items-center space-x-1.5">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1">
+                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1" title="Apply Filter">
                     <i class="fa-solid fa-filter"></i>
                     <span>Filter</span>
                 </button>
-                {% if loc_filter or category_filter or compliance_filter or risk_filter or remediation_filter or search_query %}
+                {% if loc_filter or category_filter or type_filter or compliance_filter or risk_filter or remediation_filter or search_query %}
                 <a href="{% url 'software_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2 rounded-lg text-xs transition" title="Clear Filters">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
@@ -219,7 +219,7 @@
                 </thead>
                 <tbody class="divide-y divide-slate-100">
                     {% for ast in page_obj %}
-                    <tr class="hover:bg-purple-50/20 transition {% if ast.compliance_status == 'CRACKED_PIRATED' %}bg-red-50/30{% endif %}">
+                    <tr class="hover:bg-purple-50/20 transition {% if ast.compliance_status == 'CRACKED_PIRATED' %}bg-red-50/30{% elif ast.compliance_status == 'NON_COMPLIANT' or ast.compliance_status == 'UNLICENSED' %}bg-amber-50/20{% endif %}">
                         <td class="px-4 py-3 text-center text-slate-400 font-medium">{{ forloop.counter }}</td>
 
                         <!-- Asset Tag -->
@@ -240,6 +240,12 @@
                                 <span class="text-slate-300">•</span>
                                 {% endif %}
                                 <span class="text-slate-500">{{ ast.device_type.name }}</span>
+                                {% if ast.software_type %}
+                                <span class="text-slate-300">•</span>
+                                <span class="inline-flex items-center px-1.5 py-0.2 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 border border-slate-200">
+                                    {{ ast.get_software_type_display }}
+                                </span>
+                                {% endif %}
                             </div>
                         </td>
 
@@ -251,9 +257,25 @@
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-100 text-red-800 border border-red-300">
                                     <i class="fa-solid fa-triangle-exclamation mr-1 text-[9px] text-red-600"></i>CRACKED / PIRATED
                                 </span>
-                                {% elif ast.compliance_status == 'UNLICENSED_EXPIRED' %}
+                                {% elif ast.compliance_status == 'NON_COMPLIANT' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                                    <i class="fa-solid fa-ban mr-1 text-[9px] text-rose-600"></i>NON-COMPLIANT
+                                </span>
+                                {% elif ast.compliance_status == 'UNLICENSED' %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
-                                    <i class="fa-solid fa-clock-rotate-left mr-1 text-[9px]"></i>EXPIRED / UNLICENSED
+                                    <i class="fa-solid fa-circle-xmark mr-1 text-[9px] text-amber-600"></i>UNLICENSED
+                                </span>
+                                {% elif ast.compliance_status == 'EXPIRED' or ast.compliance_status == 'UNLICENSED_EXPIRED' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                                    <i class="fa-solid fa-clock-rotate-left mr-1 text-[9px]"></i>EXPIRED
+                                </span>
+                                {% elif ast.compliance_status == 'VERIFICATION_PENDING' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                                    <i class="fa-solid fa-hourglass-half mr-1 text-[9px] text-sky-600"></i>VERIFY PENDING
+                                </span>
+                                {% elif ast.compliance_status == 'APPROVED_EXCEPTION' %}
+                                <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 border border-purple-300">
+                                    <i class="fa-solid fa-shield mr-1 text-[9px] text-purple-600"></i>APPROVED EXCEPTION
                                 </span>
                                 {% elif ast.compliance_status == 'FREE_OPEN_SOURCE' %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
@@ -265,7 +287,7 @@
                                 </span>
                                 {% else %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
-                                    <i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>GENUINE COMMERCIAL
+                                    <i class="fa-solid fa-circle-check mr-1 text-[9px]"></i>LICENSED
                                 </span>
                                 {% endif %}
 

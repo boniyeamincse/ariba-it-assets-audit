@@ -181,10 +181,12 @@ def asset_create_or_edit_view(request, asset_id=None):
             'selected_owner': request.POST.get('owning_company') or (
                 str(asset.owning_company_id) if asset and asset.owning_company_id else ''
             ),
+            'software_type_choices': Asset.SOFTWARE_TYPE_CHOICES,
+            'current_software_type': request.POST.get('software_type') or getattr(asset, 'software_type', 'COMMERCIAL'),
             'compliance_choices': Asset.COMPLIANCE_CHOICES,
             'risk_level_choices': Asset.RISK_LEVEL_CHOICES,
             'remediation_choices': Asset.REMEDIATION_CHOICES,
-            'current_compliance': request.POST.get('compliance_status') or getattr(asset, 'compliance_status', 'GENUINE'),
+            'current_compliance': request.POST.get('compliance_status') or getattr(asset, 'compliance_status', 'LICENSED'),
             'current_risk': request.POST.get('risk_level') or getattr(asset, 'risk_level', 'LOW'),
             'current_remediation': request.POST.get('remediation_plan') or getattr(asset, 'remediation_plan', 'COMPLIANT'),
             'current_seats_purchased': request.POST.get('seats_purchased') or getattr(asset, 'seats_purchased', 1),
@@ -214,9 +216,13 @@ def asset_create_or_edit_view(request, asset_id=None):
         warranty_expiry_str = request.POST.get('warranty_expiry', '').strip()
         remarks = request.POST.get('remarks', '').strip()
 
-        compliance_status = request.POST.get('compliance_status', 'GENUINE').strip()
+        software_type = request.POST.get('software_type', 'COMMERCIAL').strip()
+        if software_type not in dict(Asset.SOFTWARE_TYPE_CHOICES):
+            software_type = 'COMMERCIAL'
+
+        compliance_status = request.POST.get('compliance_status', 'LICENSED').strip()
         if compliance_status not in dict(Asset.COMPLIANCE_CHOICES):
-            compliance_status = 'GENUINE'
+            compliance_status = 'LICENSED'
 
         risk_level = request.POST.get('risk_level', 'LOW').strip()
         if risk_level not in dict(Asset.RISK_LEVEL_CHOICES):
@@ -236,10 +242,15 @@ def asset_create_or_edit_view(request, asset_id=None):
         except (ValueError, TypeError):
             seats_allocated = 1
 
-        # Security Risk Escalation for cracked or pirated software
-        if compliance_status == 'CRACKED_PIRATED':
+        # Security & Compliance Risk Escalation for cracked or unlicensed software
+        if compliance_status in ('CRACKED_PIRATED', 'NON_COMPLIANT', 'UNLICENSED'):
             if risk_level in ('LOW', 'MEDIUM'):
                 risk_level = 'HIGH'
+            if remediation_plan == 'COMPLIANT':
+                remediation_plan = 'PURCHASE_OFFICIAL'
+        elif compliance_status == 'EXPIRED':
+            if risk_level == 'LOW':
+                risk_level = 'MEDIUM'
             if remediation_plan == 'COMPLIANT':
                 remediation_plan = 'PURCHASE_OFFICIAL'
 
@@ -311,6 +322,7 @@ def asset_create_or_edit_view(request, asset_id=None):
                     mac_address=mac_address,
                     purchase_date=purchase_date,
                     warranty_expiry=warranty_expiry,
+                    software_type=software_type,
                     compliance_status=compliance_status,
                     risk_level=risk_level,
                     remediation_plan=remediation_plan,
@@ -346,6 +358,7 @@ def asset_create_or_edit_view(request, asset_id=None):
                 asset.mac_address = mac_address
                 asset.purchase_date = purchase_date
                 asset.warranty_expiry = warranty_expiry
+                asset.software_type = software_type
                 asset.compliance_status = compliance_status
                 asset.risk_level = risk_level
                 asset.remediation_plan = remediation_plan
@@ -404,6 +417,7 @@ def software_list_view(request):
     # Filters
     loc_filter = request.GET.get('location', '').strip()
     category_filter = request.GET.get('category', '').strip()
+    type_filter = request.GET.get('software_type', '').strip()
     compliance_filter = request.GET.get('compliance', '').strip()
     risk_filter = request.GET.get('risk', '').strip()
     remediation_filter = request.GET.get('remediation', '').strip()
@@ -414,6 +428,9 @@ def software_list_view(request):
 
     if category_filter:
         software_qs = software_qs.filter(device_type_id=category_filter)
+
+    if type_filter:
+        software_qs = software_qs.filter(software_type=type_filter)
 
     if compliance_filter:
         software_qs = software_qs.filter(compliance_status=compliance_filter)
@@ -448,9 +465,10 @@ def software_list_view(request):
     )
     total_software = all_software_qs.count()
     cracked_count = all_software_qs.filter(compliance_status='CRACKED_PIRATED').count()
+    non_compliant_count = all_software_qs.filter(compliance_status__in=['CRACKED_PIRATED', 'NON_COMPLIANT', 'UNLICENSED']).count()
     high_critical_risk = all_software_qs.filter(risk_level__in=['HIGH', 'CRITICAL']).count()
-    genuine_count = all_software_qs.filter(compliance_status='GENUINE').count()
-    open_source_count = all_software_qs.filter(compliance_status='FREE_OPEN_SOURCE').count()
+    genuine_count = all_software_qs.filter(compliance_status__in=['LICENSED', 'GENUINE']).count()
+    open_source_count = all_software_qs.filter(Q(compliance_status='FREE_OPEN_SOURCE') | Q(software_type='OPEN_SOURCE')).count()
 
     today = timezone.now().date()
     in_30_days = today + timezone.timedelta(days=30)
@@ -477,6 +495,7 @@ def software_list_view(request):
         'page_obj': page_obj,
         'total_software': total_software,
         'cracked_count': cracked_count,
+        'non_compliant_count': non_compliant_count,
         'high_critical_risk': high_critical_risk,
         'genuine_count': genuine_count,
         'open_source_count': open_source_count,
@@ -487,10 +506,12 @@ def software_list_view(request):
         'software_categories': software_categories,
         'loc_filter': loc_filter,
         'category_filter': category_filter,
+        'type_filter': type_filter,
         'compliance_filter': compliance_filter,
         'risk_filter': risk_filter,
         'remediation_filter': remediation_filter,
         'search_query': search_query,
+        'software_type_choices': Asset.SOFTWARE_TYPE_CHOICES,
         'compliance_choices': Asset.COMPLIANCE_CHOICES,
         'risk_level_choices': Asset.RISK_LEVEL_CHOICES,
         'remediation_choices': Asset.REMEDIATION_CHOICES,
