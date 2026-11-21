@@ -192,6 +192,7 @@
                                     <i class="fa-solid fa-tag mr-0.5 text-[8px]"></i> Tagged Asset
                                 </span>
                                 {% endif %}
+                                {% if dt.tag_category_code %}<span class="rounded border border-slate-200 px-1.5 py-0.5 font-mono text-[10px] text-slate-600">{{ dt.tag_category_code }}</span>{% endif %}
                                 {% if not dt.is_active or not cat.is_active %}
                                 <span class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-medium text-slate-700">Archived</span>
                                 {% endif %}
@@ -223,7 +224,7 @@
 
                     <!-- Right: Action Buttons (Edit & Delete) -->
                     <div class="flex items-center space-x-1">
-                        <button onclick="openEditDeviceModal('{{ dt.id }}', '{{ dt.name|escapejs }}', '{{ cat.id }}', '{{ dt.is_count_only|yesno:'1,0' }}', '{{ dt.remarks|default:''|escapejs }}')"
+                        <button onclick="openEditDeviceModal('{{ dt.id }}', '{{ dt.name|escapejs }}', '{{ cat.id }}', '{{ dt.is_count_only|yesno:'1,0' }}', '{{ dt.remarks|default:''|escapejs }}', '{{ dt.tag_category_code }}', {{ dt.total_assets }})"
                                 class="p-1.5 rounded-lg text-slate-400 hover:text-blue-600 hover:bg-blue-50 transition" title="Edit / Rename Device Type">
                             <i class="fa-solid fa-pen-to-square text-xs"></i>
                         </button>
@@ -253,6 +254,13 @@
                             <span>Add</span>
                         </button>
                     </div>
+                    <label class="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+                        <span>Tag category code</span>
+                        <select name="tag_category_code" class="rounded-lg border border-slate-300 bg-white px-2 py-1">
+                            <option value="">Use suggested code</option>
+                            {% for code, label in tag_category_choices %}<option value="{{ code }}">{{ code }} — {{ label }}</option>{% endfor %}
+                        </select>
+                    </label>
                     <div class="flex items-center space-x-4 px-1 text-[11px] text-slate-500">
                         <label class="flex items-center space-x-1.5 cursor-pointer">
                             <input type="checkbox" name="is_count_only" value="1" class="rounded text-indigo-600 h-3.5 w-3.5">
@@ -305,6 +313,14 @@
                     <option value="{{ cat.id }}">{{ cat.name }} ({{ cat.code }})</option>
                     {% endfor %}
                 </select>
+            </div>
+
+            <div>
+                <label for="editDevTagCategory" class="mb-1.5 block text-xs font-bold text-slate-700">Tag category code</label>
+                <select name="tag_category_code" id="editDevTagCategory" class="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm" aria-describedby="editDevTagHint">
+                    {% for code, label in tag_category_choices %}<option value="{{ code }}">{{ code }} — {{ label }}</option>{% endfor %}
+                </select>
+                <p id="editDevTagHint" class="mt-1 text-xs text-slate-600">This code is locked after the first asset tag is issued.</p>
             </div>
 
             <div>
@@ -500,12 +516,15 @@ function clearLiveSearch() {
     input.focus();
 }
 
-function openEditDeviceModal(id, name, catId, isCountOnly, remarks) {
+function openEditDeviceModal(id, name, catId, isCountOnly, remarks, tagCategory, assetCount) {
     document.getElementById('editDevId').value = id;
     document.getElementById('editDevName').value = name;
     document.getElementById('editDevCat').value = catId;
     document.getElementById('editDevCountOnly').checked = (isCountOnly === '1' || isCountOnly === 1 || isCountOnly === true);
     document.getElementById('editDevRemarks').value = remarks || '';
+    const code = document.getElementById('editDevTagCategory');
+    code.value = tagCategory;
+    code.disabled = assetCount > 0;
     document.getElementById('editDeviceModal').classList.remove('hidden');
 }
 

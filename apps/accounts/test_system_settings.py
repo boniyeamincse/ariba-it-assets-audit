@@ -53,7 +53,7 @@ class SystemSettingsIntegrationTests(TestCase):
     def test_all_tabs_render_and_ho_cannot_save(self):
         for section, title in CATEGORIES.items():
             self.assertContains(self.client.get(self.setting_url(section)), escape(title))
-        self.assertContains(self.client.get(self.setting_url('asset-id')), 'AST-AMFL-HO-NET-00001')
+        self.assertContains(self.client.get(self.setting_url('asset-id')), 'APL-ROU-10001')
         self.client.force_login(self.ho)
         url = self.setting_url('general')
         self.assertContains(self.client.get(url), 'Super Admin can change these settings')
@@ -72,7 +72,7 @@ class SystemSettingsIntegrationTests(TestCase):
     def test_asset_ids_defaults_and_classification_apply_only_as_expected(self):
         self.update(
             'asset-id', asset_id_prefix='AST', asset_id_company_code='AMFL',
-            asset_id_location_code='HO', asset_id_category_code='NET', asset_id_start=1,
+            asset_id_location_code='HO', asset_id_include_location='on', asset_id_category_code='NET', asset_id_start=1,
         )
         self.update('assets', default_warranty_months=36, asset_currency='usd', asset_conditions='New\nRefurbished')
         asset_url = reverse('asset_create')
@@ -104,7 +104,8 @@ class SystemSettingsIntegrationTests(TestCase):
         self.assertContains(response, 'temporarily locked', status_code=429)
 
     def test_csv_import_applies_configured_asset_id_and_classification(self):
-        self.update('asset-id', asset_id_company_code='AMFL', asset_id_location_code='HO', asset_id_category_code='NET')
+        self.update('asset-id', asset_id_prefix='AST', asset_id_company_code='AMFL', asset_id_location_code='HO',
+                    asset_id_include_location='on', asset_id_category_code='NET', asset_id_start=1)
         response = self.client.post(reverse('asset_import_csv'), {
             'csv_file': SimpleUploadedFile('assets.csv', b'asset_tag,device_type,location,status,asset_condition\n,Router,HO,IN_USE,Good\n'),
         })

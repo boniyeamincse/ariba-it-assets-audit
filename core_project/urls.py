@@ -10,9 +10,12 @@ from apps.devices.views import (
     asset_list_view,
     asset_create_or_edit_view,
     category_list_view,
-    asset_delete_view,
+    asset_detail_view,
+    asset_label_qr_view,
+    asset_retire_view,
     asset_import_csv_view,
     download_sample_asset_csv_view,
+    software_list_view,
 )
 from apps.audits.views import (
     audit_list_view,
@@ -36,6 +39,7 @@ urlpatterns = [
     path('admin/roles/new/', administration.role_create, name='administration_role_create'),
     path('admin/activity/', activity_log_view, name='activity_logs'),
     path('admin/settings/', administration.settings_view, name='administration_settings'),
+    path('admin/settings/asset-id/preview/', administration.asset_id_preview, name='asset_id_preview'),
     path('admin/settings/<slug:section>/', administration.settings_view, name='administration_settings_section'),
     path('admin/', admin.site.urls),
     
@@ -57,8 +61,12 @@ urlpatterns = [
     path('assets/import-csv/', asset_import_csv_view, name='asset_import_csv'),
     path('assets/sample-csv/', download_sample_asset_csv_view, name='asset_sample_csv'),
     path('assets/<int:asset_id>/edit/', asset_create_or_edit_view, name='asset_edit'),
-    path('assets/<int:asset_id>/delete/', asset_delete_view, name='asset_delete'),
+    path('assets/<int:asset_id>/delete/', asset_retire_view, name='asset_delete'),
+    path('assets/<int:asset_id>/retire/', asset_retire_view, name='asset_retire'),
+    path('assets/<int:asset_id>/label-qr.svg', asset_label_qr_view, name='asset_label_qr'),
+    path('assets/<int:asset_id>/', asset_detail_view, name='asset_detail'),
     path('assets/categories/', category_list_view, name='category_list'),
+    path('software/', software_list_view, name='software_list'),
 
     # Multi-Location Master Matrix
     path('matrix/', matrix_view, name='matrix'),

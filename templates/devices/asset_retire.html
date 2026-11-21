@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Retire {{ asset.asset_tag }} | {{ portal.application_short_name }}{% endblock %}
+{% block header_title %}Retire asset{% endblock %}
+{% block header_subtitle %}{% endblock %}
+{% block content %}
+<div class="max-w-lg space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+    <p class="text-sm">Retire <strong>{{ asset.asset_tag }}</strong> ({{ asset.device_type.name }}) at {{ asset.location.name }}?</p>
+    <p class="text-sm text-slate-600">The asset record remains in the inventory for audit history and its tag stays reserved.</p>
+    <form method="post" class="flex flex-wrap items-center gap-3">
+        {% csrf_token %}
+        <button type="submit" class="rounded-lg bg-red-700 px-4 py-2 text-sm font-semibold text-white">Retire asset</button>
+        <a href="{% url 'asset_detail' asset.pk %}" class="px-3 py-2 text-sm font-medium text-slate-700">Cancel</a>
+    </form>
+</div>
+{% endblock %}

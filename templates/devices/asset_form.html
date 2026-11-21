@@ -100,7 +100,7 @@
                             <select name="location" id="id_location" required class="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                                 <option value="">-- Select Location --</option>
                                 {% for loc in locations %}
-                                <option value="{{ loc.id }}" {% if asset and asset.location_id == loc.id %}selected{% elif selected_loc_id == loc.id %}selected{% endif %}>
+                                <option value="{{ loc.id }}" {% if submitted_location_id == loc.id|stringformat:'s' %}selected{% elif not submitted_location_id and asset and asset.location_id == loc.id %}selected{% elif selected_loc_id == loc.id %}selected{% endif %}>
                                     [{{ loc.location_id }}] {{ loc.name }} ({{ loc.get_location_type_display }})
                                 </option>
                                 {% endfor %}
@@ -108,6 +108,16 @@
                         </div>
                         <span class="text-[11px] text-slate-400 mt-1 block">Head Office, Factories, Depots, or Operational Branches</span>
                     </div>
+
+                    {% if owner_choices is not None %}
+                    <div>
+                        <label for="id_owning_company" class="mb-1.5 block text-xs font-bold text-slate-700">Owning company</label>
+                        <select id="id_owning_company" name="owning_company" class="w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm">
+                            <option value="">{% if asset %}Keep current owner{% else %}Use the selected location’s company{% endif %}</option>
+                            {% for owner in owner_choices %}<option value="{{ owner.pk }}" {% if selected_owner == owner.pk|stringformat:'s' %}selected{% endif %}>{{ owner.name }} ({{ owner.short_code }})</option>{% endfor %}
+                        </select>
+                    </div>
+                    {% endif %}
 
                     <!-- Device / Asset Type -->
                     <div>
@@ -119,7 +129,7 @@
                             {% for cat in categories %}
                             <optgroup label="📂 {{ cat.name }}">
                                 {% for dt in cat.devices.all %}
-                                <option value="{{ dt.id }}" {% if asset and asset.device_type_id == dt.id %}selected{% endif %}>
+                                <option value="{{ dt.id }}" {% if submitted_device_id == dt.id|stringformat:'s' %}selected{% elif not submitted_device_id and asset and asset.device_type_id == dt.id %}selected{% endif %}>
                                     {{ dt.name }}
                                 </option>
                                 {% endfor %}
@@ -134,16 +144,18 @@
                     <!-- Asset Tag / Barcode -->
                     <div>
                         <label for="id_asset_tag" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                            Asset Tag / Barcode <span class="text-slate-400 font-normal">(Auto-generated if empty)</span>
+                            Asset Tag {% if not asset %}<span class="text-slate-400 font-normal">(Auto-generated if empty)</span>{% endif %}
                         </label>
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                 <i class="fa-solid fa-barcode text-xs"></i>
                             </span>
-                            <input type="text" name="asset_tag" id="id_asset_tag" value="{{ asset.asset_tag|default:'' }}"
-                                   placeholder="e.g. AST-AMFL-HO-NET-00001"
+                            <input type="text" name="asset_tag" id="id_asset_tag" value="{% if asset %}{{ asset.asset_tag }}{% else %}{{ submitted_tag }}{% endif %}" maxlength="50"
+                                   {% if asset %}readonly{% else %}placeholder="e.g. APL-ROU-10001"{% endif %}
+                                   {% if asset_tag_error %}aria-invalid="true" aria-describedby="asset-tag-error"{% endif %}
                                    class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono font-bold text-blue-900 uppercase focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         </div>
+                        {% if asset_tag_error %}<p id="asset-tag-error" role="alert" class="mt-1 text-xs font-semibold text-red-700">{{ asset_tag_error }}</p>{% elif asset %}<p class="mt-1 text-xs text-slate-600">This tag stays with the asset when it moves.</p>{% endif %}
                     </div>
 
                     <!-- Operating Status -->
@@ -333,10 +345,113 @@
                 </fieldset>
             </div>
 
-            <!-- 6. Specifications & Remarks -->
+            <!-- 6. Software Compliance, Licensing & Security Risk Assessment -->
+            <div class="pt-2 border-t border-slate-100">
+                <div class="flex items-center justify-between mb-4">
+                    <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                        <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">6</span>
+                        <span>Software Compliance, Licensing &amp; Risk Identification</span>
+                    </h4>
+                    <span class="text-[11px] font-semibold text-slate-500">Piracy Audit &amp; Threat Mitigation</span>
+                </div>
+
+                <!-- Dynamic Warning for Cracked Software -->
+                <div id="cracked-software-alert" class="mb-5 p-4 rounded-xl border border-red-300 bg-red-50 text-red-900 hidden transition-all duration-300">
+                    <div class="flex items-start gap-3">
+                        <div class="w-8 h-8 rounded-lg bg-red-600 text-white flex items-center justify-center flex-shrink-0 text-sm shadow-sm">
+                            <i class="fa-solid fa-triangle-exclamation"></i>
+                        </div>
+                        <div class="flex-1 text-xs">
+                            <h5 class="font-bold text-red-950 text-sm flex items-center gap-1.5">
+                                <span>CRITICAL SECURITY RISK: Cracked / Pirated Software Detected</span>
+                            </h5>
+                            <p class="mt-1 leading-relaxed text-red-800">
+                                Cracked software and unauthorized keygens frequently harbor trojans, ransomware, and spyware that bypass antivirus filters.
+                                The system will automatically tag this asset as <strong>HIGH / CRITICAL RISK</strong>.
+                                An actionable remediation plan (Purchase official license or replace with an open-source alternative) is required.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-5 p-5 rounded-2xl border border-slate-200 bg-slate-50/50">
+                    <!-- Compliance Status -->
+                    <div>
+                        <label for="id_compliance_status" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Compliance &amp; License Status <span class="text-red-500">*</span>
+                        </label>
+                        <select name="compliance_status" id="id_compliance_status" onchange="onComplianceChange(this.value)"
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            {% for code, label in compliance_choices %}
+                            <option value="{{ code }}" {% if current_compliance == code %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Legal status of software running on or as this asset</span>
+                    </div>
+
+                    <!-- Security Risk Level -->
+                    <div>
+                        <label for="id_risk_level" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Security Risk Level <span class="text-red-500">*</span>
+                        </label>
+                        <select name="risk_level" id="id_risk_level"
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            {% for code, label in risk_level_choices %}
+                            <option value="{{ code }}" {% if current_risk == code %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Threat level to network, data integrity &amp; audit liability</span>
+                    </div>
+
+                    <!-- Remediation Action Plan -->
+                    <div>
+                        <label for="id_remediation_plan" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Remediation Action Plan
+                        </label>
+                        <select name="remediation_plan" id="id_remediation_plan"
+                                class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                            {% for code, label in remediation_choices %}
+                            <option value="{{ code }}" {% if current_remediation == code %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <span class="text-[11px] text-slate-500 mt-1 block">Target action to transition asset to 100% legal compliance</span>
+                    </div>
+
+                    <!-- License Seats (Purchased vs Allocated) -->
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+                            Seat Utilization (Entitlements vs Allocated)
+                        </label>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <input type="number" min="0" name="seats_purchased" id="id_seats_purchased"
+                                       value="{{ current_seats_purchased|default:1 }}"
+                                       placeholder="Purchased"
+                                       class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <span class="text-[10px] text-slate-500 mt-0.5 block">Seats Purchased</span>
+                            </div>
+                            <div>
+                                <input type="number" min="0" name="seats_allocated" id="id_seats_allocated"
+                                       value="{{ current_seats_allocated|default:1 }}"
+                                       placeholder="Allocated"
+                                       class="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                                <span class="text-[10px] text-slate-500 mt-0.5 block">Seats Installed</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 7. Specifications & Remarks -->
             <div class="pt-2 border-t border-slate-100">
                 <h4 class="text-xs font-bold text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-2">
-                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">6</span>
+                    <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-[11px] font-black">7</span>
                     <span id="heading-remarks">Technical Specifications / Entitlements</span>
                 </h4>
                 <div>
@@ -350,9 +465,9 @@
             <div class="pt-6 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     {% if asset %}
-                    <a href="{% url 'asset_delete' asset.id %}" class="inline-flex items-center space-x-1.5 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 px-3.5 py-2 rounded-xl transition border border-red-200">
-                        <i class="fa-solid fa-trash-can"></i>
-                        <span>Delete Asset</span>
+                    <a href="{% url 'asset_retire' asset.id %}" class="inline-flex items-center space-x-1.5 text-xs font-semibold text-red-600 hover:text-red-800 hover:bg-red-50 px-3.5 py-2 rounded-xl transition border border-red-200">
+                        <i class="fa-solid fa-box-archive"></i>
+                        <span>Retire asset</span>
                     </a>
                     {% endif %}
                 </div>
@@ -470,10 +585,33 @@
         }
     }
 
+    function onComplianceChange(status) {
+        const alertBox = document.getElementById('cracked-software-alert');
+        const riskSelect = document.getElementById('id_risk_level');
+        const remediationSelect = document.getElementById('id_remediation_plan');
+
+        if (status === 'CRACKED_PIRATED') {
+            if (alertBox) alertBox.classList.remove('hidden');
+            if (riskSelect && (riskSelect.value === 'LOW' || riskSelect.value === 'MEDIUM')) {
+                riskSelect.value = 'HIGH';
+            }
+            if (remediationSelect && remediationSelect.value === 'COMPLIANT') {
+                remediationSelect.value = 'PURCHASE_OFFICIAL';
+            }
+        } else {
+            if (alertBox) alertBox.classList.add('hidden');
+        }
+    }
+
     // Initialize state on load
     document.addEventListener('DOMContentLoaded', () => {
         const initialNature = '{{ current_nature|default:"PHYSICAL" }}';
         setAssetNature(initialNature);
+
+        const complianceSelect = document.getElementById('id_compliance_status');
+        if (complianceSelect) {
+            onComplianceChange(complianceSelect.value);
+        }
     });
 </script>
 {% endblock %}

@@ -37,14 +37,12 @@ class DeviceCatalogTests(TestCase):
     def test_status_and_tracking_filters_combine(self):
         url = reverse('category_list')
         response = self.client.get(url, {'status': 'archived', 'tracking': 'bulk'})
-        self.assertContains(response, 'Legacy switch')
-        self.assertContains(response, 'Cable')
-        self.assertNotContains(response, 'Router')
+        self.assertEqual({device.pk for group in response.context['categories'] for device in group.devices.all()},
+                         {self.legacy.pk, self.cable.pk})
 
         response = self.client.get(url, {'status': 'active', 'tracking': 'tagged'})
-        self.assertContains(response, 'Router')
-        self.assertNotContains(response, 'Legacy switch')
-        self.assertNotContains(response, 'Cable')
+        self.assertEqual({device.pk for group in response.context['categories'] for device in group.devices.all()},
+                         {self.router.pk})
 
         response = self.client.get(url, {'status': 'active', 'tracking': 'bulk'})
         self.assertContains(response, 'No device types match the selected filters.')

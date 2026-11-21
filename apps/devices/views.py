@@ -1,19 +1,24 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.core.paginator import Paginator
+from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import transaction
+from django.utils import timezone
+from django.views.decorators.http import require_http_methods, require_safe
 from django.http import Http404, HttpResponse
 from django.db.models import Q, Count, Exists, OuterRef, Prefetch
 from django.urls import reverse
 from datetime import date
+from urllib.parse import urlsplit, urlunsplit
 import csv
 import io
 
 from apps.devices.models import DeviceCategory, DeviceType, Asset
-from apps.locations.models import Location
-from apps.accounts.access import CENTRAL_ROLES, DASHBOARD_ROUTES, roles_required, visible_locations
+from apps.locations.models import Company, Location
+from apps.accounts.access import CENTRAL_ROLES, DASHBOARD_ROUTES, role_for, roles_required, visible_locations
 from apps.common.utils import log_activity
 from apps.common.preferences import request_preferences
-from apps.devices.configuration import ASSET_METADATA, asset_status_choices
+from apps.devices.configuration import ASSET_METADATA, TAG_CATEGORY_CHOICES, asset_status_choices, normalize_asset_tag
 
 @roles_required(*DASHBOARD_ROUTES)
 def asset_list_view(request):
@@ -30,6 +35,8 @@ def asset_list_view(request):
     device_type_filter = request.GET.get('device_type', '').strip()
     status_filter = request.GET.get('status', '').strip()
     nature_filter = request.GET.get('nature', '').strip()
+    compliance_filter = request.GET.get('compliance', '').strip()
+    risk_filter = request.GET.get('risk', '').strip()
     search_query = request.GET.get('q', '').strip()
 
     if loc_filter:
@@ -40,6 +47,12 @@ def asset_list_view(request):
 
     if nature_filter in ('PHYSICAL', 'LOGICAL'):
         assets_qs = assets_qs.filter(asset_nature=nature_filter)
+
+    if compliance_filter:
+        assets_qs = assets_qs.filter(compliance_status=compliance_filter)
+
+    if risk_filter:
+        assets_qs = assets_qs.filter(risk_level=risk_filter)
 
     selected_device_type = None
     if device_type_filter:
@@ -97,10 +110,14 @@ def asset_list_view(request):
         'loc_filter': loc_filter,
         'cat_filter': cat_filter,
         'nature_filter': nature_filter,
+        'compliance_filter': compliance_filter,
+        'risk_filter': risk_filter,
         'selected_device_type': selected_device_type,
         'status_filter': status_filter,
         'search_query': search_query,
         'status_choices': status_choices,
+        'compliance_choices': Asset.COMPLIANCE_CHOICES,
+        'risk_level_choices': Asset.RISK_LEVEL_CHOICES,
     }
     return render(request, 'devices/asset_list.html', context)
 
@@ -113,10 +130,19 @@ def asset_create_or_edit_view(request, asset_id=None):
     asset = None
     if asset_id:
         asset = get_object_or_404(Asset, id=asset_id, location__in=visible_locations(request.user))
+        if asset.retired_at:
+            if request.method == 'POST':
+                raise PermissionDenied('Retired assets cannot be edited.')
+            return redirect('asset_detail', asset_id=asset.pk)
 
     locations = visible_locations(request.user).order_by('location_id', 'name')
     categories = DeviceCategory.objects.prefetch_related('devices').all().order_by('order')
     device_types = DeviceType.objects.select_related('category').all().order_by('category__order', 'name')
+
+    can_set_owner = role_for(request.user) in CENTRAL_ROLES
+    owners = Company.objects.filter(is_active=True)
+    if asset and asset.owning_company_id:
+        owners = Company.objects.filter(Q(is_active=True) | Q(pk=asset.owning_company_id))
 
     config = request_preferences(request)
     status_choices = asset_status_choices(config)
@@ -135,14 +161,29 @@ def asset_create_or_edit_view(request, asset_id=None):
             'metadata_fields': metadata_fields, 'currency': getattr(asset, 'currency', '') or config['asset_currency'],
             'default_warranty_months': config['default_warranty_months'],
             'nature_choices': Asset.NATURE_CHOICES,
-            'current_nature': getattr(asset, 'asset_nature', 'PHYSICAL') or 'PHYSICAL',
+            'current_nature': request.POST.get('asset_nature') or getattr(asset, 'asset_nature', 'PHYSICAL'),
+            'submitted_device_id': request.POST.get('device_type'),
+            'submitted_location_id': request.POST.get('location'),
+            'submitted_tag': request.POST.get('asset_tag', ''),
+            'owner_choices': owners if can_set_owner else None,
+            'selected_owner': request.POST.get('owning_company') or (
+                str(asset.owning_company_id) if asset and asset.owning_company_id else ''
+            ),
+            'compliance_choices': Asset.COMPLIANCE_CHOICES,
+            'risk_level_choices': Asset.RISK_LEVEL_CHOICES,
+            'remediation_choices': Asset.REMEDIATION_CHOICES,
+            'current_compliance': request.POST.get('compliance_status') or getattr(asset, 'compliance_status', 'GENUINE'),
+            'current_risk': request.POST.get('risk_level') or getattr(asset, 'risk_level', 'LOW'),
+            'current_remediation': request.POST.get('remediation_plan') or getattr(asset, 'remediation_plan', 'COMPLIANT'),
+            'current_seats_purchased': request.POST.get('seats_purchased') or getattr(asset, 'seats_purchased', 1),
+            'current_seats_allocated': request.POST.get('seats_allocated') or getattr(asset, 'seats_allocated', 1),
         }
 
     if request.method == 'POST':
         asset_nature = request.POST.get('asset_nature', 'PHYSICAL').strip()
         if asset_nature not in ('PHYSICAL', 'LOGICAL'):
             asset_nature = 'PHYSICAL'
-        asset_tag = request.POST.get('asset_tag', '').strip().upper()
+        asset_tag = normalize_asset_tag(request.POST.get('asset_tag', ''))
         device_type_id = request.POST.get('device_type')
         location_id = request.POST.get('location')
         brand = request.POST.get('brand', '').strip()
@@ -160,6 +201,35 @@ def asset_create_or_edit_view(request, asset_id=None):
         purchase_date_str = request.POST.get('purchase_date', '').strip()
         warranty_expiry_str = request.POST.get('warranty_expiry', '').strip()
         remarks = request.POST.get('remarks', '').strip()
+
+        compliance_status = request.POST.get('compliance_status', 'GENUINE').strip()
+        if compliance_status not in dict(Asset.COMPLIANCE_CHOICES):
+            compliance_status = 'GENUINE'
+
+        risk_level = request.POST.get('risk_level', 'LOW').strip()
+        if risk_level not in dict(Asset.RISK_LEVEL_CHOICES):
+            risk_level = 'LOW'
+
+        remediation_plan = request.POST.get('remediation_plan', 'COMPLIANT').strip()
+        if remediation_plan not in dict(Asset.REMEDIATION_CHOICES):
+            remediation_plan = 'COMPLIANT'
+
+        try:
+            seats_purchased = max(0, int(request.POST.get('seats_purchased', 1) or 1))
+        except (ValueError, TypeError):
+            seats_purchased = 1
+
+        try:
+            seats_allocated = max(0, int(request.POST.get('seats_allocated', 1) or 1))
+        except (ValueError, TypeError):
+            seats_allocated = 1
+
+        # Security Risk Escalation for cracked or pirated software
+        if compliance_status == 'CRACKED_PIRATED':
+            if risk_level in ('LOW', 'MEDIUM'):
+                risk_level = 'HIGH'
+            if remediation_plan == 'COMPLIANT':
+                remediation_plan = 'PURCHASE_OFFICIAL'
 
         if asset_nature == 'LOGICAL':
             if vendor and not brand:
@@ -187,73 +257,105 @@ def asset_create_or_edit_view(request, asset_id=None):
         dev = get_object_or_404(DeviceType, id=device_type_id)
         loc = get_object_or_404(locations, id=location_id)
 
+        owner_id = request.POST.get('owning_company', '').strip()
+        owner = asset.owning_company if asset else None
+        if owner_id:
+            if not can_set_owner:
+                raise PermissionDenied('Only central administrators may change asset ownership.')
+            owner = owners.filter(pk=owner_id).first() if owner_id.isdecimal() else None
+            if not owner:
+                messages.error(request, 'Choose a valid owning company.')
+                return render(request, 'devices/asset_form.html', form_context(), status=400)
+
         purchase_date = date.fromisoformat(purchase_date_str) if purchase_date_str else None
         warranty_expiry = date.fromisoformat(warranty_expiry_str) if warranty_expiry_str else None
 
-        is_new = asset is None
+        if asset and asset_tag and asset_tag != normalize_asset_tag(asset.asset_tag):
+            return render(request, 'devices/asset_form.html', {
+                **form_context(), 'asset_tag_error': 'An issued asset tag cannot be changed.',
+            }, status=400)
 
-        if is_new:
-            asset = Asset.objects.create(
-                asset_nature=asset_nature,
-                asset_tag=asset_tag or '',
-                device_type=dev,
-                location=loc,
-                brand=brand,
-                model_name=model_name,
-                serial_number=serial_number,
-                vendor=vendor,
-                version=version,
-                license_key=license_key,
-                host_server=host_server,
-                department=department,
-                assigned_user=assigned_user,
-                status=status,
-                ip_address=ip_address,
-                mac_address=mac_address,
-                purchase_date=purchase_date,
-                warranty_expiry=warranty_expiry,
-                remarks=remarks,
-                **metadata,
-            )
-            log_activity(
-                request=request,
-                action='CREATE_ASSET',
-                module='Assets',
-                description=f"Added {asset.get_asset_nature_display()} [{asset.asset_tag}] {dev.name} to {loc.name} ({loc.location_id}). Assigned: {assigned_user or 'None'}."
-            )
-            messages.success(request, f"Asset '{asset.asset_tag}' ({dev.name}) successfully registered at {loc.name}!")
-        else:
-            asset.asset_nature = asset_nature
-            if asset_tag:
-                asset.asset_tag = asset_tag
-            asset.device_type = dev
-            asset.location = loc
-            asset.brand = brand
-            asset.model_name = model_name
-            asset.serial_number = serial_number
-            asset.vendor = vendor
-            asset.version = version
-            asset.license_key = license_key
-            asset.host_server = host_server
-            asset.department = department
-            asset.assigned_user = assigned_user
-            asset.status = status
-            asset.ip_address = ip_address
-            asset.mac_address = mac_address
-            asset.purchase_date = purchase_date
-            asset.warranty_expiry = warranty_expiry
-            asset.remarks = remarks
-            for key, value in metadata.items():
-                setattr(asset, key, value)
-            asset.save()
+        try:
+            is_new = asset is None
 
-            log_activity(
-                request=request,
-                action='UPDATE_ASSET',
-                module='Assets',
-                description=f"Updated asset details for [{asset.asset_tag}] at {loc.name}."
-            )
-            messages.success(request, f"Asset '{asset.asset_tag}' updated successfully!")
+            if is_new:
+                asset = Asset.objects.create(
+                    asset_nature=asset_nature,
+                    asset_tag=asset_tag or '',
+                    device_type=dev,
+                    location=loc,
+                    owning_company=owner,
+                    brand=brand,
+                    model_name=model_name,
+                    serial_number=serial_number,
+                    vendor=vendor,
+                    version=version,
+                    license_key=license_key,
+                    host_server=host_server,
+                    department=department,
+                    assigned_user=assigned_user,
+                    status=status,
+                    ip_address=ip_address,
+                    mac_address=mac_address,
+                    purchase_date=purchase_date,
+                    warranty_expiry=warranty_expiry,
+                    compliance_status=compliance_status,
+                    risk_level=risk_level,
+                    remediation_plan=remediation_plan,
+                    seats_purchased=seats_purchased,
+                    seats_allocated=seats_allocated,
+                    remarks=remarks,
+                    **metadata,
+                )
+                log_activity(
+                    request=request,
+                    action='CREATE_ASSET',
+                    module='Assets',
+                    description=f"Added {asset.get_asset_nature_display()} [{asset.asset_tag}] {dev.name} to {loc.name} ({loc.location_id}). Assigned: {assigned_user or 'None'}."
+                )
+                messages.success(request, f"Asset '{asset.asset_tag}' ({dev.name}) successfully registered at {loc.name}!")
+            else:
+                asset.asset_nature = asset_nature
+                asset.device_type = dev
+                asset.location = loc
+                if owner:
+                    asset.owning_company = owner
+                asset.brand = brand
+                asset.model_name = model_name
+                asset.serial_number = serial_number
+                asset.vendor = vendor
+                asset.version = version
+                asset.license_key = license_key
+                asset.host_server = host_server
+                asset.department = department
+                asset.assigned_user = assigned_user
+                asset.status = status
+                asset.ip_address = ip_address
+                asset.mac_address = mac_address
+                asset.purchase_date = purchase_date
+                asset.warranty_expiry = warranty_expiry
+                asset.compliance_status = compliance_status
+                asset.risk_level = risk_level
+                asset.remediation_plan = remediation_plan
+                asset.seats_purchased = seats_purchased
+                asset.seats_allocated = seats_allocated
+                asset.remarks = remarks
+                for key, value in metadata.items():
+                    setattr(asset, key, value)
+                asset.save()
+
+                log_activity(
+                    request=request,
+                    action='UPDATE_ASSET',
+                    module='Assets',
+                    description=f"Updated asset details for [{asset.asset_tag}] at {loc.name}."
+                )
+                messages.success(request, f"Asset '{asset.asset_tag}' updated successfully!")
+
+        except ValidationError as error:
+            return render(request, 'devices/asset_form.html', {
+                **form_context(), 'asset_tag_error': error.messages[0],
+            }, status=400)
 
         return redirect('asset_list')
 
@@ -269,6 +371,114 @@ def asset_create_or_edit_view(request, asset_id=None):
     return render(request, 'devices/asset_form.html', context)
 
 
+@roles_required(*DASHBOARD_ROUTES)
+def software_list_view(request):
+    """
+    Software & License Management (SLM) Hub:
+    Tracks commercial licenses, open-source software, and identifies
+    unlicensed / cracked pirated software with security risk levels & remediation plans.
+    """
+    visible_locs = visible_locations(request.user)
+    software_qs = Asset.objects.filter(
+        location__in=visible_locs
+    ).filter(
+        Q(asset_nature='LOGICAL') |
+        Q(device_type__category__name__icontains='software') |
+        Q(device_type__category__name__icontains='license')
+    ).select_related(
+        'device_type', 'device_type__category', 'location', 'owning_company'
+    )
+
+    # Filters
+    loc_filter = request.GET.get('location', '').strip()
+    compliance_filter = request.GET.get('compliance', '').strip()
+    risk_filter = request.GET.get('risk', '').strip()
+    remediation_filter = request.GET.get('remediation', '').strip()
+    search_query = request.GET.get('q', '').strip()
+
+    if loc_filter:
+        software_qs = software_qs.filter(location_id=loc_filter)
+
+    if compliance_filter:
+        software_qs = software_qs.filter(compliance_status=compliance_filter)
+
+    if risk_filter:
+        software_qs = software_qs.filter(risk_level=risk_filter)
+
+    if remediation_filter:
+        software_qs = software_qs.filter(remediation_plan=remediation_filter)
+
+    if search_query:
+        software_qs = software_qs.filter(
+            Q(asset_tag__icontains=search_query) |
+            Q(serial_number__icontains=search_query) |
+            Q(license_key__icontains=search_query) |
+            Q(model_name__icontains=search_query) |
+            Q(version__icontains=search_query) |
+            Q(brand__icontains=search_query) |
+            Q(vendor__icontains=search_query) |
+            Q(assigned_user__icontains=search_query) |
+            Q(department__icontains=search_query) |
+            Q(host_server__icontains=search_query)
+        )
+
+    # KPI Metrics across all visible software
+    all_software_qs = Asset.objects.filter(
+        location__in=visible_locs
+    ).filter(
+        Q(asset_nature='LOGICAL') |
+        Q(device_type__category__name__icontains='software') |
+        Q(device_type__category__name__icontains='license')
+    )
+    total_software = all_software_qs.count()
+    cracked_count = all_software_qs.filter(compliance_status='CRACKED_PIRATED').count()
+    high_critical_risk = all_software_qs.filter(risk_level__in=['HIGH', 'CRITICAL']).count()
+    genuine_count = all_software_qs.filter(compliance_status='GENUINE').count()
+    open_source_count = all_software_qs.filter(compliance_status='FREE_OPEN_SOURCE').count()
+
+    today = timezone.now().date()
+    in_30_days = today + timezone.timedelta(days=30)
+    expiring_soon_count = all_software_qs.filter(
+        warranty_expiry__gte=today,
+        warranty_expiry__lte=in_30_days
+    ).count()
+    expired_count = all_software_qs.filter(
+        warranty_expiry__lt=today
+    ).count()
+
+    piracy_percentage = round((cracked_count / total_software * 100), 1) if total_software > 0 else 0
+
+    # Locations for filter
+    locations = visible_locs.order_by('location_id', 'name')
+
+    # Pagination
+    paginator = Paginator(software_qs.order_by('-risk_level', '-id'), 25)
+    page_number = request.GET.get('page', 1)
+    page_obj = paginator.get_page(page_number)
+
+    context = {
+        'page_obj': page_obj,
+        'total_software': total_software,
+        'cracked_count': cracked_count,
+        'high_critical_risk': high_critical_risk,
+        'genuine_count': genuine_count,
+        'open_source_count': open_source_count,
+        'expiring_soon_count': expiring_soon_count,
+        'expired_count': expired_count,
+        'piracy_percentage': piracy_percentage,
+        'locations': locations,
+        'loc_filter': loc_filter,
+        'compliance_filter': compliance_filter,
+        'risk_filter': risk_filter,
+        'remediation_filter': remediation_filter,
+        'search_query': search_query,
+        'compliance_choices': Asset.COMPLIANCE_CHOICES,
+        'risk_level_choices': Asset.RISK_LEVEL_CHOICES,
+        'remediation_choices': Asset.REMEDIATION_CHOICES,
+    }
+    return render(request, 'devices/software_list.html', context)
+
+
 @roles_required(*CENTRAL_ROLES)
 def category_list_view(request):
     """
@@ -280,9 +490,17 @@ def category_list_view(request):
     status = status if status in ('active', 'archived') else ''
     tracking = tracking if tracking in ('tagged', 'bulk') else ''
 
+    filters = {name: value for name, value in {'status': status, 'tracking': tracking}.items() if value}
+    catalog_url = reverse('category_list', query=filters)
+    category_codes = dict(TAG_CATEGORY_CHOICES)
+
     # Handle POST actions (Add, Edit, Delete)
     if request.method == 'POST':
         action_type = request.POST.get('action_type')
+        tag_category_code = request.POST.get('tag_category_code', '').strip().upper()
+        if action_type in ('add_device', 'edit_device') and tag_category_code and tag_category_code not in category_codes:
+            messages.error(request, 'Select a valid tag category code.')
+            return redirect(catalog_url)
 
         if action_type == 'add_device':
             cat_id = request.POST.get('category_id')
@@ -296,6 +514,7 @@ def category_list_view(request):
                     category=cat,
                     name=dev_name,
                     defaults={
+                        'tag_category_code': tag_category_code,
                         'order': cat.devices.count() + 1,
                         'is_count_only': is_count_only,
                         'remarks': remarks
@@ -322,13 +541,22 @@ def category_list_view(request):
             if dev_id and new_name:
                 dev = get_object_or_404(DeviceType, id=dev_id)
                 old_name = dev.name
+                if tag_category_code and tag_category_code != dev.tag_category_code:
+                    if dev.assets.exists():
+                        messages.error(request, 'Tag category code is locked because this device type has issued asset tags.')
+                        return redirect(catalog_url)
+                    dev.tag_category_code = tag_category_code
                 dev.name = new_name
                 if cat_id:
                     new_cat = get_object_or_404(DeviceCategory, id=cat_id)
                     dev.category = new_cat
                 dev.is_count_only = is_count_only
                 dev.remarks = remarks
-                dev.save()
+                try:
+                    dev.save()
+                except ValidationError as error:
+                    messages.error(request, ' '.join(error.messages))
+                    return redirect(catalog_url)
 
                 log_activity(
                     request=request,
@@ -394,8 +622,7 @@ def category_list_view(request):
                 )
                 messages.success(request, f"Category renamed to '{cat_name}'!")
 
-        filters = {name: value for name, value in {'status': status, 'tracking': tracking}.items() if value}
-        return redirect(reverse('category_list', query=filters))
+        return redirect(catalog_url)
 
     devices = DeviceType.objects.all()
     active = Q(is_active=True, category__is_active=True)
@@ -433,6 +660,7 @@ def category_list_view(request):
         'categories': categories,
         'all_categories': all_categories,
         'catalog_status': status,
+        'tag_category_choices': TAG_CATEGORY_CHOICES,
         'tracking_mode': tracking,
         'total_categories': total_categories,
         'total_device_types': total_device_types,
@@ -443,26 +671,75 @@ def category_list_view(request):
     return render(request, 'devices/category_list.html', context)
 
 
-@roles_required(*DASHBOARD_ROUTES)
-def asset_delete_view(request, asset_id):
-    """
-    Deletes an asset record.
-    """
-    asset = get_object_or_404(Asset, id=asset_id, location__in=visible_locations(request.user))
-    if request.method == 'POST':
-        tag = asset.asset_tag
-        loc_name = asset.location.name
-        log_activity(
-            request=request,
-            action='DELETE_ASSET',
-            module='Assets',
-            description=f"Deleted asset [{tag}] from {loc_name}."
-        )
-        asset.delete()
-        messages.success(request, f"Asset '{tag}' has been deleted.")
-        return redirect('asset_list')
+def scoped_asset(request, asset_id):
+    assets = Asset.objects.select_related('device_type', 'location', 'location__company', 'owning_company')
+    return get_object_or_404(assets, pk=asset_id, location__in=visible_locations(request.user))
 
-    return render(request, 'devices/asset_confirm_delete.html', {'asset': asset})
+
+def asset_label_url(request, asset):
+    if asset.asset_nature != 'PHYSICAL':
+        return None
+    try:
+        parts = urlsplit(request_preferences(request).get('application_url') or '')
+    except ValueError:
+        return None
+    hostname = (parts.hostname or '').lower()
+    if parts.scheme != 'https' or not hostname or parts.username or parts.password:
+        return None
+    if hostname in ('localhost', '127.0.0.1', '::1') or hostname.endswith('.localhost'):
+        return None
+    asset_path = reverse('asset_detail', args=[asset.pk])
+    prefix = parts.path.rstrip('/')
+    if prefix and not asset_path.startswith(prefix + '/'):
+        asset_path = prefix + asset_path
+    return urlunsplit(('https', parts.netloc, asset_path, '', ''))
+
+
+@roles_required(*DASHBOARD_ROUTES)
+@require_safe
+def asset_detail_view(request, asset_id):
+    asset = scoped_asset(request, asset_id)
+    return render(request, 'devices/asset_detail.html', {
+        'asset': asset, 'label_url': asset_label_url(request, asset),
+        'status_label': dict(asset_status_choices(request_preferences(request))).get(asset.status, asset.get_status_display()),
+    })
+
+
+@roles_required(*DASHBOARD_ROUTES)
+@require_safe
+def asset_label_qr_view(request, asset_id):
+    asset = scoped_asset(request, asset_id)
+    label_url = asset_label_url(request, asset)
+    if not label_url:
+        raise Http404('A physical asset and a configured HTTPS application URL are required.')
+    import qrcode
+    from qrcode.image.svg import SvgPathImage
+
+    image = qrcode.make(label_url, image_factory=SvgPathImage)
+    response = HttpResponse(image.to_string(), content_type='image/svg+xml')
+    response['Cache-Control'] = 'private, no-store'
+    return response
+
+
+@roles_required(*DASHBOARD_ROUTES)
+@require_http_methods(['GET', 'HEAD', 'POST'])
+def asset_retire_view(request, asset_id):
+    assets = Asset.objects.filter(location__in=visible_locations(request.user))
+    if request.method == 'POST':
+        with transaction.atomic():
+            asset = get_object_or_404(assets.select_for_update(), pk=asset_id)
+            if not asset.retired_at:
+                asset.status = 'SCRAP'
+                asset.is_active = False
+                asset.retired_at = timezone.now()
+                asset.save(update_fields=['status', 'is_active', 'retired_at', 'updated_at'])
+                log_activity(request, 'RETIRE_ASSET', 'Assets', f'Retired asset [{asset.asset_tag}].')
+                messages.success(request, f'Asset “{asset.asset_tag}” retired. Its tag remains reserved.')
+        return redirect('asset_detail', asset_id=asset_id)
+    asset = get_object_or_404(assets, pk=asset_id)
+    if asset.retired_at:
+        return redirect('asset_detail', asset_id=asset.pk)
+    return render(request, 'devices/asset_retire.html', {'asset': asset})
 
 
 @roles_required(*CENTRAL_ROLES)
@@ -602,7 +879,7 @@ def download_sample_asset_csv_view(request):
         ])
         if not is_blank:
             writer.writerow([
-                'AST-8001',
+                'APL-LAP-10001',
                 'PHYSICAL',
                 'Laptop',
                 target_loc_code,
@@ -644,7 +921,7 @@ def download_sample_asset_csv_view(request):
                 'Akij Group Volume Licensing'
             ])
             writer.writerow([
-                'AST-8002',
+                'APL-DSK-10002',
                 'PHYSICAL',
                 'Desktop',
                 target_loc_code,
@@ -665,7 +942,7 @@ def download_sample_asset_csv_view(request):
                 'Factory QC Lab station'
             ])
             writer.writerow([
-                'AST-8003',
+                'APL-SWT-10003',
                 'PHYSICAL',
                 'Microtik Router',
                 target_loc_code,
@@ -704,7 +981,7 @@ def download_sample_asset_csv_view(request):
         ])
         if not is_blank:
             writer.writerow([
-                'AST-8001',
+                'APL-LAP-10001',
                 'Laptop',
                 target_loc_code,
                 'Dell',
@@ -720,7 +997,7 @@ def download_sample_asset_csv_view(request):
                 'Core i7, 16GB RAM, 512GB SSD'
             ])
             writer.writerow([
-                'AST-8002',
+                'APL-DSK-10002',
                 'Desktop',
                 target_loc_code,
                 'HP',
@@ -851,6 +1128,8 @@ def asset_import_csv_view(request):
                 header_map['device_type'] = idx
             elif h in ['location_code_or_id', 'location_code', 'location_id', 'location', 'site', 'branch', 'unit']:
                 header_map['location'] = idx
+            elif h in ('owning_company_code', 'owner_company_code'):
+                header_map['owning_company_code'] = idx
             elif h in ['brand', 'manufacturer', 'make']:
                 header_map['brand'] = idx
             elif h in ['model_name', 'model', 'model_no']:
@@ -901,6 +1180,8 @@ def asset_import_csv_view(request):
         loc_by_code = {loc.code.upper(): loc for loc in Location.objects.filter(code__isnull=False)}
         loc_by_name = {loc.name.lower(): loc for loc in Location.objects.all()}
 
+        owners_by_code = {owner.short_code.upper(): owner for owner in Company.objects.filter(is_active=True)}
+
         selected_loc_obj = None
         if target_location_id:
             try:
@@ -915,6 +1196,7 @@ def asset_import_csv_view(request):
         updated_count = 0
         skipped_count = 0
         error_rows = []
+        seen_tags = set()
 
         data_rows = rows[1:]
         for row_idx, row in enumerate(data_rows, start=2):
@@ -925,6 +1207,12 @@ def asset_import_csv_view(request):
                 if key in header_map and header_map[key] < len(row):
                     return row[header_map[key]].strip()
                 return ''
+
+            owner_code = get_val('owning_company_code').upper()
+            owner = owners_by_code.get(owner_code)
+            if owner_code and not owner:
+                error_rows.append({'row': row_idx, 'reason': 'The owning company code is unknown or inactive.'})
+                continue
 
             dev_type_val = get_val('device_type')
             if not dev_type_val:
@@ -937,6 +1225,12 @@ def asset_import_csv_view(request):
                 error_rows.append({'row': row_idx, 'reason': f'Invalid asset classification: {", ".join(invalid)}.'})
                 continue
             metadata = {key: options[key][value.casefold()] for key, value in entries.items() if value}
+            tag_val = normalize_asset_tag(get_val('asset_tag'))
+            if tag_val:
+                if tag_val in seen_tags:
+                    error_rows.append({'row': row_idx, 'reason': 'This asset tag is repeated in the CSV file.'})
+                    continue
+                seen_tags.add(tag_val)
 
             # Resolve DeviceType
             dev_key = dev_type_val.lower()
@@ -1009,7 +1303,6 @@ def asset_import_csv_view(request):
                 except ValueError:
                     pass
 
-            tag_val = get_val('asset_tag').upper()
             brand_val = get_val('brand')
             model_val = get_val('model_name')
             sn_val = get_val('serial_number')
@@ -1034,12 +1327,17 @@ def asset_import_csv_view(request):
                     mac_val = host_val
 
             try:
-                if tag_val and Asset.objects.filter(asset_tag=tag_val).exists():
+                existing = Asset.objects.filter(asset_tag__iexact=tag_val).first() if tag_val else None
+                if existing:
                     if update_existing:
-                        asset = Asset.objects.get(asset_tag=tag_val)
+                        asset = existing
+                        if asset.retired_at:
+                            raise ValidationError('This tag belongs to a retired asset and cannot be reissued or updated.')
                         asset.asset_nature = asset_nature
                         asset.device_type = dt_obj
                         asset.location = target_loc
+                        if owner:
+                            asset.owning_company = owner
                         if brand_val: asset.brand = brand_val
                         if model_val: asset.model_name = model_val
                         if sn_val: asset.serial_number = sn_val
@@ -1067,6 +1365,7 @@ def asset_import_csv_view(request):
                         asset_nature=asset_nature,
                         device_type=dt_obj,
                         location=target_loc,
+                        owning_company=owner,
                         brand=brand_val,
                         model_name=model_val,
                         serial_number=sn_val,
@@ -1085,8 +1384,10 @@ def asset_import_csv_view(request):
                         **metadata,
                     )
                     success_count += 1
-            except Exception as ex:
-                error_rows.append({'row': row_idx, 'reason': f"Error saving asset: {str(ex)}"})
+            except ValidationError as error:
+                error_rows.append({'row': row_idx, 'reason': ' '.join(error.messages)})
+            except Exception:
+                error_rows.append({'row': row_idx, 'reason': 'Unable to save this asset. Check the data and try again.'})
 
         # Record system activity log
         log_activity(

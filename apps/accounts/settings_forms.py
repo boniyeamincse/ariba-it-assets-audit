@@ -210,7 +210,7 @@ FIELDS = {
         'asset_id_category_code': code('Category code override (Optional)', 12),
         'asset_id_location_code': code('Location code override (Optional)', 12),
         'asset_id_start': integer('Starting number', 1, 999999999),
-        'asset_id_length': integer('Number length', 1, 9),
+        'asset_id_length': integer('Number length', 4, 8),
         'asset_id_separator': dropdown('Separator', [('-', 'Hyphen (-)'), ('_', 'Underscore (_)'), ('.', 'Dot (.)')]),
     },
     'notifications': {
@@ -345,9 +345,14 @@ class SectionSettingsForm(forms.Form):
                 else:
                     result[name] = '\n'.join(rows)
         if self.section == 'asset-id' and result.get('asset_id_start') and result.get('asset_id_length'):
-            budget = len(result.get('asset_id_prefix', '')) + 4 + 12 + sum(
-                len(result.get(f'asset_id_{part}_code') or '12345678') for part in ('company', 'location', 'category')
-            )
+            lengths = [result['asset_id_length']]
+            if result.get('asset_id_prefix'):
+                lengths.append(len(result['asset_id_prefix']))
+            for part, fallback in (('company', 20), ('location', 8), ('category', 4)):
+                if result.get(f'asset_id_include_{part}'):
+                    override = result.get(f'asset_id_{part}_code')
+                    lengths.append(len(override) if override else fallback)
+            budget = sum(lengths) + len(lengths) - 1
             if budget > 50:
                 self.add_error('asset_id_prefix', 'Shorten the prefix or code overrides to keep generated IDs within 50 characters.')
             if result['asset_id_start'] >= 10 ** result['asset_id_length']:

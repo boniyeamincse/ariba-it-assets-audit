@@ -108,13 +108,24 @@
                 </select>
             </div>
 
+            <!-- Compliance Filter Dropdown -->
+            <div>
+                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Compliance / Risk</label>
+                <select name="compliance" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    <option value="">All Compliance</option>
+                    {% for code, label in compliance_choices %}
+                    <option value="{{ code }}" {% if compliance_filter == code %}selected{% endif %}>{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
             <!-- Buttons -->
             <div class="flex items-center space-x-2">
                 <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1">
                     <i class="fa-solid fa-filter"></i>
                     <span>Filter</span>
                 </button>
-                {% if loc_filter or cat_filter or nature_filter or selected_device_type or status_filter or search_query %}
+                {% if loc_filter or cat_filter or nature_filter or compliance_filter or risk_filter or selected_device_type or status_filter or search_query %}
                 <a href="{% url 'asset_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2.5 rounded-lg text-xs transition" title="Clear Filters">
                     <i class="fa-solid fa-xmark"></i>
                 </a>
@@ -176,9 +187,9 @@
 
                         <!-- Asset Tag -->
                         <td class="px-4 py-3 whitespace-nowrap">
-                            <span class="font-mono font-bold text-xs bg-slate-100 text-blue-900 border border-slate-300 px-2.5 py-1 rounded shadow-xs inline-flex items-center">
-                                <i class="fa-solid fa-barcode text-[11px] text-blue-600 mr-1.5"></i>{{ ast.asset_tag }}
-                            </span>
+                            <a href="{% url 'asset_detail' ast.pk %}" class="font-mono font-bold text-xs bg-slate-100 text-blue-900 border border-slate-300 px-2.5 py-1 rounded shadow-xs inline-flex items-center hover:underline">
+                                <i class="fa-solid fa-barcode text-[11px] text-blue-600 mr-1.5" aria-hidden="true"></i>{{ ast.asset_tag }}
+                            </a>
                         </td>
 
                         <!-- Device Type & Model -->
@@ -192,6 +203,19 @@
                                 {% else %}
                                 <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-600 border border-slate-200" title="Physical Hardware">
                                     <i class="fa-solid fa-desktop mr-1 text-[9px]"></i>Physical
+                                </span>
+                                {% endif %}
+                                {% if ast.compliance_status == 'CRACKED_PIRATED' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-800 border border-red-300" title="⚠️ Cracked / Pirated Software - Security Risk">
+                                    <i class="fa-solid fa-triangle-exclamation mr-1 text-[9px] text-red-600"></i>CRACKED
+                                </span>
+                                {% elif ast.compliance_status == 'UNLICENSED_EXPIRED' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300" title="Unlicensed / Expired Trial">
+                                    <i class="fa-solid fa-clock-rotate-left mr-1 text-[9px]"></i>Expired
+                                </span>
+                                {% elif ast.compliance_status == 'FREE_OPEN_SOURCE' %}
+                                <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200" title="Free / Open Source (FOSS)">
+                                    <i class="fa-solid fa-code-branch mr-1 text-[9px]"></i>FOSS
                                 </span>
                                 {% endif %}
                             </div>
@@ -247,15 +271,17 @@
                                 {% else %}
                                     bg-slate-200 text-slate-700
                                 {% endif %}">
-                                {{ ast.get_status_display }}
+                                {% if ast.retired_at %}Retired{% else %}{{ ast.configured_status_label }}{% endif %}
                             </span>
                         </td>
 
                         <!-- Actions -->
                         <td class="px-4 py-3 text-right space-x-1 whitespace-nowrap">
+                            {% if not ast.retired_at %}
                             <a href="{% url 'asset_edit' ast.id %}" class="inline-flex items-center text-slate-700 hover:text-blue-700 bg-slate-100 hover:bg-blue-50 px-2 py-1 rounded font-semibold transition" title="Edit Asset">
                                 <i class="fa-solid fa-pen-to-square mr-1"></i> Edit
                             </a>
+                            {% endif %}
                         </td>
                     </tr>
                     {% empty %}

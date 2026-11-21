@@ -1,0 +1,51 @@
+{% extends 'base.html' %}
+{% block title %}{{ asset.asset_tag }} | {{ portal.application_short_name }}{% endblock %}
+{% block header_title %}{{ asset.asset_tag }}{% endblock %}
+{% block header_subtitle %}{{ asset.device_type.name }} · {{ asset.get_asset_nature_display }}{% endblock %}
+{% block extra_head %}
+<style>
+    @page { size: 50mm 25mm; margin: 0; }
+    @media print {
+        .asset-label-panel { border: 0; padding: 0; }
+        #print-asset-label { box-sizing: border-box; width: 50mm; height: 25mm; padding: 2mm; font-size: 9pt; border: 0; }
+        #print-asset-label img { width: 16mm; height: 16mm; }
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="grid max-w-4xl items-start gap-4 md:grid-cols-2">
+    <section class="no-print space-y-4 rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="text-base font-semibold">Asset details</h2>
+        <dl class="space-y-2 text-sm">
+            <div><dt class="font-medium text-slate-600">Status</dt><dd>{% if asset.retired_at %}Retired on {{ asset.retired_at|date:portal.date_format }}{% else %}{{ status_label }}{% endif %}</dd></div>
+            <div><dt class="font-medium text-slate-600">Current location</dt><dd>{{ asset.location.name }}</dd></div>
+            <div><dt class="font-medium text-slate-600">Owning company</dt><dd>{% if asset.owning_company %}{{ asset.owning_company.name }}{% else %}{{ asset.location.company.name }}{% endif %}</dd></div>
+            {% if asset.brand or asset.model_name %}<div><dt class="font-medium text-slate-600">Brand / model</dt><dd>{{ asset.brand|default:'' }} {{ asset.model_name|default:'' }}</dd></div>{% endif %}
+        </dl>
+        <div class="flex flex-wrap gap-3 text-sm">
+            <a class="font-medium text-blue-700 underline" href="{% url 'asset_list' %}">Asset inventory</a>
+            {% if not asset.retired_at %}
+            <a class="font-medium text-blue-700 underline" href="{% url 'asset_edit' asset.pk %}">Edit asset</a>
+            <a class="font-medium text-red-700 underline" href="{% url 'asset_retire' asset.pk %}">Retire asset</a>
+            {% endif %}
+        </div>
+    </section>
+    {% if asset.asset_nature == 'PHYSICAL' %}
+    <section class="asset-label-panel rounded-xl border border-slate-200 bg-white p-5">
+        <h2 class="no-print mb-4 text-base font-semibold">Asset label</h2>
+        {% if label_url %}
+        <div id="print-asset-label" class="inline-flex items-center gap-3 border border-slate-200 bg-white p-3 text-black">
+            <img src="{% url 'asset_label_qr' asset.pk %}" width="86" height="86" alt="QR code for {{ asset.asset_tag }}">
+            <div><p>{{ portal.organization_name }}</p><p class="font-mono font-bold">{{ asset.asset_tag }}</p></div>
+        </div>
+        <div class="no-print mt-4 flex flex-wrap gap-3 text-sm">
+            <button type="button" onclick="window.print()" class="rounded-lg bg-blue-600 px-3 py-2 font-semibold text-white">Print QR label</button>
+            <a href="{{ label_url }}" class="px-1 py-2 text-blue-700 underline">Open scan link</a>
+        </div>
+        {% else %}
+        <p class="text-sm text-slate-600">Set the production HTTPS Application URL in General Settings to enable printable QR labels.</p>
+        {% endif %}
+    </section>
+    {% endif %}
+</div>
+{% endblock %}

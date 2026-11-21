@@ -69,6 +69,15 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+if os.environ.get('AUDIT_DB_ENGINE') == 'postgresql':
+    DATABASES['default'] = {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.environ.get('AUDIT_DB_NAME', 'audit'),
+        'USER': os.environ.get('AUDIT_DB_USER', 'audit'),
+        'PASSWORD': os.environ.get('AUDIT_DB_PASSWORD', ''),
+        'HOST': os.environ.get('AUDIT_DB_HOST', ''),
+        'PORT': os.environ.get('AUDIT_DB_PORT', ''),
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'apps.accounts.password_policy.PortalPasswordValidator'},

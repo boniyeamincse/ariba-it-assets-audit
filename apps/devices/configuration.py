@@ -10,123 +10,67 @@ ASSET_METADATA = {
 }
 
 
-# Standardized Device Category Codes for Enterprise Asset Tagging (COMPANY-CATEGORY-SERIAL)
-DEVICE_TYPE_CATEGORY_CODES = {
-    'router': 'ROU',
-    'switch': 'SWT',
-    'firewall': 'FWL',
-    'access point': 'AP',
-    'ap': 'AP',
-    'unifi': 'AP',
-    'wifi': 'AP',
-    'server': 'SRV',
-    'database server': 'SRV',
-    'db server': 'SRV',
-    'web server': 'SRV',
-    'app server': 'SRV',
-    'file server': 'SRV',
-    'desktop': 'DSK',
-    'pc': 'DSK',
-    'workstation': 'DSK',
-    'laptop': 'LAP',
-    'notebook': 'LAP',
-    'printer': 'PRT',
-    'scanner': 'SCN',
-    'storage': 'STR',
-    'san': 'STR',
-    'cctv': 'CCTV',
-    'camera': 'CCTV',
-    'nvr': 'CCTV',
-    'dvr': 'CCTV',
-    'ups': 'UPS',
-    'ips': 'UPS',
-    'monitor': 'MON',
-    'display': 'MON',
-    'screen': 'MON',
-    'ip phone': 'IPP',
-    'phone': 'IPP',
-    'telephone': 'IPP',
-    'nas': 'NAS',
-    'virtual machine': 'VM',
-    'virtual server': 'VM',
-    'cloud vm': 'VM',
-    'vm': 'VM',
-    'software': 'LIC',
-    'license': 'LIC',
-    'erp': 'ERP',
-    'cloud': 'CLD',
-    'database': 'DB',
-    'certificate': 'SSL',
-    'ssl': 'SSL',
-    'domain': 'DOM',
-    'rack': 'RCK',
-}
+TAG_CATEGORY_CHOICES = (
+    ('ROU', 'Router'), ('SWT', 'Switch'), ('FWL', 'Firewall'),
+    ('AP', 'Access point'), ('SRV', 'Server'), ('DSK', 'Desktop'),
+    ('LAP', 'Laptop'), ('PRT', 'Printer / scanner'), ('STR', 'Storage'),
+    ('CCTV', 'CCTV / NVR'), ('UPS', 'UPS / IPS'), ('MON', 'Monitor'),
+    ('IPP', 'IP phone'), ('NAS', 'NAS'), ('VM', 'Virtual machine'),
+    ('LIC', 'Software licence'), ('ERP', 'ERP licence'), ('SSL', 'TLS certificate'),
+    ('CLD', 'Cloud / database'), ('RCK', 'Rack'), ('OTHR', 'Other (review classification)'),
+)
 
 
-def resolve_category_code(device_type=None, category=None):
-    """
-    Resolves standard 2-4 letter category code for asset tag (e.g. ROU, SWT, LAP, SRV).
-    Uses whole-word boundary matching sorted by keyword length to prevent substring clashes.
-    """
-    if device_type and hasattr(device_type, 'name'):
-        name_lower = device_type.name.lower()
-        # Sort keywords by length descending so e.g. 'laptop' matches before 'ap'
-        for keyword in sorted(DEVICE_TYPE_CATEGORY_CODES.keys(), key=len, reverse=True):
-            if re.search(r'\b' + re.escape(keyword) + r'\b', name_lower):
-                return DEVICE_TYPE_CATEGORY_CODES[keyword]
-        cleaned = re.sub(r'[^A-Z0-9]', '', device_type.name.upper())
-        if len(cleaned) >= 3:
-            return cleaned[:4]
-            
-    if category and hasattr(category, 'code'):
-        cat_cleaned = re.sub(r'[^A-Z0-9]', '', category.code.upper())
-        return cat_cleaned[:4] or 'AST'
-        
-    return 'AST'
+# These keywords only suggest a code when a catalogue record is first created.
+_TAG_CATEGORY_KEYWORDS = (
+    ('ERP', r'erp|sap'),
+    ('SSL', r'ssl|tls|certificate'),
+    ('NAS', r'nas|network attached storage'),
+    ('VM', r'virtual machine|virtual server|cloud vm|vm'),
+    ('CCTV', r'cctv|camera|nvr|dvr'),
+    ('AP', r'access point|unifi|wifi|wi-fi|ap'),
+    ('PRT', r'printer|scanner'),
+    ('FWL', r'firewall'),
+    ('ROU', r'router'),
+    ('SWT', r'switch'),
+    ('CLD', r'cloud|database'),
+    ('SRV', r'server'),
+    ('DSK', r'desktop|workstation|pc'),
+    ('LAP', r'laptop|notebook|macbook'),
+    ('STR', r'storage|san|das'),
+    ('UPS', r'ups|ips'),
+    ('MON', r'monitor|display|screen'),
+    ('IPP', r'ip phone|phone|telephone|voip'),
+    ('LIC', r'software|license|licence'),
+    ('RCK', r'rack|cabinet'),
+)
 
 
-def asset_tag_components(config, location, category, device_type=None):
-    """
-    Builds the constituent tokens for an asset tag adhering to the standard:
-    COMPANY - CATEGORY - SERIAL (e.g. APL-ROU-10001)
-    Supports optional prefix (e.g. AST) and optional location code.
-    """
-    parts = []
+def suggest_tag_category(name):
+    for code, keywords in _TAG_CATEGORY_KEYWORDS:
+        if re.search(rf'\b(?:{keywords})\b', name, re.IGNORECASE):
+            return code
+    return 'OTHR'
 
-    # 1. Prefix (Optional - e.g. AST, IT, or empty)
-    prefix = (config.get('asset_id_prefix') or '').strip().upper()
-    if prefix:
-        parts.append(prefix)
 
-    # 2. Company Code (Default Enabled - e.g. APL, AMFL, AJML, ACC)
-    include_company = config.get('asset_id_include_company', True)
-    if include_company:
-        comp_override = (config.get('asset_id_company_code') or '').strip().upper()
-        if comp_override:
-            parts.append(comp_override)
-        elif location and hasattr(location, 'company') and location.company and location.company.short_code:
-            parts.append(location.company.short_code.upper())
-        else:
-            parts.append('APL')
+def format_asset_tag(config, number, *, company_code, location_code, tag_category_code):
+    tokens = [config['asset_id_prefix']]
+    if config['asset_id_include_company']:
+        tokens.append(config['asset_id_company_code'] or re.sub(r'[^A-Z0-9]', '', company_code.upper()))
+    if config['asset_id_include_location']:
+        tokens.append(config['asset_id_location_code'] or re.sub(r'[^A-Z0-9]', '', location_code.upper())[:8])
+    if config['asset_id_include_category']:
+        tokens.append(config['asset_id_category_code'] or tag_category_code)
+    tokens.append(str(number).zfill(config['asset_id_length']))
+    return config['asset_id_separator'].join(token.upper() for token in tokens if token)
 
-    # 3. Location Code (Optional - Default False per recommendation, unless explicitly provided)
-    include_location = config.get('asset_id_include_location', False)
-    loc_override = (config.get('asset_id_location_code') or '').strip().upper()
-    if loc_override:
-        parts.append(loc_override)
-    elif include_location and location and hasattr(location, 'code') and location.code:
-        parts.append(re.sub(r'[^A-Z0-9]', '', location.code.upper())[:8])
 
-    # 4. Device Category Code (Default Enabled - e.g. ROU, SWT, LAP, DSK, SRV)
-    include_category = config.get('asset_id_include_category', True)
-    if include_category:
-        cat_override = (config.get('asset_id_category_code') or '').strip().upper()
-        if cat_override:
-            parts.append(cat_override)
-        else:
-            parts.append(resolve_category_code(device_type, category))
+def example_asset_tag(config):
+    return format_asset_tag(config, config['asset_id_start'], company_code='APL', location_code='HO', tag_category_code='ROU')
 
-    return [p for p in parts if p]
+
+def normalize_asset_tag(tag):
+    return tag.strip().upper()
 
 
 def add_months(value, months):

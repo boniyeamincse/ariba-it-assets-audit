@@ -4,7 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
 from django.shortcuts import get_object_or_404, redirect, render
@@ -18,7 +18,8 @@ from apps.accounts.settings_forms import CATEGORIES, CORE_FIELDS, SECTION_METADA
 from apps.common.models import SystemSettings
 from apps.common.middleware import address_allowed
 from apps.common.utils import log_activity
-from apps.common.preferences import request_preferences
+from apps.common.preferences import preferences, request_preferences
+from apps.devices.configuration import example_asset_tag
 
 
 def navigation(request):
@@ -232,6 +233,8 @@ def settings_view(request, section=None):
     }
     if selected == 'assets':
         context['asset_stats'] = get_asset_stats()
+    elif selected == 'asset-id':
+        context['asset_id_preview'] = example_asset_tag(preferences(config))
 
     if request.method == 'POST' and form.is_valid():
         changed = form.changed_data
@@ -257,3 +260,15 @@ def settings_view(request, section=None):
         return redirect('administration_settings_section', section=selected)
 
     return render(request, 'administration/settings.html', context)
+
+
+@roles_required(*CENTRAL_ROLES)
+@require_safe
+def asset_id_preview(request):
+    config = SystemSettings.current()
+    if request.GET:
+        form = SectionSettingsForm(request.GET, section='asset-id', config=config, editable=True)
+        if not form.is_valid():
+            return JsonResponse({'valid': False}, status=400)
+        return JsonResponse({'tag': example_asset_tag(form.cleaned_data)})
+    return JsonResponse({'tag': example_asset_tag(preferences(config))})
