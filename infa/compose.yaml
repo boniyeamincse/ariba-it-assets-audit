@@ -1,6 +1,6 @@
 services:
   web:
-    image: ag-audit:production
+    image: boniyeamin/ag-audit:production
     build:
       context: ..
       dockerfile: infa/Dockerfile
