@@ -223,7 +223,7 @@
                     </div>
                     <div class="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-3">
                         <div>
-                            <p class="text-[11px] text-slate-500 font-medium">Sample Generated Asset ID:</p>
+                            <p class="text-[11px] text-slate-500 font-medium">Sample Generated Asset ID (Recommended Standard: <strong>APL-ROU-10001</strong>):</p>
                             <output aria-live="polite" id="asset-id-example" class="font-mono font-bold text-xl text-blue-700 tracking-wide">AST-AMFL-HO-NET-00001</output>
                         </div>
                         <button type="button" id="copy-asset-id" class="inline-flex items-center gap-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 transition shadow-xs">
@@ -410,20 +410,37 @@
         if (!idForm || !idExample) return;
         const value = (name, fallback) => {
             const el = idForm.elements['asset_id_' + name];
-            return (el && el.value) ? el.value : fallback;
+            return (el && el.value !== undefined) ? el.value : fallback;
+        };
+        const isChecked = (name, fallback) => {
+            const el = idForm.elements['asset_id_' + name];
+            return el ? el.checked : fallback;
         };
         const length = Math.max(1, Math.min(9, Number(value('length', '5')) || 5));
-        const number = value('start', '1').padStart(length, '0');
-        idExample.value = [
-            value('prefix', 'AST'),
-            value('company_code', 'AMFL'),
-            value('location_code', 'HO'),
-            value('category_code', 'NET'),
-            number
-        ].join(value('separator', '-')).toUpperCase();
+        const number = value('start', '10001').padStart(length, '0');
+        const separator = value('separator', '-');
+
+        const parts = [];
+        const prefix = value('prefix', '').trim();
+        if (prefix) parts.push(prefix);
+
+        if (isChecked('include_company', true)) {
+            parts.push(value('company_code', 'APL').trim() || 'APL');
+        }
+        if (isChecked('include_location', false) || value('location_code', '').trim()) {
+            const loc = value('location_code', '').trim();
+            if (loc) parts.push(loc);
+        }
+        if (isChecked('include_category', true)) {
+            parts.push(value('category_code', 'ROU').trim() || 'ROU');
+        }
+        parts.push(number);
+        idExample.value = parts.join(separator).toUpperCase();
     }
     if (idForm) {
         idForm.addEventListener('input', updateExample);
+        idForm.addEventListener('change', updateExample);
+        updateExample();
     }
     if (copyButton && idExample) {
         copyButton.addEventListener('click', async () => {

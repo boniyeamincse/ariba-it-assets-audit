@@ -124,7 +124,7 @@ class Asset(TimeStampedModel):
         if not self.asset_tag:
             sequence, _ = AssetIdSequence.objects.select_for_update().get_or_create(pk=1)
             number = max(config['asset_id_start'], sequence.last_number + 1)
-            parts = asset_tag_components(config, self.location, self.device_type.category)
+            parts = asset_tag_components(config, self.location, self.device_type.category, self.device_type)
             separator = config['asset_id_separator']
             length = config['asset_id_length']
             while True:
