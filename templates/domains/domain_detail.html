@@ -93,7 +93,7 @@
                         <p class="text-[10px] font-bold uppercase tracking-wider text-slate-300">Registration Status</p>
                         <h4 class="text-lg font-black mt-0.5">
                             {% if domain.is_expired %}
-                                Expired {{ domain.days_until_expiry|stringformat:"d"|slice:"1:" }}d ago
+                                Expired {{ domain.abs_days_until_expiry }}d ago
                             {% elif domain.days_until_expiry == 0 %}
                                 Expires Today!
                             {% else %}
@@ -161,7 +161,7 @@
                     <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-mono">
                         <span class="text-slate-800 font-semibold truncate">{{ domain.primary_nameserver|default:"Not Configured" }}</span>
                         {% if domain.primary_nameserver %}
-                        <button onclick="navigator.clipboard.writeText('{{ domain.primary_nameserver }}'); alert('NS1 copied to clipboard!');" class="text-slate-400 hover:text-blue-600 transition px-1.5 py-0.5 rounded">
+                        <button type="button" onclick="navigator.clipboard.writeText('{{ domain.primary_nameserver }}'); this.innerHTML='<i class=\'fa-solid fa-check text-emerald-600\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fa-regular fa-copy\'></i>', 1800);" class="text-slate-400 hover:text-blue-600 transition px-1.5 py-0.5 rounded" title="Copy to clipboard">
                             <i class="fa-regular fa-copy"></i>
                         </button>
                         {% endif %}
@@ -173,7 +173,7 @@
                     <div class="flex items-center justify-between p-2.5 bg-slate-50 rounded-xl border border-slate-200 font-mono">
                         <span class="text-slate-800 font-semibold truncate">{{ domain.secondary_nameserver|default:"Not Configured" }}</span>
                         {% if domain.secondary_nameserver %}
-                        <button onclick="navigator.clipboard.writeText('{{ domain.secondary_nameserver }}'); alert('NS2 copied to clipboard!');" class="text-slate-400 hover:text-blue-600 transition px-1.5 py-0.5 rounded">
+                        <button type="button" onclick="navigator.clipboard.writeText('{{ domain.secondary_nameserver }}'); this.innerHTML='<i class=\'fa-solid fa-check text-emerald-600\'></i>'; setTimeout(() => this.innerHTML='<i class=\'fa-regular fa-copy\'></i>', 1800);" class="text-slate-400 hover:text-blue-600 transition px-1.5 py-0.5 rounded" title="Copy to clipboard">
                             <i class="fa-regular fa-copy"></i>
                         </button>
                         {% endif %}

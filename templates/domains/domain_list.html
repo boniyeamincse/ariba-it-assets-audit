@@ -25,6 +25,10 @@
         </div>
         
         <div class="flex items-center space-x-2 flex-wrap">
+            <a href="{% url 'domain_export_excel' %}?q={{ search_query }}&company={{ company_filter }}&category={{ category_filter }}&registrar={{ registrar_filter }}&status={{ status_filter }}&ssl={{ ssl_filter }}&auto_renew={{ auto_renew_filter }}&expiry_range={{ expiry_range }}" class="bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-2.5 px-3.5 rounded-xl shadow-xs transition flex items-center space-x-1.5 text-xs">
+                <i class="fa-solid fa-file-excel"></i>
+                <span>Export Excel</span>
+            </a>
             {% if can_administrate %}
             <a href="{% url 'domain_create' %}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-xs transition flex items-center space-x-2 text-xs">
                 <i class="fa-solid fa-plus-circle"></i>
@@ -34,67 +38,67 @@
         </div>
     </div>
 
-    <!-- KPI Summary Analytics Cards -->
+    <!-- KPI Summary Analytics Cards (Interactive Filter Links) -->
     <div class="grid grid-cols-2 lg:grid-cols-5 gap-3.5 sm:gap-4">
         <!-- 1. Total Domains -->
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between">
+        <a href="{% url 'domain_list' %}" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between hover:border-blue-400 hover:shadow transition group block">
             <div>
-                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Total Domains</p>
+                <p class="text-[11px] font-bold text-slate-500 uppercase tracking-wider group-hover:text-blue-600">Total Domains</p>
                 <h3 class="text-2xl font-black text-slate-900 mt-1">{{ total_domains }}</h3>
                 <span class="text-[10px] text-emerald-600 font-semibold">{{ active_count }} Active</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-blue-50 text-blue-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
                 <i class="fa-solid fa-globe"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 2. Expiring in 30 Days (Warning) -->
-        <div class="bg-white p-4 rounded-xl border {% if expiring_30_count > 0 %}border-amber-300 bg-amber-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between">
+        <a href="{% url 'domain_list' %}?expiry_range=expiring_30" class="bg-white p-4 rounded-xl border {% if expiring_30_count > 0 %}border-amber-300 bg-amber-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between hover:border-amber-400 hover:shadow transition group block">
             <div>
                 <p class="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Expiring &le; 30 Days</p>
                 <h3 class="text-2xl font-black text-amber-900 mt-1">{{ expiring_30_count }}</h3>
                 <span class="text-[10px] text-amber-700 font-medium">Renewal pending</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
                 <i class="fa-solid fa-hourglass-half"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 3. Expired Domains (Critical Alert) -->
-        <div class="bg-white p-4 rounded-xl border {% if expired_count > 0 %}border-red-300 bg-red-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between">
+        <a href="{% url 'domain_list' %}?expiry_range=expired" class="bg-white p-4 rounded-xl border {% if expired_count > 0 %}border-red-300 bg-red-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between hover:border-red-400 hover:shadow transition group block">
             <div>
                 <p class="text-[11px] font-bold text-red-600 uppercase tracking-wider">Expired Domains</p>
                 <h3 class="text-2xl font-black text-red-900 mt-1">{{ expired_count }}</h3>
                 <span class="text-[10px] {% if expired_count > 0 %}text-red-600 font-bold{% else %}text-slate-400 font-medium{% endif %}">Critical Outage Threat</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-red-100 text-red-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
                 <i class="fa-solid fa-triangle-exclamation"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 4. SSL Issues / Expiring Soon -->
-        <div class="bg-white p-4 rounded-xl border {% if ssl_expiring_count > 0 %}border-purple-300 bg-purple-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between">
+        <a href="{% url 'domain_list' %}?ssl=issues" class="bg-white p-4 rounded-xl border {% if ssl_expiring_count > 0 %}border-purple-300 bg-purple-50/20{% else %}border-slate-200{% endif %} shadow-sm flex items-center justify-between hover:border-purple-400 hover:shadow transition group block">
             <div>
                 <p class="text-[11px] font-bold text-purple-700 uppercase tracking-wider">SSL Expiring / Issues</p>
                 <h3 class="text-2xl font-black text-purple-950 mt-1">{{ ssl_expiring_count }}</h3>
                 <span class="text-[10px] text-purple-700 font-medium">Certificate renew</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-purple-100 text-purple-700 flex items-center justify-center text-lg group-hover:scale-110 transition">
                 <i class="fa-solid fa-shield-halved"></i>
             </div>
-        </div>
+        </a>
 
         <!-- 5. Auto-Renewal Health -->
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between col-span-2 lg:col-span-1">
+        <a href="{% url 'domain_list' %}?auto_renew=yes" class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center justify-between col-span-2 lg:col-span-1 hover:border-emerald-400 hover:shadow transition group block">
             <div>
                 <p class="text-[11px] font-bold text-emerald-700 uppercase tracking-wider">Auto-Renewal</p>
                 <h3 class="text-2xl font-black text-emerald-950 mt-1">{{ auto_renew_pct }}%</h3>
                 <span class="text-[10px] text-slate-500 font-medium">Automatic billing</span>
             </div>
-            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
+            <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg group-hover:scale-110 transition">
                 <i class="fa-solid fa-arrows-rotate"></i>
             </div>
-        </div>
+        </a>
     </div>
 
     <!-- Active Expired/Warning Callout Banner -->
@@ -143,80 +147,131 @@
     {% endif %}
 
     <!-- Filter & Search Toolbar -->
-    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm">
-        <form method="GET" action="{% url 'domain_list' %}" class="grid grid-cols-1 md:grid-cols-12 gap-3 items-end">
+    <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-sm space-y-4">
+        <form method="GET" action="{% url 'domain_list' %}" class="space-y-3">
 
-            <!-- Search Query -->
-            <div class="md:col-span-3">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Search Domains</label>
-                <div class="relative">
-                    <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
-                        <i class="fa-solid fa-magnifying-glass text-xs"></i>
-                    </span>
-                    <input type="text" name="q" value="{{ search_query }}" placeholder="Domain name, Server IP, Nameserver, IT Admin..."
-                           class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            <!-- Filter Row 1 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                <!-- Search Query -->
+                <div class="lg:col-span-4">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Search Registry</label>
+                    <div class="relative">
+                        <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400">
+                            <i class="fa-solid fa-magnifying-glass text-xs"></i>
+                        </span>
+                        <input type="text" name="q" value="{{ search_query }}" placeholder="Domain name, server IP, NS, admin..."
+                               class="w-full pl-9 pr-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                    </div>
+                </div>
+
+                <!-- Company Filter -->
+                <div class="lg:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Owning Company</label>
+                    <select name="company" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Companies / SBUs</option>
+                        {% for comp in companies %}
+                        <option value="{{ comp.id }}" {% if company_filter == comp.id|stringformat:"s" %}selected{% endif %}>
+                            {{ comp.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Classification / Purpose -->
+                <div class="lg:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Classification</label>
+                    <select name="category" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Classifications</option>
+                        {% for code, label in category_choices %}
+                        <option value="{{ code }}" {% if category_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Auto-Renewal Filter -->
+                <div class="lg:col-span-2">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Auto-Renewal</label>
+                    <select name="auto_renew" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Renewals</option>
+                        <option value="yes" {% if auto_renew_filter == 'yes' %}selected{% endif %}>Auto-Renew Enabled</option>
+                        <option value="no" {% if auto_renew_filter == 'no' %}selected{% endif %}>Manual Renewal Only</option>
+                    </select>
                 </div>
             </div>
 
-            <!-- Company Filter -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Owning Company</label>
-                <select name="company" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Companies</option>
-                    {% for comp in companies %}
-                    <option value="{{ comp.id }}" {% if company_filter == comp.id|stringformat:"s" %}selected{% endif %}>
-                        {{ comp.name }}
-                    </option>
-                    {% endfor %}
-                </select>
+            <!-- Filter Row 2 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-end">
+                <!-- Registrar Filter -->
+                <div class="lg:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Registrar</label>
+                    <select name="registrar" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Registrars</option>
+                        {% for code, label in registrar_choices %}
+                        <option value="{{ code }}" {% if registrar_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Expiry Timeline -->
+                <div class="lg:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Expiry Timeline</label>
+                    <select name="expiry_range" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Expiry Lifecycles</option>
+                        <option value="expiring_30" {% if expiry_range == 'expiring_30' %}selected{% endif %}>Expiring &le; 30 Days</option>
+                        <option value="expiring_60" {% if expiry_range == 'expiring_60' %}selected{% endif %}>Expiring &le; 60 Days</option>
+                        <option value="expiring_90" {% if expiry_range == 'expiring_90' %}selected{% endif %}>Expiring &le; 90 Days</option>
+                        <option value="expired" {% if expiry_range == 'expired' %}selected{% endif %}>Expired Only</option>
+                    </select>
+                </div>
+
+                <!-- SSL Certificate Status -->
+                <div class="lg:col-span-3">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">SSL Certificate</label>
+                    <select name="ssl" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All SSL Statuses</option>
+                        <option value="issues" {% if ssl_filter == 'issues' %}selected{% endif %}>All Issues (Expiring / Expired)</option>
+                        {% for code, label in ssl_status_choices %}
+                        <option value="{{ code }}" {% if ssl_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Operational Status -->
+                <div class="lg:col-span-2">
+                    <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Domain Status</label>
+                    <select name="status" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
+                        <option value="">All Statuses</option>
+                        {% for code, label in status_choices %}
+                        <option value="{{ code }}" {% if status_filter == code %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <!-- Filter Actions -->
+                <div class="lg:col-span-1 flex items-center gap-1.5">
+                    <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1" title="Apply Filter">
+                        <i class="fa-solid fa-filter"></i>
+                        <span>Filter</span>
+                    </button>
+                    {% if has_active_filters %}
+                    <a href="{% url 'domain_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2 rounded-lg text-xs transition" title="Clear Filters">
+                        <i class="fa-solid fa-xmark"></i>
+                    </a>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- Registrar Filter -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Registrar</label>
-                <select name="registrar" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Registrars</option>
-                    {% for code, label in registrar_choices %}
-                    <option value="{{ code }}" {% if registrar_filter == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Expiry Window -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">Expiry Timeline</label>
-                <select name="expiry_range" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All Lifecycles</option>
-                    <option value="expiring_30" {% if expiry_range == 'expiring_30' %}selected{% endif %}>Expiring &le; 30 Days</option>
-                    <option value="expiring_60" {% if expiry_range == 'expiring_60' %}selected{% endif %}>Expiring &le; 60 Days</option>
-                    <option value="expiring_90" {% if expiry_range == 'expiring_90' %}selected{% endif %}>Expiring &le; 90 Days</option>
-                    <option value="expired" {% if expiry_range == 'expired' %}selected{% endif %}>Expired Only</option>
-                </select>
-            </div>
-
-            <!-- SSL Certificate Status -->
-            <div class="md:col-span-2">
-                <label class="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">SSL Certificate</label>
-                <select name="ssl" class="w-full py-2 px-2.5 bg-slate-50 border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none">
-                    <option value="">All SSL Statuses</option>
-                    {% for code, label in ssl_status_choices %}
-                    <option value="{{ code }}" {% if ssl_filter == code %}selected{% endif %}>{{ label }}</option>
-                    {% endfor %}
-                </select>
-            </div>
-
-            <!-- Filter Buttons -->
-            <div class="md:col-span-1 flex items-center space-x-1.5">
-                <button type="submit" class="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-2 rounded-lg text-xs shadow transition flex items-center justify-center space-x-1" title="Apply Filter">
-                    <i class="fa-solid fa-filter"></i>
-                    <span>Filter</span>
-                </button>
-                {% if company_filter or category_filter or registrar_filter or status_filter or ssl_filter or expiry_range or search_query %}
-                <a href="{% url 'domain_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2 px-2 rounded-lg text-xs transition" title="Clear Filters">
-                    <i class="fa-solid fa-xmark"></i>
+            {% if has_active_filters %}
+            <div class="pt-2 flex items-center justify-between text-xs text-slate-500 border-t border-slate-100">
+                <span class="flex items-center gap-1.5 font-medium">
+                    <span class="w-2 h-2 rounded-full bg-blue-600"></span>
+                    <span>Showing <strong>{{ filtered_count }}</strong> of <strong>{{ total_domains }}</strong> domain records</span>
+                </span>
+                <a href="{% url 'domain_list' %}" class="text-blue-600 hover:text-blue-800 font-semibold hover:underline">
+                    Reset all filters
                 </a>
-                {% endif %}
             </div>
+            {% endif %}
 
         </form>
     </div>
@@ -313,7 +368,7 @@
                             <div class="mt-1">
                                 {% if dom.is_expired %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black bg-red-100 text-red-800 border border-red-300">
-                                    <i class="fa-solid fa-triangle-exclamation mr-1 text-[9px] text-red-600"></i>EXPIRED ({{ dom.days_until_expiry|stringformat:"+d" }}d)
+                                    <i class="fa-solid fa-triangle-exclamation mr-1 text-[9px] text-red-600"></i>EXPIRED ({{ dom.abs_days_until_expiry }}d ago)
                                 </span>
                                 {% elif dom.is_expiring_soon %}
                                 <span class="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
@@ -348,6 +403,18 @@
                             {% endif %}
                             {% if dom.ssl_provider %}
                             <span class="text-[10px] text-slate-500 block mt-0.5">{{ dom.ssl_provider }}</span>
+                            {% endif %}
+                            {% if dom.ssl_expiry_date %}
+                            <div class="text-[10px] text-slate-500 font-mono mt-0.5">
+                                <span>Exp: {{ dom.ssl_expiry_date|date:"d M Y" }}</span>
+                                {% if dom.days_until_ssl_expiry is not None %}
+                                    {% if dom.is_ssl_expired %}
+                                        <span class="text-red-600 font-bold">({{ dom.abs_days_until_ssl_expiry }}d ago)</span>
+                                    {% elif dom.is_ssl_expiring_soon %}
+                                        <span class="text-amber-700 font-bold">({{ dom.days_until_ssl_expiry }}d)</span>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
                             {% endif %}
                         </td>
 
@@ -417,11 +484,11 @@
             </div>
             <div class="flex items-center space-x-1">
                 {% if page_obj.has_previous %}
-                <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&company={{ company_filter }}&registrar={{ registrar_filter }}&ssl={{ ssl_filter }}&expiry_range={{ expiry_range }}" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 font-bold transition">Previous</a>
+                <a href="?page={{ page_obj.previous_page_number }}&q={{ search_query }}&company={{ company_filter }}&category={{ category_filter }}&registrar={{ registrar_filter }}&status={{ status_filter }}&ssl={{ ssl_filter }}&auto_renew={{ auto_renew_filter }}&expiry_range={{ expiry_range }}" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 font-bold transition">Previous</a>
                 {% endif %}
                 <span class="px-3 py-1.5 font-bold text-blue-600 bg-blue-50 rounded-lg border border-blue-200">{{ page_obj.number }}</span>
                 {% if page_obj.has_next %}
-                <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&company={{ company_filter }}&registrar={{ registrar_filter }}&ssl={{ ssl_filter }}&expiry_range={{ expiry_range }}" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 font-bold transition">Next</a>
+                <a href="?page={{ page_obj.next_page_number }}&q={{ search_query }}&company={{ company_filter }}&category={{ category_filter }}&registrar={{ registrar_filter }}&status={{ status_filter }}&ssl={{ ssl_filter }}&auto_renew={{ auto_renew_filter }}&expiry_range={{ expiry_range }}" class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-50 font-bold transition">Next</a>
                 {% endif %}
             </div>
         </div>

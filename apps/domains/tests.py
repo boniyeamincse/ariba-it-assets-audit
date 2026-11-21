@@ -193,3 +193,41 @@ class DomainRecordTests(TestCase):
         for url in restricted_urls:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 403)
+
+    def test_advanced_filtering_and_excel_export(self):
+        """Test auto-renewal, SSL issues, category filtering and Excel export endpoint."""
+        self.client.force_login(self.super_admin)
+        url = reverse('domain_list')
+
+        # Test auto_renew filter
+        auto_res = self.client.get(url, {'auto_renew': 'yes'})
+        self.assertEqual(auto_res.status_code, 200)
+        self.assertContains(auto_res, 'active-corp.com')
+
+        # Test ssl=issues filter
+        ssl_res = self.client.get(url, {'ssl': 'issues'})
+        self.assertEqual(ssl_res.status_code, 200)
+        self.assertContains(ssl_res, 'expiring-corp.com')
+        self.assertContains(ssl_res, 'expired-corp.com')
+
+        # Test category filter
+        cat_res = self.client.get(url, {'category': 'ECOMMERCE'})
+        self.assertEqual(cat_res.status_code, 200)
+        self.assertContains(cat_res, 'expired-corp.com')
+        self.assertNotContains(cat_res, 'active-corp.com')
+
+        # Test Excel export
+        export_url = reverse('domain_export_excel')
+        export_res = self.client.get(export_url)
+        self.assertEqual(export_res.status_code, 200)
+        self.assertEqual(
+            export_res['Content-Type'],
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        self.assertTrue(len(export_res.content) > 1000)
+
+    def test_model_renewal_status_recovery(self):
+        """When an expired domain is renewed with an expiry date > 30 days away, clean() resets status to ACTIVE."""
+        self.expired_domain.expiry_date = timezone.now().date() + timedelta(days=120)
+        self.expired_domain.clean()
+        self.assertEqual(self.expired_domain.status, 'ACTIVE')

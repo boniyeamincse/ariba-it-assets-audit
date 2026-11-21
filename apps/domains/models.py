@@ -227,11 +227,20 @@ class DomainRecord(TimeStampedModel):
         return 0 <= self.days_until_expiry <= 30
 
     @property
+    def abs_days_until_expiry(self):
+        return abs(self.days_until_expiry)
+
+    @property
     def days_until_ssl_expiry(self):
         if not self.ssl_expiry_date:
             return None
         today = timezone.now().date()
         return (self.ssl_expiry_date - today).days
+
+    @property
+    def abs_days_until_ssl_expiry(self):
+        days = self.days_until_ssl_expiry
+        return abs(days) if days is not None else None
 
     @property
     def is_ssl_expired(self):
@@ -256,6 +265,8 @@ class DomainRecord(TimeStampedModel):
             self.status = 'EXPIRED'
         elif 0 <= days <= 30 and self.status not in ('PARKED', 'REDIRECTED'):
             self.status = 'EXPIRING_SOON'
+        elif days > 30 and self.status in ('EXPIRED', 'EXPIRING_SOON'):
+            self.status = 'ACTIVE'
 
         # Auto-compute SSL status if date is provided
         ssl_days = self.days_until_ssl_expiry
