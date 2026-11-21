@@ -179,7 +179,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                 <i class="fa-solid fa-industry text-xs"></i>
                             </span>
-                            <input type="text" name="brand" id="id_brand" value="{{ asset.brand|default:asset.vendor|default:'' }}"
+                            <input type="text" name="brand" id="id_brand" value="{% firstof asset.brand asset.vendor '' %}"
                                    placeholder="e.g. Dell, HP, Cisco, Lenovo, Canon"
                                    class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         </div>
@@ -194,7 +194,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                 <i class="fa-solid fa-tag text-xs"></i>
                             </span>
-                            <input type="text" name="model_name" id="id_model_name" value="{{ asset.model_name|default:asset.version|default:'' }}"
+                            <input type="text" name="model_name" id="id_model_name" value="{% firstof asset.model_name asset.version '' %}"
                                    placeholder="e.g. Latitude 3420, Catalyst 2960"
                                    class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         </div>
@@ -209,7 +209,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                 <i class="fa-solid fa-fingerprint text-xs" id="icon-serial"></i>
                             </span>
-                            <input type="text" name="serial_number" id="id_serial_number" value="{{ asset.serial_number|default:asset.license_key|default:'' }}"
+                            <input type="text" name="serial_number" id="id_serial_number" value="{% firstof asset.serial_number asset.license_key '' %}"
                                    placeholder="e.g. CN-0J6K7L-72481-89B-05M"
                                    class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         </div>
@@ -238,7 +238,7 @@
                             <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
                                 <i class="fa-solid fa-id-card-clip text-xs" id="icon-mac"></i>
                             </span>
-                            <input type="text" name="mac_address" id="id_mac_address" value="{{ asset.mac_address|default:asset.host_server|default:'' }}"
+                            <input type="text" name="mac_address" id="id_mac_address" value="{% firstof asset.mac_address asset.host_server '' %}"
                                    placeholder="e.g. 00:1A:2B:3C:4D:5E"
                                    class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm font-mono text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
                         </div>
