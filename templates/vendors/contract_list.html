@@ -116,11 +116,11 @@
                             <div class="text-slate-800 font-mono text-[11px]">{{ c.start_date|date:"d M Y" }} &rarr; {{ c.end_date|date:"d M Y" }}</div>
                             <div class="text-[10px] mt-0.5">
                                 {% if c.is_expired %}
-                                <span class="text-rose-600 font-bold">Expired ({{ c.days_until_expiry|stringformat:"+d" }} days)</span>
+                                <span class="text-rose-600 font-bold">{{ c.expiry_display_text }}</span>
                                 {% elif c.days_until_expiry <= 30 %}
-                                <span class="text-amber-600 font-bold">{{ c.days_until_expiry }} days left</span>
+                                <span class="text-amber-600 font-bold">{{ c.expiry_display_text }}</span>
                                 {% else %}
-                                <span class="text-emerald-600 font-medium">{{ c.days_until_expiry }} days remaining</span>
+                                <span class="text-emerald-600 font-medium">{{ c.expiry_display_text }}</span>
                                 {% endif %}
                             </div>
                         </td>

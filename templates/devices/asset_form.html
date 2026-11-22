@@ -182,6 +182,27 @@
                 </h4>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                    <!-- Registered Vendor (VMS Integration) -->
+                    {% if vendor_choices %}
+                    <div class="md:col-span-2">
+                        <label for="id_vendor_ref" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                            <span>Vendor / Service Partner <span class="text-slate-400 font-normal lowercase">(optional link to VMS)</span></span>
+                            <a href="{% url 'vendor_create' %}" target="_blank" class="text-blue-600 hover:underline normal-case text-[11px] font-semibold">+ Register New Vendor</a>
+                        </label>
+                        <div class="relative">
+                            <span class="absolute inset-y-0 left-0 flex items-center pl-3.5 text-slate-400">
+                                <i class="fa-solid fa-handshake text-xs"></i>
+                            </span>
+                            <select name="vendor_ref" id="id_vendor_ref" class="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none transition">
+                                <option value="">-- Direct Supplier / Registered Partner (None) --</option>
+                                {% for v in vendor_choices %}
+                                <option value="{{ v.id }}" {% if current_vendor_ref_id == v.id|stringformat:"s" %}selected{% endif %}>{{ v.name }} ({{ v.vendor_code }}) - {{ v.get_category_display }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    {% endif %}
+
                     <!-- Brand / Vendor -->
                     <div>
                         <label for="id_brand" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">

@@ -254,7 +254,7 @@
                                 <td class="py-2.5 px-3 text-[11px] text-slate-600">
                                     {{ c.start_date|date:"d M Y" }} &rarr; {{ c.end_date|date:"d M Y" }}
                                     <span class="block text-[10px] {% if c.is_expired %}text-rose-600 font-bold{% elif c.days_until_expiry <= 30 %}text-amber-600 font-bold{% else %}text-emerald-600{% endif %}">
-                                        {% if c.is_expired %}Expired ({{ c.days_until_expiry|stringformat:"+d" }}d){% else %}{{ c.days_until_expiry }} days remaining{% endif %}
+                                        {{ c.expiry_display_text }}
                                     </span>
                                 </td>
                                 <td class="py-2.5 px-3">

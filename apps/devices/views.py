@@ -14,6 +14,7 @@ import csv
 import io
 
 from apps.devices.models import DeviceCategory, DeviceType, Asset
+from apps.vendors.models import Vendor
 from apps.locations.models import Company, Location
 from apps.accounts.access import CENTRAL_ROLES, DASHBOARD_ROUTES, role_for, roles_required, visible_locations
 from apps.common.utils import log_activity
@@ -201,6 +202,8 @@ def asset_create_or_edit_view(request, asset_id=None):
             'current_remediation': request.POST.get('remediation_plan') or getattr(asset, 'remediation_plan', 'COMPLIANT'),
             'current_seats_purchased': request.POST.get('seats_purchased') or getattr(asset, 'seats_purchased', 1),
             'current_seats_allocated': request.POST.get('seats_allocated') or getattr(asset, 'seats_allocated', 1),
+            'vendor_choices': Vendor.objects.filter(status__in=['ACTIVE', 'PREFERRED']).order_by('name'),
+            'current_vendor_ref_id': request.POST.get('vendor_ref') or (str(asset.vendor_ref_id) if asset and asset.vendor_ref_id else ''),
         }
 
     if request.method == 'POST':
@@ -308,6 +311,17 @@ def asset_create_or_edit_view(request, asset_id=None):
                 **form_context(), 'asset_tag_error': 'An issued asset tag cannot be changed.',
             }, status=400)
 
+        vendor_ref_id = request.POST.get('vendor_ref', '').strip()
+        vendor_ref = None
+        if vendor_ref_id and vendor_ref_id.isdecimal():
+            vendor_ref = Vendor.objects.filter(pk=int(vendor_ref_id)).first()
+        if not vendor_ref and vendor:
+            vendor_ref = Vendor.objects.filter(name__iexact=vendor).first()
+        elif not vendor_ref and brand:
+            vendor_ref = Vendor.objects.filter(name__iexact=brand).first()
+        if vendor_ref and not vendor:
+            vendor = vendor_ref.name
+
         try:
             is_new = asset is None
 
@@ -322,6 +336,7 @@ def asset_create_or_edit_view(request, asset_id=None):
                     model_name=model_name,
                     serial_number=serial_number,
                     vendor=vendor,
+                    vendor_ref=vendor_ref,
                     version=version,
                     license_key=license_key,
                     host_server=host_server,
@@ -358,6 +373,7 @@ def asset_create_or_edit_view(request, asset_id=None):
                 asset.model_name = model_name
                 asset.serial_number = serial_number
                 asset.vendor = vendor
+                asset.vendor_ref = vendor_ref
                 asset.version = version
                 asset.license_key = license_key
                 asset.host_server = host_server

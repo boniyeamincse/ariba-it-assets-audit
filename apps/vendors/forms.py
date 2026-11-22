@@ -1,3 +1,4 @@
+from decimal import Decimal
 from django import forms
 from apps.devices.models import Asset
 from apps.locations.models import Location
@@ -81,6 +82,10 @@ class VendorContractForm(BaseStyledModelForm):
         self.fields['covered_assets'].queryset = Asset.objects.select_related('location', 'device_type').order_by('asset_tag', 'model_name')
         self.fields['covered_assets'].help_text = "Hold Ctrl (Windows) or Cmd (Mac) to select multiple assets."
 
+    def clean_contract_value(self):
+        val = self.cleaned_data.get('contract_value')
+        return val if val is not None else Decimal('0.00')
+
 
 class VendorRMAForm(BaseStyledModelForm):
     class Meta:
@@ -104,6 +109,10 @@ class VendorRMAForm(BaseStyledModelForm):
         super().__init__(*args, **kwargs)
         self.fields['asset'].queryset = Asset.objects.select_related('location', 'device_type').order_by('asset_tag', 'model_name')
         self.fields['location'].queryset = Location.objects.order_by('name')
+
+    def clean_repair_cost(self):
+        cost = self.cleaned_data.get('repair_cost')
+        return cost if cost is not None else Decimal('0.00')
 
 
 class VendorEvaluationForm(BaseStyledModelForm):

@@ -239,6 +239,8 @@ class VendorContract(TimeStampedModel):
 
     @property
     def days_until_expiry(self):
+        if not self.end_date:
+            return 0
         today = timezone.localdate() if hasattr(timezone, 'localdate') else date.today()
         return (self.end_date - today).days
 
@@ -256,6 +258,19 @@ class VendorContract(TimeStampedModel):
         elif days <= 60:
             return 'warning'
         return 'safe'
+
+    @property
+    def expiry_display_text(self):
+        days = self.days_until_expiry
+        if days < 0:
+            return f"Expired ({abs(days)} days ago)"
+        elif days == 0:
+            return "Expires today"
+        elif days == 1:
+            return "1 day left"
+        elif days <= 30:
+            return f"{days} days left"
+        return f"{days} days remaining"
 
 
 class VendorRMA(TimeStampedModel):
@@ -309,6 +324,7 @@ class VendorRMA(TimeStampedModel):
         decimal_places=2,
         default=Decimal('0.00'),
         blank=True,
+        null=True,
         verbose_name="Repair Cost (BDT)"
     )
     challan_reference = models.CharField(

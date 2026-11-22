@@ -22,6 +22,11 @@
             <div><dt class="font-medium text-slate-600">Owning company</dt><dd>{% if asset.owning_company %}{{ asset.owning_company.name }}{% else %}{{ asset.location.company.name }}{% endif %}</dd></div>
             {% if asset.brand or asset.model_name %}<div><dt class="font-medium text-slate-600">Brand / model</dt><dd>{{ asset.brand|default:'' }} {{ asset.model_name|default:'' }}</dd></div>{% endif %}
             <div><dt class="font-medium text-slate-600">Compliance &amp; License</dt><dd class="font-semibold {% if asset.compliance_status == 'CRACKED_PIRATED' %}text-red-700{% elif asset.compliance_status == 'GENUINE' %}text-emerald-700{% else %}text-slate-800{% endif %}">{{ asset.get_compliance_status_display }}</dd></div>
+            {% if asset.vendor_ref %}
+            <div><dt class="font-medium text-slate-600">Vendor / Supplier</dt><dd><a href="{% url 'vendor_detail' pk=asset.vendor_ref.pk %}" class="font-bold text-blue-600 hover:underline">{{ asset.vendor_ref.name }}</a></dd></div>
+            {% elif asset.vendor %}
+            <div><dt class="font-medium text-slate-600">Vendor / Publisher</dt><dd class="font-medium text-slate-800">{{ asset.vendor }}</dd></div>
+            {% endif %}
             <div><dt class="font-medium text-slate-600">Security Risk Level</dt><dd><span class="font-bold {% if asset.risk_level in 'HIGH CRITICAL' %}text-red-700{% else %}text-slate-700{% endif %}">{{ asset.get_risk_level_display }}</span></dd></div>
             <div><dt class="font-medium text-slate-600">Remediation Plan</dt><dd>{{ asset.get_remediation_plan_display }}</dd></div>
             <div><dt class="font-medium text-slate-600">License Seats</dt><dd>{{ asset.seats_allocated }} Allocated / {{ asset.seats_purchased }} Purchased</dd></div>
@@ -30,6 +35,7 @@
             <a class="font-medium text-blue-700 underline" href="{% url 'asset_list' %}">Asset inventory</a>
             {% if not asset.retired_at %}
             <a class="font-medium text-blue-700 underline" href="{% url 'asset_edit' asset.pk %}">Edit asset</a>
+            <a class="font-medium text-amber-700 underline" href="{% url 'rma_create' %}?asset={{ asset.pk }}{% if asset.vendor_ref %}&vendor={{ asset.vendor_ref.pk }}{% endif %}">Log RMA Claim</a>
             <a class="font-medium text-red-700 underline" href="{% url 'asset_retire' asset.pk %}">Retire asset</a>
             {% endif %}
         </div>

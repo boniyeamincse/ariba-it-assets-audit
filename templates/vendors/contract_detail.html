@@ -75,7 +75,7 @@
                 <div class="flex justify-between pt-2 border-t border-slate-100">
                     <span class="text-slate-500">Days Remaining:</span>
                     <span class="font-bold {% if contract.is_expired %}text-rose-600{% elif contract.days_until_expiry <= 30 %}text-amber-600{% else %}text-emerald-600{% endif %}">
-                        {% if contract.is_expired %}Expired ({{ contract.days_until_expiry|stringformat:"+d" }}d){% else %}{{ contract.days_until_expiry }} Days{% endif %}
+                        {{ contract.expiry_display_text }}
                     </span>
                 </div>
             </div>
