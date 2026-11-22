@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import path, include
 from apps.accounts import administration
 from apps.accounts.access import Role, roles_required
-from apps.accounts.views import login_view, logout_view
+from apps.accounts.views import login_view, logout_view, home_view
 from apps.reports.views import dashboard_view, matrix_view, export_excel_matrix
 from apps.common.views import activity_log_view
 from apps.locations.views import (
@@ -51,8 +51,8 @@ urlpatterns = [
     path('login/', login_view, name='login'),
     path('logout/', logout_view, name='logout'),
     
-    # Executive Dashboard
-    path('', administration.dashboard_entry, name='home'),
+    # Home (Direct Login page for guests, Dashboard for authenticated users)
+    path('', home_view, name='home'),
     
     # Locations Management
     path('locations/', location_list_view, name='location_list'),

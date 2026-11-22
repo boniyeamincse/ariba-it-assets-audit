@@ -88,3 +88,16 @@ def profile_view(request):
     User Profile View.
     """
     return render(request, 'accounts/profile.html', {'user': request.user})
+
+
+def home_view(request):
+    """
+    Root Home View:
+    Serves the Sign In page directly on the root URL (/) for guests.
+    Directs authenticated users to their configured dashboard or landing page.
+    """
+    if request.user.is_authenticated:
+        from apps.accounts.administration import dashboard_entry
+        return dashboard_entry(request)
+    return login_view(request)
+
