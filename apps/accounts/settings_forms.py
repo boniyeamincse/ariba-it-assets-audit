@@ -315,8 +315,12 @@ RESERVED = {
 class SectionSettingsForm(forms.Form):
     def __init__(self, *args, section, config, editable, **kwargs):
         initial = preferences(config)
-        if section == 'backup':
-            initial['backup_time'] = time.fromisoformat(initial['backup_time'])
+        if section == 'backup' and initial.get('backup_time'):
+            if isinstance(initial['backup_time'], str):
+                try:
+                    initial['backup_time'] = time.fromisoformat(initial['backup_time'])
+                except (ValueError, TypeError):
+                    initial['backup_time'] = None
         super().__init__(*args, initial=initial, **kwargs)
         self.section = section
         self.fields = deepcopy(FIELDS[section])
@@ -333,10 +337,10 @@ class SectionSettingsForm(forms.Form):
     def clean(self):
         result = super().clean()
         for name in ('asset_currency', 'currency', 'company_code_prefix', 'asset_id_prefix', 'asset_id_company_code', 'asset_id_location_code', 'asset_id_category_code'):
-            if name in result:
+            if name in result and result[name]:
                 result[name] = result[name].upper()
         for name in ('asset_conditions', 'asset_criticalities', 'ownership_types', 'procurement_types', 'asset_status_labels'):
-            if name in result:
+            if name in result and result[name]:
                 rows = [row.strip() for row in result[name].splitlines() if row.strip()]
                 if not rows or len(rows) > 30 or any(len(row) > 60 for row in rows) or len(set(rows)) != len(rows):
                     self.add_error(name, 'Enter 1–30 unique values, each at most 60 characters.')
@@ -358,7 +362,7 @@ class SectionSettingsForm(forms.Form):
             if result['asset_id_start'] >= 10 ** result['asset_id_length']:
                 self.add_error('asset_id_start', 'The starting number must fit in the selected length.')
         if self.section == 'notifications':
-            recipients = [address.strip() for address in result.get('notification_recipients', '').replace(',', '\n').splitlines() if address.strip()]
+            recipients = [address.strip() for address in (result.get('notification_recipients') or '').replace(',', '\n').splitlines() if address.strip()]
             try:
                 for address in recipients:
                     validate_email(address)
@@ -372,7 +376,7 @@ class SectionSettingsForm(forms.Form):
             try:
                 result['allowed_ip_addresses'] = '\n'.join(
                     str(ip_network(value.strip(), strict=False))
-                    for value in result['allowed_ip_addresses'].replace(',', '\n').splitlines() if value.strip()
+                    for value in (result.get('allowed_ip_addresses') or '').replace(',', '\n').splitlines() if value.strip()
                 )
             except ValueError:
                 self.add_error('allowed_ip_addresses', 'Enter IP addresses or CIDR networks, one per line.')

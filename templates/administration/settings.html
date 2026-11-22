@@ -12,7 +12,7 @@
             <span>/</span>
             <span class="font-medium text-slate-700">Administration</span>
             <span>/</span>
-            <span class="font-semibold text-blue-600">System Settings</span>
+            <a href="{% url 'administration_settings' %}" class="font-semibold text-blue-600 hover:text-blue-800 transition">System Settings</a>
             <span>/</span>
             <span class="text-slate-800 font-medium">{{ section_title }}</span>
         </div>
@@ -77,7 +77,7 @@
         </nav>
 
         <!-- Right Content Area -->
-        <main class="space-y-6">
+        <div class="space-y-6">
             <section class="rounded-2xl border border-slate-200 bg-white p-6 md:p-8 shadow-sm">
                 <!-- Header with Icon & Subtitle -->
                 <div class="flex flex-wrap items-start justify-between gap-4 pb-5 border-b border-slate-100">
@@ -116,22 +116,22 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                         <div class="p-3 bg-blue-50/80 border border-blue-200 rounded-xl">
                             <span class="text-blue-600 font-medium block">Hardware Categories</span>
-                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.categories_count|default:'2' }}</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.categories_count|default_if_none:0 }}</span>
                             <span class="text-[10px] text-blue-700">Top-level device groups</span>
                         </div>
                         <div class="p-3 bg-indigo-50/80 border border-indigo-200 rounded-xl">
                             <span class="text-indigo-600 font-medium block">Device Sub-Types</span>
-                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.types_count|default:'38' }}</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.types_count|default_if_none:0 }}</span>
                             <span class="text-[10px] text-indigo-700">Hardware models catalog</span>
                         </div>
                         <div class="p-3 bg-emerald-50/80 border border-emerald-200 rounded-xl">
                             <span class="text-emerald-600 font-medium block">Tracked Physical Assets</span>
-                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.total_assets|default:'20' }}</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ asset_stats.total_assets|default_if_none:0 }}</span>
                             <span class="text-[10px] text-emerald-700">Location-wise dynamic</span>
                         </div>
                         <div class="p-3 bg-amber-50/80 border border-amber-200 rounded-xl">
                             <span class="text-amber-700 font-medium block">Default Currency</span>
-                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">BDT (৳)</span>
+                            <span class="text-slate-900 font-extrabold text-lg mt-0.5 block">{{ portal.asset_currency|default:'BDT' }}</span>
                             <span class="text-[10px] text-amber-800">Akij Group standard</span>
                         </div>
                     </div>
@@ -224,7 +224,7 @@
                     <div class="p-3 bg-white rounded-lg border border-slate-200 flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <p class="text-[11px] text-slate-500 font-medium">Sample Generated Asset ID (Recommended Standard: <strong>APL-ROU-10001</strong>):</p>
-                            <output aria-live="polite" id="asset-id-example" class="font-mono font-bold text-xl text-blue-700 tracking-wide"> {{ asset_id_preview }}</output>
+                            <output aria-live="polite" id="asset-id-example" class="font-mono font-bold text-xl text-blue-700 tracking-wide">{{ asset_id_preview }}</output>
                         </div>
                         <button type="button" id="copy-asset-id" class="inline-flex items-center gap-2 border border-slate-300 bg-slate-50 hover:bg-slate-100 rounded-lg px-3 py-2 text-xs font-semibold text-slate-700 transition shadow-xs">
                             <i class="fa-solid fa-copy"></i>
@@ -322,16 +322,17 @@
                         </span>
                         <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 font-semibold text-[11px]">Operational</span>
                     </div>
-                    <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 pt-2 text-slate-600">
-                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Django</span><span class="font-semibold text-slate-800">5.1.x</span></div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2 text-slate-600">
+                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Django</span><span class="font-semibold text-slate-800">5.2.x</span></div>
                         <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Port</span><span class="font-semibold text-slate-800">9000</span></div>
                         <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Database</span><span class="font-semibold text-slate-800">SQLite3</span></div>
+                        <div class="p-2 bg-white rounded border border-slate-200"><span class="text-[10px] text-slate-400 block uppercase">Developer</span><span class="font-semibold text-blue-600">Ariba Soft</span></div>
                     </div>
                 </div>
                 {% endif %}
 
                 <!-- Dynamic Form -->
-                <form method="post" class="mt-6 space-y-5 text-sm [&_input:not([type=checkbox])]:block [&_input:not([type=checkbox])]:w-full [&_input:not([type=checkbox])]:rounded-xl [&_input:not([type=checkbox])]:border [&_input:not([type=checkbox])]:border-slate-300 [&_input:not([type=checkbox])]:p-2.5 [&_input:not([type=checkbox])]:text-sm [&_input:not([type=checkbox])]:transition [&_input:not([type=checkbox]):focus]:border-blue-500 [&_input:not([type=checkbox]):focus]:ring-1 [&_input:not([type=checkbox]):focus]:ring-blue-500 [&_select]:block [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:p-2.5 [&_select]:text-sm [&_textarea]:block [&_textarea]:w-full [&_textarea]:rounded-xl [&_textarea]:border [&_textarea]:border-slate-300 [&_textarea]:p-2.5 [&_textarea]:text-sm [&_:disabled]:opacity-70 [&_:disabled]:bg-slate-50 [&_.errorlist]:text-red-600 [&_.errorlist]:text-xs [&_.errorlist]:mt-1" id="system-settings-form">
+                <form method="post" class="mt-6 space-y-5 text-sm [&_input:not([type=checkbox])]:block [&_input:not([type=checkbox])]:w-full [&_input:not([type=checkbox])]:rounded-xl [&_input:not([type=checkbox])]:border [&_input:not([type=checkbox])]:border-slate-300 [&_input:not([type=checkbox])]:p-2.5 [&_input:not([type=checkbox])]:text-sm [&_input:not([type=checkbox])]:transition [&_input:not([type=checkbox]):focus]:border-blue-500 [&_input:not([type=checkbox]):focus]:ring-1 [&_input:not([type=checkbox]):focus]:ring-blue-500 [&_input[type=color]]:h-11 [&_input[type=color]]:p-1 [&_input[type=color]]:cursor-pointer [&_select]:block [&_select]:w-full [&_select]:rounded-xl [&_select]:border [&_select]:border-slate-300 [&_select]:p-2.5 [&_select]:text-sm [&_textarea]:block [&_textarea]:w-full [&_textarea]:rounded-xl [&_textarea]:border [&_textarea]:border-slate-300 [&_textarea]:p-2.5 [&_textarea]:text-sm [&_:disabled]:opacity-70 [&_:disabled]:bg-slate-50 [&_.errorlist]:text-red-600 [&_.errorlist]:text-xs [&_.errorlist]:mt-1" id="system-settings-form">
                     {% csrf_token %}
                     
                     {% if form.non_field_errors %}
@@ -344,7 +345,7 @@
                         {% for field in form %}
                         <div class="space-y-1.5 {% if field.field.widget.attrs.rows %}sm:col-span-2{% endif %}">
                             {% if field.field.widget.input_type == 'checkbox' %}
-                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 hover:bg-slate-50/80 transition cursor-pointer select-none">
+                            <label class="flex items-start gap-3 p-3 rounded-xl border border-slate-200 transition select-none {% if field.field.disabled %}opacity-70 bg-slate-50 cursor-not-allowed{% else %}hover:bg-slate-50/80 cursor-pointer{% endif %}">
                                 <div class="pt-0.5">
                                     {{ field }}
                                 </div>
@@ -395,7 +396,7 @@
                     </div>
                 </form>
             </section>
-        </main>
+        </div>
     </div>
 </div>
 {% endblock %}
@@ -412,7 +413,7 @@
     function updateExample() {
         clearTimeout(previewTimer);
         if (previewRequest) previewRequest.abort();
-        copyButton.disabled = true;
+        if (copyButton) copyButton.disabled = true;
         previewTimer = setTimeout(async () => {
             previewRequest = new AbortController();
             const params = new URLSearchParams();
@@ -422,24 +423,37 @@
             try {
                 const response = await fetch(`{% url 'asset_id_preview' %}?${params}`, { signal: previewRequest.signal });
                 if (!response.ok) {
-                    idExample.value = 'Check the settings to preview';
+                    if (idExample) {
+                        idExample.textContent = 'Check the settings to preview';
+                        idExample.value = 'Check the settings to preview';
+                    }
                     return;
                 }
                 const result = await response.json();
-                idExample.value = result.tag;
-                copyButton.disabled = false;
+                if (idExample) {
+                    idExample.textContent = result.tag;
+                    idExample.value = result.tag;
+                }
+                if (copyButton) copyButton.disabled = false;
             } catch (error) {
-                if (error.name !== 'AbortError') idExample.value = 'Preview unavailable';
+                if (error.name !== 'AbortError' && idExample) {
+                    idExample.textContent = 'Preview unavailable';
+                    idExample.value = 'Preview unavailable';
+                }
             }
         }, 160);
     }
-    idForm.addEventListener('input', updateExample);
-    idForm.addEventListener('change', updateExample);
+    if (idForm) {
+        idForm.addEventListener('input', updateExample);
+        idForm.addEventListener('change', updateExample);
+        updateExample();
+    }
     {% endif %}
     if (copyButton && idExample) {
         copyButton.addEventListener('click', async () => {
             try {
-                await navigator.clipboard.writeText((idExample.value || idExample.innerText).trim());
+                const textToCopy = (idExample.value || idExample.innerText || idExample.textContent || '').trim();
+                await navigator.clipboard.writeText(textToCopy);
                 copyButton.innerHTML = '<i class="fa-solid fa-check text-emerald-600"></i> Copied!';
                 setTimeout(() => {
                     copyButton.innerHTML = '<i class="fa-solid fa-copy"></i> <span>Copy example</span>';
@@ -451,7 +465,6 @@
             }
         });
     }
-    updateExample();
 </script>
 {% elif selected == 'assets' %}
 <script>

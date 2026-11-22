@@ -39,7 +39,7 @@
     </div>
     {% endif %}
 
-    <div class="portal-workspace">
+    <div class="portal-workspace flex flex-col min-h-screen">
         <header class="portal-topbar no-print">
             <div class="portal-topbar-context">
                 {% if nav_sections %}
@@ -87,6 +87,12 @@
         <main id="main-content" class="portal-page-content" tabindex="-1">
             {% block content %}{% endblock %}
         </main>
+
+        <!-- Application Footer -->
+        <footer class="mt-auto py-3.5 px-6 text-xs text-slate-500 border-t border-slate-200 bg-white/60 backdrop-blur-xs no-print flex flex-wrap items-center justify-between gap-2">
+            <span>&copy; {% now "Y" %} {{ portal.organization_name }}. All rights reserved.</span>
+            <span>Developed by <strong class="font-semibold text-blue-600">Ariba Soft</strong></span>
+        </footer>
     </div>
 
     {% if nav_sections %}{% include 'navigation/dialogs.html' %}{% endif %}

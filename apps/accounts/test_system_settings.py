@@ -201,3 +201,18 @@ class SystemSettingsIntegrationTests(TestCase):
         self.update('maintenance', maintenance_message='Maintenance in progress for Akij systems')
         self.assertEqual(preferences()['maintenance_message'], 'Maintenance in progress for Akij systems')
 
+    def test_backup_time_none_does_not_crash(self):
+        settings = SystemSettings.current()
+        settings.options['backup_time'] = None
+        settings.save()
+        response = self.client.get(self.setting_url('backup'))
+        self.assertEqual(response.status_code, 200)
+
+    def test_ho_view_only_asset_id_script_safety(self):
+        self.client.force_login(self.ho)
+        response = self.client.get(self.setting_url('asset-id'))
+        self.assertEqual(response.status_code, 200)
+        content = response.content.decode('utf-8')
+        self.assertNotIn('updateExample();', content)
+        self.assertContains(response, reverse('administration_settings'))
+

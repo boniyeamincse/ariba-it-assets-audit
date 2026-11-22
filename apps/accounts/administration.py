@@ -252,7 +252,7 @@ def settings_view(request, section=None):
                 config.options[name] = value
         if changed:
             config.save()
-            labels = ', '.join(form.fields[name].label for name in changed)
+            labels = ', '.join(str(getattr(form.fields.get(name), 'label', None) or name) for name in changed)
             log_activity(request, 'UPDATE_SYSTEM_SETTINGS', 'Administration', f'Updated settings: {labels}.')
         messages.success(request, 'System settings saved.')
         if section is None:
