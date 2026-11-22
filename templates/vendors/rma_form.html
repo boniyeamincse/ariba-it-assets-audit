@@ -1,0 +1,139 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ portal.application_name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+    <!-- Header Section -->
+    <div class="flex items-center justify-between">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'rma_list' %}" class="text-xs font-semibold text-amber-600 hover:underline">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Back to RMA Claims
+                </a>
+                <span class="text-xs text-slate-400">•</span>
+                <span class="text-xs font-semibold text-slate-500">Hardware Service Management</span>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight mt-1">
+                {{ title }}
+            </h2>
+        </div>
+    </div>
+
+    <!-- Form Container -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs p-6">
+        <form method="POST" class="space-y-6">
+            {% csrf_token %}
+
+            {% if form.errors %}
+            <div class="p-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-800 text-xs">
+                <p class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> Please correct the following errors:</p>
+                <ul class="list-disc list-inside space-y-0.5">
+                    {% for field in form %}
+                        {% for error in field.errors %}
+                            <li>{{ field.label }}: {{ error }}</li>
+                        {% endfor %}
+                    {% endfor %}
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <!-- Section 1: Asset & Service Partner -->
+            <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-box text-amber-600"></i> Asset &amp; Vendor Information
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Target Asset / Hardware <span class="text-rose-500">*</span></label>
+                        {{ form.asset }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Origin Location <span class="text-rose-500">*</span></label>
+                        {{ form.location }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Service Vendor / Partner <span class="text-rose-500">*</span></label>
+                        {{ form.vendor }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Claim Status <span class="text-rose-500">*</span></label>
+                        {{ form.status }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Challan / Gate Pass Ref</label>
+                        {{ form.challan_reference }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 2: Fault & Timeline -->
+            <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-clock text-amber-600"></i> Timeline &amp; Issue Details
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Dispatch Date <span class="text-rose-500">*</span></label>
+                        {{ form.dispatch_date }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Expected Return Date</label>
+                        {{ form.expected_return_date }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Actual Return Date</label>
+                        {{ form.actual_return_date }}
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Fault / Issue Description <span class="text-rose-500">*</span></label>
+                        {{ form.issue_description }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Section 3: Standby, Replacement & Costs -->
+            <div>
+                <h3 class="text-xs font-bold uppercase tracking-wider text-slate-500 pb-2 border-b border-slate-100 mb-4 flex items-center gap-2">
+                    <i class="fa-solid fa-screwdriver text-amber-600"></i> Standby Unit &amp; Resolution
+                </h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="sm:col-span-3 flex items-center gap-2">
+                        {{ form.standby_provided }}
+                        <label class="text-xs font-bold text-slate-700">Vendor provided a temporary standby / loaner device</label>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Replacement Serial No (if unit swapped)</label>
+                        {{ form.replacement_serial_no }}
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Repair Cost (BDT, if out-of-warranty)</label>
+                        {{ form.repair_cost }}
+                    </div>
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-bold text-slate-700 mb-1">Resolution &amp; Service Notes</label>
+                        {{ form.resolution_notes }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-200">
+                <a href="{% url 'rma_list' %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 px-4 rounded-xl text-xs transition">
+                    Cancel
+                </a>
+                <button type="submit" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-6 rounded-xl text-xs shadow-xs transition flex items-center space-x-2">
+                    <i class="fa-solid fa-check"></i>
+                    <span>Save RMA Record</span>
+                </button>
+            </div>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

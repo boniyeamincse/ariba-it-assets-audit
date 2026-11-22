@@ -75,6 +75,9 @@ urlpatterns = [
     path('software/', software_list_view, name='software_list'),
     path('domains/', include('apps.domains.urls')),
 
+    # Vendor Management System (VMS)
+    path('vendors/', include('apps.vendors.urls')),
+
     # Multi-Location Master Matrix
     path('matrix/', matrix_view, name='matrix'),
     path('matrix/export-excel/', export_excel_matrix, name='export_excel_matrix'),

@@ -109,6 +109,14 @@ class Asset(TimeStampedModel):
     
     # Logical / Virtual specific fields
     vendor = models.CharField(max_length=120, blank=True, null=True, verbose_name="Vendor / Publisher")
+    vendor_ref = models.ForeignKey(
+        'vendors.Vendor',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='supplied_assets',
+        verbose_name="Vendor / Supplier Profile"
+    )
     version = models.CharField(max_length=100, blank=True, null=True, verbose_name="Version / Edition")
     license_key = models.CharField(max_length=255, blank=True, null=True, verbose_name="License Key / Subscription ID")
     host_server = models.CharField(max_length=150, blank=True, null=True, verbose_name="Host Server / Cloud Cluster")

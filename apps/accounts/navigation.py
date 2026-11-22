@@ -15,6 +15,11 @@ _GROUPS = (
         ('Device Catalog', 'category_list', 'fa-layer-group', (), 'central'),
         ('Import Assets', 'asset_import_csv', 'fa-file-csv', ('asset_sample_csv',), 'central'),
     )),
+    ('Procurement & Vendors', (
+        ('Vendors Directory', 'vendor_list', 'fa-handshake', ('vendor_create', 'vendor_update', 'vendor_detail', 'vendor_delete'), None),
+        ('Contracts & AMCs', 'contract_list', 'fa-file-contract', ('contract_create', 'contract_update', 'contract_detail'), None),
+        ('RMA & Repairs', 'rma_list', 'fa-screwdriver-wrench', ('rma_create', 'rma_update'), None),
+    )),
     ('Audits & Reports', (
         ('Report Center', 'report_hub', 'fa-chart-pie', (
             'report_asset_inventory', 'report_software_compliance',
@@ -50,6 +55,14 @@ _SUBPAGE_LABELS = {
     'domain_edit': 'Edit domain',
     'domain_detail': 'Domain details',
     'domain_delete': 'Delete domain',
+    'vendor_create': 'New vendor',
+    'vendor_update': 'Edit vendor',
+    'vendor_detail': 'Vendor profile',
+    'contract_create': 'New contract / AMC',
+    'contract_update': 'Edit contract',
+    'contract_detail': 'Contract details',
+    'rma_create': 'Log RMA claim',
+    'rma_update': 'Update RMA claim',
     'audit_create': 'New audit',
     'audit_edit': 'Edit audit',
     'audit_detail': 'Audit details',
@@ -64,6 +77,8 @@ _SUBPAGE_LABELS = {
 
 _CREATE_ACTIONS = (
     ('New Asset', 'asset_create', 'fa-box', None),
+    ('New Vendor', 'vendor_create', 'fa-handshake', 'central'),
+    ('Log RMA', 'rma_create', 'fa-screwdriver-wrench', None),
     ('New Domain', 'domain_create', 'fa-globe', 'central'),
     ('New Audit', 'audit_create', 'fa-clipboard-check', None),
     ('New Location', 'location_create', 'fa-building', 'central'),

@@ -1,0 +1,580 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ vendor.name }} | Vendor Profile | {{ portal.application_name }}{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+
+    <!-- Header & Navigation -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <div class="flex items-center space-x-2">
+                <a href="{% url 'vendor_list' %}" class="text-xs font-semibold text-blue-600 hover:underline">
+                    <i class="fa-solid fa-arrow-left mr-1"></i> Back to Vendors
+                </a>
+                <span class="text-xs text-slate-400">•</span>
+                <span class="text-xs font-semibold text-slate-500 font-mono">{{ vendor.vendor_code }}</span>
+            </div>
+            <div class="flex items-center gap-3 mt-1">
+                <h2 class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
+                    {{ vendor.name }}
+                </h2>
+                {% if vendor.status == 'ACTIVE' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 mr-1.5"></span> Active
+                </span>
+                {% elif vendor.status == 'PREFERRED' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                    <i class="fa-solid fa-star text-amber-500 mr-1"></i> Preferred Partner
+                </span>
+                {% elif vendor.status == 'BLACKLISTED' %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-rose-100 text-rose-800 border border-rose-200">
+                    Blacklisted
+                </span>
+                {% else %}
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
+                    {{ vendor.get_status_display }}
+                </span>
+                {% endif %}
+            </div>
+            <p class="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                <span class="font-medium text-slate-700">{{ vendor.get_category_display }}</span>
+                {% if vendor.city %}<span>• {{ vendor.city }}, {{ vendor.country }}</span>{% endif %}
+            </p>
+        </div>
+
+        <div class="flex items-center space-x-2 flex-wrap">
+            {% if can_edit %}
+            <a href="{% url 'vendor_update' pk=vendor.pk %}" class="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2 px-3.5 rounded-xl text-xs transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-pen-to-square"></i>
+                <span>Edit Profile</span>
+            </a>
+            <a href="{% url 'contract_create' %}?vendor={{ vendor.pk }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-file-contract"></i>
+                <span>Add Contract / AMC</span>
+            </a>
+            {% endif %}
+            <a href="{% url 'rma_create' %}?vendor={{ vendor.pk }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-3.5 rounded-xl text-xs transition flex items-center space-x-1.5">
+                <i class="fa-solid fa-wrench"></i>
+                <span>Log RMA Claim</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Stats Metric Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+            <p class="text-[11px] font-bold text-slate-500 uppercase">Vendor Rating</p>
+            <div class="text-xl font-black text-slate-900 mt-0.5 flex items-center gap-1.5">
+                <i class="fa-solid fa-star text-amber-400 text-base"></i>
+                <span>{{ vendor.overall_rating }}</span>
+                <span class="text-xs font-normal text-slate-400">/ 5.0</span>
+            </div>
+        </div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+            <p class="text-[11px] font-bold text-slate-500 uppercase">Active AMCs</p>
+            <div class="text-xl font-black text-indigo-600 mt-0.5">{{ contracts.count }}</div>
+        </div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+            <p class="text-[11px] font-bold text-slate-500 uppercase">Supplied Assets</p>
+            <div class="text-xl font-black text-blue-600 mt-0.5">{{ supplied_assets.count }}</div>
+        </div>
+        <div class="bg-white p-3.5 rounded-xl border border-slate-200 shadow-xs">
+            <p class="text-[11px] font-bold text-slate-500 uppercase">RMA Claims</p>
+            <div class="text-xl font-black text-amber-600 mt-0.5">{{ rma_claims.count }}</div>
+        </div>
+    </div>
+
+    <!-- Multi-Tab Navigation -->
+    <div class="bg-white rounded-xl border border-slate-200 shadow-xs overflow-hidden" x-data="{ activeTab: 'overview' }">
+        <div class="border-b border-slate-200 bg-slate-50/60 px-4 flex items-center space-x-1 overflow-x-auto text-xs font-bold">
+            <button type="button" @click="activeTab = 'overview'" :class="activeTab === 'overview' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-circle-info"></i> Overview &amp; Contacts ({{ contacts.count }})
+            </button>
+            <button type="button" @click="activeTab = 'contracts'" :class="activeTab === 'contracts' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-file-contract"></i> Contracts &amp; AMCs ({{ contracts.count }})
+            </button>
+            <button type="button" @click="activeTab = 'assets'" :class="activeTab === 'assets' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-boxes-stacked"></i> Supplied Assets ({{ supplied_assets.count }})
+            </button>
+            <button type="button" @click="activeTab = 'rma'" :class="activeTab === 'rma' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-screwdriver-wrench"></i> RMA &amp; Repairs ({{ rma_claims.count }})
+            </button>
+            <button type="button" @click="activeTab = 'evaluations'" :class="activeTab === 'evaluations' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-star"></i> Scorecard &amp; Reviews ({{ evaluations.count }})
+            </button>
+            <button type="button" @click="activeTab = 'documents'" :class="activeTab === 'documents' ? 'border-b-2 border-blue-600 text-blue-700 bg-white' : 'text-slate-600 hover:text-slate-900'" class="py-3 px-4 transition flex items-center gap-1.5 whitespace-nowrap">
+                <i class="fa-solid fa-file-lines"></i> Compliance Documents ({{ documents.count }})
+            </button>
+        </div>
+
+        <div class="p-6">
+            <!-- TAB 1: OVERVIEW & CONTACTS -->
+            <div x-show="activeTab === 'overview'" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Company Profile Details -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-building text-blue-600"></i> Corporate &amp; Legal Info
+                        </h4>
+                        <dl class="grid grid-cols-2 gap-x-4 gap-y-3 text-xs">
+                            <div>
+                                <dt class="text-slate-500">BIN / TIN</dt>
+                                <dd class="font-bold text-slate-900 mt-0.5">{{ vendor.bin_tin_number|default:"Not Provided" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500">Trade License</dt>
+                                <dd class="font-bold text-slate-900 mt-0.5">{{ vendor.trade_license_no|default:"Not Provided" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500">VAT Registration</dt>
+                                <dd class="font-bold text-slate-900 mt-0.5">{{ vendor.vat_registration_no|default:"Not Provided" }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-slate-500">Credit Terms</dt>
+                                <dd class="font-bold text-slate-900 mt-0.5">{{ vendor.credit_period_days }} Days</dd>
+                            </div>
+                            <div class="col-span-2">
+                                <dt class="text-slate-500">Corporate Address</dt>
+                                <dd class="font-bold text-slate-900 mt-0.5">{{ vendor.address|default:"Not Provided" }}</dd>
+                            </div>
+                        </dl>
+                    </div>
+
+                    <!-- Online Presence & Support -->
+                    <div class="space-y-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 pb-1 border-b border-slate-100 flex items-center gap-2">
+                            <i class="fa-solid fa-headset text-blue-600"></i> Communication &amp; Support
+                        </h4>
+                        <dl class="space-y-2.5 text-xs">
+                            <div class="flex items-center justify-between">
+                                <dt class="text-slate-500">Official Email</dt>
+                                <dd class="font-bold text-slate-900">
+                                    {% if vendor.email %}<a href="mailto:{{ vendor.email }}" class="text-blue-600 hover:underline">{{ vendor.email }}</a>{% else %}-{% endif %}
+                                </dd>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <dt class="text-slate-500">Office Phone</dt>
+                                <dd class="font-bold text-slate-900">{{ vendor.phone|default:"-" }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <dt class="text-slate-500">Hotline / Support</dt>
+                                <dd class="font-bold text-slate-900">{{ vendor.helpline_number|default:"-" }}</dd>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <dt class="text-slate-500">Corporate Website</dt>
+                                <dd class="font-bold text-slate-900">
+                                    {% if vendor.website %}<a href="{{ vendor.website }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline flex items-center gap-1">{{ vendor.website }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>{% else %}-{% endif %}
+                                </dd>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <dt class="text-slate-500">Helpdesk Portal</dt>
+                                <dd class="font-bold text-slate-900">
+                                    {% if vendor.support_portal_url %}<a href="{{ vendor.support_portal_url }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline flex items-center gap-1">{{ vendor.support_portal_url }} <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i></a>{% else %}-{% endif %}
+                                </dd>
+                            </div>
+                        </dl>
+                    </div>
+                </div>
+
+                <!-- Contacts Directory -->
+                <div class="space-y-3 pt-4 border-t border-slate-100">
+                    <div class="flex items-center justify-between">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-2">
+                            <i class="fa-solid fa-address-book text-blue-600"></i> Designated Key Contacts
+                        </h4>
+                        {% if can_edit %}
+                        <button type="button" onclick="document.getElementById('modal-add-contact').classList.remove('hidden')" class="text-xs font-bold text-blue-600 hover:text-blue-800 flex items-center gap-1">
+                            <i class="fa-solid fa-plus-circle"></i> Add Contact Person
+                        </button>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                        {% for c in contacts %}
+                        <div class="p-3.5 rounded-lg border {% if c.is_primary %}border-blue-300 bg-blue-50/20{% else %}border-slate-200 bg-white{% endif %} text-xs space-y-1 relative">
+                            <div class="flex items-center justify-between">
+                                <span class="font-bold text-slate-900">{{ c.name }}</span>
+                                {% if c.is_primary %}
+                                <span class="text-[9px] font-bold uppercase bg-blue-100 text-blue-700 px-1.5 py-0.2 rounded-full border border-blue-200">Primary</span>
+                                {% endif %}
+                            </div>
+                            <div class="text-[11px] text-slate-500 font-medium">{{ c.designation|default:c.get_contact_type_display }}</div>
+                            <div class="text-slate-700 pt-1 flex items-center gap-1.5">
+                                <i class="fa-solid fa-phone text-slate-400 text-[10px]"></i> {{ c.mobile|default:c.phone|default:"-" }}
+                            </div>
+                            <div class="text-slate-700 flex items-center gap-1.5">
+                                <i class="fa-solid fa-envelope text-slate-400 text-[10px]"></i> {{ c.email|default:"-" }}
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="col-span-3 text-center py-6 text-slate-400">
+                            No contact persons registered for this vendor yet.
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- TAB 2: CONTRACTS & AMCS -->
+            <div x-show="activeTab === 'contracts'" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Service Level &amp; Maintenance Contracts</h4>
+                    {% if can_edit %}
+                    <a href="{% url 'contract_create' %}?vendor={{ vendor.pk }}" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-plus-circle mr-1"></i> New Contract
+                    </a>
+                    {% endif %}
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
+                                <th class="py-2.5 px-3">Contract No &amp; Title</th>
+                                <th class="py-2.5 px-3">Type</th>
+                                <th class="py-2.5 px-3">Duration</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3 text-right">Value</th>
+                                <th class="py-2.5 px-3 text-center">Assets</th>
+                                <th class="py-2.5 px-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for c in contracts %}
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="py-2.5 px-3">
+                                    <a href="{% url 'contract_detail' pk=c.pk %}" class="font-bold text-blue-600 hover:underline">
+                                        {{ c.contract_number }}
+                                    </a>
+                                    <div class="text-[11px] text-slate-500">{{ c.title }}</div>
+                                </td>
+                                <td class="py-2.5 px-3 text-slate-700">{{ c.get_contract_type_display }}</td>
+                                <td class="py-2.5 px-3 text-[11px] text-slate-600">
+                                    {{ c.start_date|date:"d M Y" }} &rarr; {{ c.end_date|date:"d M Y" }}
+                                    <span class="block text-[10px] {% if c.is_expired %}text-rose-600 font-bold{% elif c.days_until_expiry <= 30 %}text-amber-600 font-bold{% else %}text-emerald-600{% endif %}">
+                                        {% if c.is_expired %}Expired ({{ c.days_until_expiry|stringformat:"+d" }}d){% else %}{{ c.days_until_expiry }} days remaining{% endif %}
+                                    </span>
+                                </td>
+                                <td class="py-2.5 px-3">
+                                    {% if c.status == 'ACTIVE' %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">Active</span>
+                                    {% else %}
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-600">{{ c.get_status_display }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="py-2.5 px-3 text-right font-mono font-bold text-slate-800">{{ c.contract_value }} {{ c.currency }}</td>
+                                <td class="py-2.5 px-3 text-center font-bold text-slate-700">{{ c.covered_assets.count }}</td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <a href="{% url 'contract_detail' pk=c.pk %}" class="text-blue-600 hover:underline font-bold text-xs">View</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-slate-400">No contracts or AMCs registered.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 3: SUPPLIED ASSETS -->
+            <div x-show="activeTab === 'assets'" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Hardware &amp; Software Associated with {{ vendor.name }}</h4>
+                    <span class="text-xs text-slate-500 font-bold">{{ supplied_assets.count }} Items</span>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
+                                <th class="py-2.5 px-3">Asset Tag / ID</th>
+                                <th class="py-2.5 px-3">Type &amp; Category</th>
+                                <th class="py-2.5 px-3">Model / Specs</th>
+                                <th class="py-2.5 px-3">Location</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for a in supplied_assets %}
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="py-2.5 px-3 font-mono font-bold text-blue-600">
+                                    <a href="{% url 'asset_detail' asset_id=a.pk %}" class="hover:underline">
+                                        {{ a.asset_tag|default:"No Tag" }}
+                                    </a>
+                                </td>
+                                <td class="py-2.5 px-3 text-slate-700">{{ a.device_type.name }}</td>
+                                <td class="py-2.5 px-3 font-medium text-slate-800">{{ a.brand }} {{ a.model_name|default:"" }}</td>
+                                <td class="py-2.5 px-3 text-slate-600">{{ a.location.name }}</td>
+                                <td class="py-2.5 px-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-700">{{ a.get_status_display }}</span>
+                                </td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <a href="{% url 'asset_detail' asset_id=a.pk %}" class="text-blue-600 hover:underline font-bold text-xs">Details</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="py-8 text-center text-slate-400">No assets currently linked to this vendor.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 4: RMA CLAIMS -->
+            <div x-show="activeTab === 'rma'" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Warranty Repairs &amp; Claims History</h4>
+                    <a href="{% url 'rma_create' %}?vendor={{ vendor.pk }}" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-wrench mr-1"></i> Log RMA
+                    </a>
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse text-xs">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold uppercase text-[10px]">
+                                <th class="py-2.5 px-3">RMA No</th>
+                                <th class="py-2.5 px-3">Asset</th>
+                                <th class="py-2.5 px-3">Location</th>
+                                <th class="py-2.5 px-3">Dispatch Date</th>
+                                <th class="py-2.5 px-3">Status</th>
+                                <th class="py-2.5 px-3">Standby</th>
+                                <th class="py-2.5 px-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            {% for rma in rma_claims %}
+                            <tr class="hover:bg-slate-50/50">
+                                <td class="py-2.5 px-3 font-mono font-bold text-slate-900">{{ rma.rma_number }}</td>
+                                <td class="py-2.5 px-3 font-medium text-slate-800">{{ rma.asset.asset_tag }} ({{ rma.asset.device_type.name }})</td>
+                                <td class="py-2.5 px-3 text-slate-600">{{ rma.location.name }}</td>
+                                <td class="py-2.5 px-3 text-slate-600">{{ rma.dispatch_date|date:"d M Y" }}</td>
+                                <td class="py-2.5 px-3">
+                                    <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">{{ rma.get_status_display }}</span>
+                                </td>
+                                <td class="py-2.5 px-3">
+                                    {% if rma.standby_provided %}<span class="text-emerald-600 font-bold"><i class="fa-solid fa-check"></i> Yes</span>{% else %}<span class="text-slate-400">No</span>{% endif %}
+                                </td>
+                                <td class="py-2.5 px-3 text-right">
+                                    <a href="{% url 'rma_update' pk=rma.pk %}" class="text-blue-600 hover:underline font-bold text-xs">Update</a>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="py-8 text-center text-slate-400">No RMA claims on record.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- TAB 5: EVALUATION SCORECARDS -->
+            <div x-show="activeTab === 'evaluations'" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Vendor Performance Evaluations</h4>
+                        <p class="text-[11px] text-slate-400">Weighted score across Delivery (30%), Quality (25%), Support (25%), Pricing (20%)</p>
+                    </div>
+                    <button type="button" onclick="document.getElementById('modal-add-evaluation').classList.remove('hidden')" class="bg-amber-600 hover:bg-amber-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-star mr-1"></i> Submit Scorecard
+                    </button>
+                </div>
+
+                <div class="space-y-3">
+                    {% for eval in evaluations %}
+                    <div class="p-4 rounded-xl border border-slate-200 bg-white shadow-2xs space-y-2">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="font-bold text-slate-900 text-xs">{{ eval.review_period }}</span>
+                                <span class="text-[11px] text-slate-400 ml-2">by {{ eval.evaluated_by.username|default:"IT Auditor" }} on {{ eval.created_at|date:"d M Y" }}</span>
+                            </div>
+                            <div class="text-sm font-black text-amber-600 flex items-center gap-1">
+                                <i class="fa-solid fa-star text-amber-400 text-xs"></i>
+                                <span>{{ eval.composite_score }}</span>
+                                <span class="text-[10px] text-slate-400 font-normal">/ 5.00</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-4 gap-2 text-center text-[10px] bg-slate-50 p-2 rounded-lg font-medium text-slate-600">
+                            <div>Delivery &amp; SLA: <strong class="text-slate-900">{{ eval.delivery_score }}/5</strong></div>
+                            <div>Product Quality: <strong class="text-slate-900">{{ eval.quality_score }}/5</strong></div>
+                            <div>Support Speed: <strong class="text-slate-900">{{ eval.support_score }}/5</strong></div>
+                            <div>Commercials: <strong class="text-slate-900">{{ eval.pricing_score }}/5</strong></div>
+                        </div>
+                        {% if eval.comments %}
+                        <p class="text-xs text-slate-600 italic">"{{ eval.comments }}"</p>
+                        {% endif %}
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-8 text-slate-400">
+                        No evaluations submitted yet.
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- TAB 6: DOCUMENTS -->
+            <div x-show="activeTab === 'documents'" class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h4 class="text-xs font-bold uppercase tracking-wider text-slate-500">Corporate &amp; Legal Attachments</h4>
+                    {% if can_edit %}
+                    <button type="button" onclick="document.getElementById('modal-upload-doc').classList.remove('hidden')" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-1.5 px-3 rounded-lg text-xs transition">
+                        <i class="fa-solid fa-upload mr-1"></i> Upload File
+                    </button>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {% for doc in documents %}
+                    <div class="p-3.5 rounded-lg border border-slate-200 bg-white flex items-center justify-between text-xs">
+                        <div class="flex items-center space-x-3 truncate">
+                            <i class="fa-solid fa-file-pdf text-rose-500 text-2xl"></i>
+                            <div class="truncate">
+                                <div class="font-bold text-slate-900 truncate">{{ doc.title }}</div>
+                                <div class="text-[10px] text-slate-400">{{ doc.get_doc_type_display }} • {{ doc.created_at|date:"d M Y" }}</div>
+                            </div>
+                        </div>
+                        <a href="{{ doc.file.url }}" target="_blank" download class="p-2 text-slate-500 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition" title="Download Document">
+                            <i class="fa-solid fa-download"></i>
+                        </a>
+                    </div>
+                    {% empty %}
+                    <div class="col-span-3 text-center py-8 text-slate-400">No documents uploaded.</div>
+                    {% endfor %}
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<!-- Modal: Add Contact Person -->
+<div id="modal-add-contact" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-sm">Add Key Contact Person</h3>
+            <button type="button" onclick="document.getElementById('modal-add-contact').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="POST" action="{% url 'vendor_contact_add' vendor_pk=vendor.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                {{ contact_form.name }}
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Role Type</label>
+                    {{ contact_form.contact_type }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Designation</label>
+                    {{ contact_form.designation }}
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Mobile</label>
+                    {{ contact_form.mobile }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Office Phone</label>
+                    {{ contact_form.phone }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
+                {{ contact_form.email }}
+            </div>
+            <div class="flex items-center gap-2 pt-1">
+                {{ contact_form.is_primary }}
+                <label class="text-xs font-semibold text-slate-700">Set as Primary Contact for this Vendor</label>
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('modal-add-contact').classList.add('hidden')" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Save Contact</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Add Evaluation Scorecard -->
+<div id="modal-add-evaluation" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-sm">Submit Vendor Performance Scorecard</h3>
+            <button type="button" onclick="document.getElementById('modal-add-evaluation').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="POST" action="{% url 'vendor_evaluation_add' vendor_pk=vendor.pk %}" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Review Period / Reason</label>
+                {{ evaluation_form.review_period }}
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Delivery &amp; SLA</label>
+                    {{ evaluation_form.delivery_score }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Product Quality</label>
+                    {{ evaluation_form.quality_score }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Support Speed</label>
+                    {{ evaluation_form.support_score }}
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-slate-700 mb-1">Commercials</label>
+                    {{ evaluation_form.pricing_score }}
+                </div>
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Evaluator Comments</label>
+                {{ evaluation_form.comments }}
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('modal-add-evaluation').classList.add('hidden')" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded-lg">Submit Scorecard</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal: Upload Document -->
+<div id="modal-upload-doc" class="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <h3 class="font-bold text-slate-900 text-sm">Upload Compliance Document</h3>
+            <button type="button" onclick="document.getElementById('modal-upload-doc').classList.add('hidden')" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form method="POST" action="{% url 'vendor_document_upload' vendor_pk=vendor.pk %}" enctype="multipart/form-data" class="space-y-3">
+            {% csrf_token %}
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Document Title</label>
+                {{ document_form.title }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Document Type</label>
+                {{ document_form.doc_type }}
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">File Attachment (PDF / Image)</label>
+                {{ document_form.file }}
+            </div>
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button type="button" onclick="document.getElementById('modal-upload-doc').classList.add('hidden')" class="px-3 py-2 text-xs font-bold text-slate-600 bg-slate-100 rounded-lg">Cancel</button>
+                <button type="submit" class="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg">Upload</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endblock %}
